@@ -246,11 +246,18 @@ function getNextShiftCountdown(job) {
 function renderJobs() {
   const app = document.getElementById('mainApp');
   app.innerHTML = '';
-  if (appSettings.showJobCards && jobs.length > 0) {
-    const lbl = document.createElement('div');
-    lbl.className = 'label-card';
-    lbl.textContent = 'Time Until Next Shift';
-    app.appendChild(lbl);
+  if (appSettings.showJobCards) {
+    if (jobs.length === 0) {
+      const placeholder = document.createElement('div');
+      placeholder.className = 'label-card';
+      placeholder.textContent = 'Tap New to Add a Job';
+      app.appendChild(placeholder);
+    } else {
+      const lbl = document.createElement('div');
+      lbl.className = 'label-card';
+      lbl.textContent = 'Time Until Next Shift';
+      app.appendChild(lbl);
+    }
   }
   if (appSettings.showJobCards) jobs.forEach(job => {
     const countdown = getNextShiftCountdown(job);
