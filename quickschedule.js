@@ -68,10 +68,8 @@ function renderQuickSchedule() {
     axisMax = Math.max(axisMax, s.endMins);
   }));
   if (axisMin === Infinity) {
-    const dbg = document.createElement('div');
-    dbg.style.cssText = 'color:#e07878;font-size:10px;font-weight:800;padding:4px;';
-    dbg.textContent = 'NO SHIFT DATA FOUND IN NEXT 7 DAYS';
-    wrap.appendChild(dbg); return;
+    axisMin = 12 * 60;      // default: 12PM
+    axisMax = 24 * 60;      // default: 12AM midnight
   }
   const axisLeft  = Math.floor(axisMin / 60) * 60;
   const axisRight = Math.ceil(axisMax  / 60) * 60;
