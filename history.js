@@ -277,3 +277,10 @@ function hLast10Card(anchorDow) {
   card.appendChild(grid);
   return card;
 }
+
+/* ── self-init ── */
+window.addEventListener('load', function() {
+  buildHistory();
+  renderHistory();
+  if (typeof updateSettingsUI === 'function') updateSettingsUI();
+});

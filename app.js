@@ -243,7 +243,7 @@ function nwCreate() {
   nwSelectedDow = 1;
   document.getElementById('nwFooter').classList.remove('ready');
   if (typeof renderQuickSchedule === 'function' && appSettings.showQuickSchedule) renderQuickSchedule();
-  if (typeof renderHistory === 'function') renderHistory();
+  if (typeof renderHistory === 'function') { buildHistory(); renderHistory(); }
   closeWindow('newWindow');
 }
 
@@ -307,7 +307,7 @@ function renderJobs() {
   });
   // re-render quick schedule below job cards
   if (typeof renderQuickSchedule === 'function' && appSettings.showQuickSchedule) renderQuickSchedule();
-  if (typeof renderHistory === 'function') renderHistory();
+  if (typeof renderHistory === 'function') { buildHistory(); renderHistory(); }
 }
 
 /* ── job window ── */
@@ -594,7 +594,7 @@ function tpLoadSmartRange(idx) {
   renderDayCards();
   renderJobs();
   if (typeof renderQuickSchedule === 'function' && appSettings.showQuickSchedule) renderQuickSchedule();
-  if (typeof renderHistory === 'function') renderHistory();
+  if (typeof renderHistory === 'function') { buildHistory(); renderHistory(); }
   closeSchedModal();
 }
 
@@ -700,7 +700,7 @@ function tpConfirm() {
   renderDayCards();
   renderJobs();
   if (typeof renderQuickSchedule === 'function' && appSettings.showQuickSchedule) renderQuickSchedule();
-  if (typeof renderHistory === 'function') renderHistory();
+  if (typeof renderHistory === 'function') { buildHistory(); renderHistory(); }
   closeSchedModal();
 }
 function closeSchedModal() { document.getElementById('schedModal').classList.remove('open'); }
