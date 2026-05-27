@@ -17,13 +17,16 @@ function darkenColor(hex, factor) {
 }
 
 function buildQuickSchedule() {
+  const mainApp = document.getElementById('mainApp');
+  if (!mainApp) return;
   let wrap = document.getElementById('quickSchedule');
   if (!wrap) {
     wrap = document.createElement('div');
     wrap.id = 'quickSchedule';
     wrap.className = 'qs-wrap';
-    const mainApp = document.getElementById('mainApp');
-    if (mainApp) mainApp.appendChild(wrap);
+    mainApp.appendChild(wrap);
+  } else if (!wrap.parentNode || wrap.parentNode !== mainApp) {
+    mainApp.appendChild(wrap);
   }
 }
 
@@ -91,8 +94,9 @@ function renderQuickSchedule() {
   const NIGHT_END   = 6 * 60 + 1440; // 6AM next day in mins
 
   const cs = getComputedStyle(document.documentElement);
-  const QS_PURPLE    = cs.getPropertyValue('--swatch-7').trim();
-  const QS_PURPLE_DK = cs.getPropertyValue('--swatch-7-dk').trim();
+  const QS_PURPLE    = cs.getPropertyValue('--accent').trim();
+  // darken accent by 20% for night sections
+  const QS_PURPLE_DK = darkenColor(QS_PURPLE, 0.8);
 
   function addNightOverlay(container, color) {
     const oLeft  = Math.max(NIGHT_START, bufLeft);

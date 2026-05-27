@@ -78,8 +78,8 @@ function buildWindows() {
           <button class="filter-btn" id="fwNext" onclick="setWeek('next')">Next Week</button>
         </div>
         <div class="filter-card" id="hoursCard">
-          <button class="filter-btn active" id="fhScheduled" onclick="setHoursType('scheduled')">Scheduled Hours</button>
-          <button class="filter-btn" id="fhWorked" onclick="setHoursType('worked')">Worked Hours</button>
+          <button class="filter-btn active secondary" id="fhScheduled" onclick="setHoursType('scheduled')">Scheduled Hours</button>
+          <button class="filter-btn secondary" id="fhWorked" onclick="setHoursType('worked')">Worked Hours</button>
         </div>
         <div class="date-range-card" id="dateRangeCard"></div>
         <div id="dayCards" style="display:flex;flex-direction:column;gap:var(--margin);"></div>
@@ -119,16 +119,49 @@ function buildWindows() {
         <button class="data-window-back" onclick="closeWindow('settingsWindow')">&#9664;</button>
         <div class="data-window-title">Settings</div>
       </div>
-      <div class="data-body">
-        <div class="toggle-card" id="toggleJobCards" onclick="settingToggle('showJobCards')">
-          <span class="toggle-label">Job Cards</span>
-          <span class="toggle-pill" id="pillJobCards"></span>
-        </div>
+      <!-- settings tab bar -->
+      <div class="filter-card" style="flex-shrink:0;border-radius:0;border-left:none;border-right:none;border-top:none;">
+        <button class="filter-btn active" id="stab-display"  onclick="settingsTab('display')">Display</button>
+        <button class="filter-btn"        id="stab-cards"    onclick="settingsTab('cards')">Cards</button>
+        <button class="filter-btn"        id="stab-other"    onclick="settingsTab('other')">Other</button>
+      </div>
+
+      <!-- DISPLAY TAB -->
+      <div class="data-body" id="spanel-display">
+        <div class="label-card">What shows in the main window</div>
+
+        <div class="toggle-card" id="toggleJobCards" onclick="settingToggle('showJobCards')"><div class="toggle-card-top"><span class="toggle-label">Job Cards</span><span class="toggle-pill" id="pillJobCards"></span></div><div class="toggle-card-blurb">Shows each job as a card with time until next shift</div></div>
+
         <div id="quickScheduleToggleSlot"></div>
-        <div id="timeDotToggleSlot"></div>
+
         <div id="historyToggleSlot"></div>
-        <div class="label-card" id="notifTestBtn" onclick="testNotification()" style="cursor:pointer;background:var(--bg-2);color:var(--color-4);">Test Notification</div>
-        <div class="label-card" id="notifStatus" style="font-size:var(--text-xs);"></div>
+      </div>
+
+      <!-- CARDS TAB -->
+      <div class="data-body" id="spanel-cards" style="display:none;">
+        <div class="label-card">Left &amp; right sections on each job card</div>
+
+        <div id="timerSectionsToggleSlot"></div>
+
+        <div id="miniGraphToggleSlot"></div>
+
+        <div id="miniGraphDaysSlot"></div>
+
+        <div id="timeDotToggleSlot"></div>
+      </div>
+
+      <!-- OTHER TAB -->
+      <div class="data-body" id="spanel-other" style="display:none;">
+        <div class="label-card">Notifications</div>
+        <div style="font-size:var(--text-xs);color:var(--muted);padding:2px 4px 6px;">Test that push notifications are working on your device</div>
+        <div class="toggle-card" id="notifTestBtn" onclick="testNotification()" style="cursor:pointer;">
+          <div class="toggle-card-top">
+            <span class="toggle-label" style="color:var(--primary);">Send Test Notification</span>
+            <span style="font-size:var(--text-xs);color:var(--muted);">&#9654;</span>
+          </div>
+          <div class="toggle-card-blurb">Sends a test push notification to confirm permissions are set up correctly on this device</div>
+        </div>
+        <div id="notifStatus" style="font-size:var(--text-xs);font-weight:var(--fw-bold);text-align:center;color:var(--muted);padding:4px;min-height:18px;"></div>
       </div>
     </div>
 
@@ -148,7 +181,7 @@ function buildWindows() {
 
 
 /* ── app settings ── */
-const _settingsDefaults = { showJobCards: true, showQuickSchedule: true, showTimeDot: true, showHistory: true };
+const _settingsDefaults = { showJobCards: true, showQuickSchedule: true, showTimeDot: true, showHistory: true, showTimerSections: true, showMiniGraph: true, miniGraphDays: 3 };
 let appSettings = Object.assign({}, _settingsDefaults, ls('sch_settings', {}));
 
 function settingToggle(key) {
@@ -159,31 +192,51 @@ function settingToggle(key) {
 }
 
 function updateSettingsUI() {
+  const tsSlot = document.getElementById('timerSectionsToggleSlot');
+  if (tsSlot) {
+    tsSlot.innerHTML = `<div class="toggle-card" id="toggleTimerSections" onclick="settingToggle('showTimerSections')"><span class="toggle-label">Left & Right Sections</span><span class="toggle-pill" id="pillTimerSections"></span></div>`;
+  }
+  const mgSlot = document.getElementById('miniGraphToggleSlot');
+  if (mgSlot) {
+    mgSlot.innerHTML = `<div class=\"toggle-card\" id=\"toggleMiniGraph\" onclick=\"settingToggle(&apos;showMiniGraph&apos;)\"><div class=\"toggle-card-top\"><span class=\"toggle-label\">Weekly Graph</span><span class=\"toggle-pill\" id=\"pillMiniGraph\"></span></div><div class=\"toggle-card-blurb\">Bar graph on the left panel showing hours per day. Green = past worked, blue = today, white = future scheduled</div></div>`;
+  }
+  const mgDays = document.getElementById('miniGraphDaysSlot');
+  if (mgDays) {
+    const cur = appSettings.miniGraphDays || 3;
+    mgDays.innerHTML = `<div class="filter-card" style="flex-shrink:0;border-radius:var(--radius);">
+      <button class="filter-btn${cur===3?' active':''}" onclick="setMiniGraphDays(3)">3 Days</button>
+      <button class="filter-btn${cur===5?' active':''}" onclick="setMiniGraphDays(5)">5 Days</button>
+      <button class="filter-btn${cur===7?' active':''}" onclick="setMiniGraphDays(7)">7 Days</button>
+    </div>`;
+  }
   // inject quickschedule toggles only if quickschedule.js loaded
   const qsSlot = document.getElementById('quickScheduleToggleSlot');
   if (qsSlot) {
     if (typeof renderQuickSchedule === 'function') {
-      qsSlot.innerHTML = `<div class="toggle-card" id="toggleQuickSchedule" onclick="settingToggle('showQuickSchedule')"><span class="toggle-label">Quick Schedule</span><span class="toggle-pill" id="pillQuickSchedule"></span></div>`;
+      qsSlot.innerHTML = `<div class=\"toggle-card\" id=\"toggleQuickSchedule\" onclick=\"settingToggle(&apos;showQuickSchedule&apos;)\"><div class=\"toggle-card-top\"><span class=\"toggle-label\">Quick Schedule</span><span class=\"toggle-pill\" id=\"pillQuickSchedule\"></span></div><div class=\"toggle-card-blurb\">7-day timeline of all scheduled shifts with hour markers and current time indicator</div></div>`;
+
     } else { qsSlot.innerHTML = ''; }
   }
   const tdSlot = document.getElementById('timeDotToggleSlot');
   if (tdSlot) {
     if (typeof renderQuickSchedule === 'function') {
-      tdSlot.innerHTML = `<div class="toggle-card" id="toggleTimeDot" onclick="settingToggle('showTimeDot')"><span class="toggle-label">Time Indicator</span><span class="toggle-pill" id="pillTimeDot"></span></div>`;
+      tdSlot.innerHTML = `<div class="toggle-card" id="toggleTimeDot" onclick="settingToggle('showTimeDot')"><span class="toggle-label">Current Time Indicator</span><span class="toggle-pill" id="pillTimeDot"></span></div>`;
+
     } else { tdSlot.innerHTML = ''; }
   }
   // inject history toggle only if history.js loaded
   const slot = document.getElementById('historyToggleSlot');
   if (slot) {
     if (typeof renderHistory === 'function') {
-      slot.innerHTML = `<div class="toggle-card" id="toggleHistory" onclick="settingToggle('showHistory')"><span class="toggle-label">History</span><span class="toggle-pill" id="pillHistory"></span></div>`;
+      slot.innerHTML = `<div class=\"toggle-card\" id=\"toggleHistory\" onclick=\"settingToggle(&apos;showHistory&apos;)\"><div class=\"toggle-card-top\"><span class=\"toggle-label\">History</span><span class=\"toggle-pill\" id=\"pillHistory\"></span></div><div class=\"toggle-card-blurb\">This week, next week, and last 10 weeks of worked and scheduled hours</div></div>`;
+
     } else {
       slot.innerHTML = '';
     }
   }
-  const keys = ['showJobCards', 'showQuickSchedule', 'showTimeDot', 'showHistory'];
-  const pills = { showJobCards: 'pillJobCards', showQuickSchedule: 'pillQuickSchedule', showTimeDot: 'pillTimeDot', showHistory: 'pillHistory' };
-  const cards = { showJobCards: 'toggleJobCards', showQuickSchedule: 'toggleQuickSchedule', showTimeDot: 'toggleTimeDot', showHistory: 'toggleHistory' };
+  const keys = ['showJobCards', 'showQuickSchedule', 'showTimeDot', 'showHistory', 'showTimerSections', 'showMiniGraph'];
+  const pills = { showJobCards: 'pillJobCards', showQuickSchedule: 'pillQuickSchedule', showTimeDot: 'pillTimeDot', showHistory: 'pillHistory', showTimerSections: 'pillTimerSections', showMiniGraph: 'pillMiniGraph' };
+  const cards = { showJobCards: 'toggleJobCards', showQuickSchedule: 'toggleQuickSchedule', showTimeDot: 'toggleTimeDot', showHistory: 'toggleHistory', showTimerSections: 'toggleTimerSections', showMiniGraph: 'toggleMiniGraph' };
   keys.forEach(k => {
     const on = appSettings[k];
     const pill = document.getElementById(pills[k]);
@@ -243,7 +296,7 @@ function nwCreate() {
   document.querySelectorAll('#nwDowCard .dow-btn').forEach((b,i) => b.classList.toggle('active', i === 1));
   nwSelectedDow = 1;
   document.getElementById('nwFooter').classList.remove('ready');
-  if (typeof renderQuickSchedule === 'function' && appSettings.showQuickSchedule) renderQuickSchedule();
+  if (typeof renderQuickSchedule === 'function' && appSettings.showQuickSchedule) { buildQuickSchedule(); renderQuickSchedule(); }
   if (typeof renderHistory === 'function') { buildHistory(); renderHistory(); }
   closeWindow('newWindow');
 }
@@ -275,15 +328,172 @@ function getNextShiftCountdown(job) {
   return null;
 }
 
+
+/* ── shift timer ── */
+function settingsTab(tab) {
+  ['display','cards','other'].forEach(t => {
+    document.getElementById('spanel-' + t).style.display = t === tab ? 'flex' : 'none';
+    document.getElementById('stab-'   + t).classList.toggle('active', t === tab);
+  });
+}
+
+function setMiniGraphDays(n) {
+  appSettings.miniGraphDays = n;
+  lsSet('sch_settings', appSettings);
+  updateSettingsUI();
+  renderJobs();
+}
+
+function nowTimeStr() {
+  const now = new Date();
+  let h = now.getHours(), m = now.getMinutes();
+  const ap = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ' ' + ap;
+}
+
+function getTimerState(job) {
+  const key = localDateKey(new Date());
+  const w = job.worked && job.worked[key];
+  if (!w || !w.start) return 'idle';
+  if (w.start && !w.end) return 'running';
+  return 'done';
+}
+
+function timerIcon(state, job) {
+  if (state === 'running') {
+    return '<div class="job-card-pause"><div class="job-card-pause-bar"></div><div class="job-card-pause-bar"></div></div>';
+  } else if (state === 'done') {
+    return '<div class="job-card-check"></div>';
+  }
+  return '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 2 Q2 1 3 1.5 L13.5 7.5 Q15 8 13.5 8.5 L3 14.5 Q2 15 2 14 Z" fill="currentColor" style="color:var(--muted)" stroke="var(--muted)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+}
+
+function getElapsedStr(job) {
+  const key = localDateKey(new Date());
+  const w = job.worked && job.worked[key];
+  if (!w || !w.start) return null;
+  const startMins = parseTimeToMins(w.start);
+  if (startMins === null) return null;
+  const now = new Date();
+  const nowMins = now.getHours() * 60 + now.getMinutes();
+  let diff = nowMins - startMins;
+  if (diff < 0) diff += 24 * 60;
+  const hh = String(Math.floor(diff / 60)).padStart(2,'0');
+  const mm = String(diff % 60).padStart(2,'0');
+  return hh + 'h ' + mm + 'm';
+}
+
+function timerTap(jobId, e) {
+  e.stopPropagation();
+  const job = jobs.find(j => j.id === jobId);
+  if (!job) return;
+  const key = localDateKey(new Date());
+  if (!job.worked) job.worked = {};
+  const state = getTimerState(job);
+
+  if (state === 'idle') {
+    // start shift
+    job.worked[key] = { start: nowTimeStr(), end: null };
+    lsSet('sch_jobs', jobs);
+    renderJobs();
+  } else if (state === 'running') {
+    // end shift
+    job.worked[key].end = nowTimeStr();
+    lsSet('sch_jobs', jobs);
+    renderJobs();
+    if (typeof renderHistory === 'function') { buildHistory(); renderHistory(); }
+  } else {
+    // done — ask to reset
+    showTimerResetModal(job, key);
+  }
+}
+
+function showTimerResetModal(job, key) {
+  let modal = document.getElementById('timerResetModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'timerResetModal';
+    modal.className = 'modal-blur-overlay';
+    modal.innerHTML = '<div style="background:var(--bg-2);border:var(--border-width) solid var(--border-color);border-radius:var(--radius);width:100%;max-width:320px;overflow:hidden;">'
+      + '<div style="padding:16px;font-size:var(--text-sm);font-weight:var(--fw-bold);color:var(--color-10);text-align:center;letter-spacing:var(--ls-wider);text-transform:uppercase;">Reset Today&#39;s Shift?</div>'
+      + '<div style="display:flex;border-top:var(--border-width) solid var(--border-color);">'
+      + '<div id="timerResetNo" style="flex:1;padding:12px;text-align:center;font-size:var(--text-sm);font-weight:var(--fw-bold);color:var(--muted);cursor:pointer;border-right:var(--border-width) solid var(--border-color);">Cancel</div>'
+      + '<div id="timerResetYes" style="flex:1;padding:12px;text-align:center;font-size:var(--text-sm);font-weight:var(--fw-bold);color:var(--color-1);cursor:pointer;">Reset</div>'
+      + '</div></div>';
+    document.body.appendChild(modal);
+  }
+  modal.style.display = 'flex';
+  document.getElementById('timerResetNo').onclick  = () => { modal.style.display = 'none'; };
+  document.getElementById('timerResetYes').onclick = () => {
+    if (!job.worked) job.worked = {};
+    delete job.worked[key];
+    lsSet('sch_jobs', jobs);
+    modal.style.display = 'none';
+    renderJobs();
+    if (typeof renderHistory === 'function') { buildHistory(); renderHistory(); }
+  };
+}
+
+
+/* ── mini graph ── */
+function buildMiniGraph(job, container) {
+  const cs       = getComputedStyle(document.documentElement);
+  const green    = cs.getPropertyValue('--primary').trim();
+  const blue     = cs.getPropertyValue('--secondary').trim();
+  const white    = cs.getPropertyValue('--color-10').trim();
+  const n        = appSettings.miniGraphDays || 3;
+  const total    = n * 2 + 1;
+  const today    = new Date(); today.setHours(0,0,0,0);
+  const days     = [];
+
+  for (let i = -n; i <= n; i++) {
+    const d = new Date(today); d.setDate(today.getDate() + i);
+    const key = localDateKey(d);
+    const when = i < 0 ? 'past' : i === 0 ? 'today' : 'future';
+    const src  = when === 'past' ? job.worked : job.schedule;
+    const entry = src && src[key];
+    let hours = 0, hasShift = false;
+    if (entry && entry.start && entry.start !== 'OFF' && entry.start !== 'NONE' && entry.end) {
+      const s = parseTimeToMins(entry.start), e = parseTimeToMins(entry.end);
+      if (s !== null && e !== null) {
+        let diff = e - s; if (diff <= 0) diff += 1440;
+        hours = diff / 60; hasShift = true;
+      }
+    } else if (entry && entry.start === 'OFF') {
+      hasShift = false;
+    }
+    days.push({ when, hasShift, hours });
+  }
+
+  const INNER   = 39; // 45px left - 6px borders
+  const colW    = INNER / total;
+  const dotSize = Math.max(2, Math.min(6, Math.floor(colW * 0.55)));
+  const maxH    = Math.max(...days.map(d => d.hours), 1);
+
+  days.forEach(d => {
+    const col = document.createElement('div');
+    col.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:flex-end;flex:1;';
+    const barColor = d.when === 'past' ? green : d.when === 'today' ? blue : white;
+
+    if (!d.hasShift) {
+      const dot = document.createElement('div');
+      dot.style.cssText = `width:${dotSize}px;height:${dotSize}px;border-radius:50%;background:${barColor};flex-shrink:0;`;
+      col.appendChild(dot);
+    } else {
+      const bar = document.createElement('div');
+      bar.style.cssText = `width:100%;border-radius:2px 2px 0 0;min-height:2px;background:${barColor};height:${Math.round((d.hours / maxH) * 30)}px;`;
+      col.appendChild(bar);
+    }
+    container.appendChild(col);
+  });
+}
+
 /* ── render jobs ── */
 function renderJobs() {
   const app = document.getElementById('mainApp');
-  // preserve feature containers so they aren't wiped
-  const qsWrap = document.getElementById('quickSchedule');
-  const histWrap = document.getElementById('historyWrap');
   app.innerHTML = '';
-  if (qsWrap) app.appendChild(qsWrap);
-  if (histWrap) app.appendChild(histWrap);
+  // order: 1) job cards (below), 2) quick schedule, 3) history
   if (appSettings.showJobCards) {
     if (jobs.length === 0) {
       const placeholder = document.createElement('div');
@@ -303,16 +513,30 @@ function renderJobs() {
     const countdown = getNextShiftCountdown(job);
     const card = document.createElement('div');
     card.className = 'job-card';
+    const timerState  = getTimerState(job);
+    const bottomText  = timerState === 'running' ? (getElapsedStr(job) || '00h 00m') : (countdown || '-- h -- m');
+    const showSides   = appSettings.showTimerSections !== false;
+    const showGraph   = appSettings.showMiniGraph !== false;
     card.innerHTML =
-      `<div class="job-card-top" style="background:${job.color}">` +
-        `<span class="job-card-title">${job.title}</span>` +
+      (showSides && showGraph ? `<div class="job-card-left" id="graph-${job.id}" style="display:flex;flex-direction:row;align-items:flex-end;padding:3px 4px;gap:1px;"></div>` : '') +
+      `<div class="job-card-center">` +
+        `<div class="job-card-top" style="background:${job.color}">` +
+          `<span class="job-card-title">${job.title}</span>` +
+        `</div>` +
+        `<div class="job-card-bottom">${bottomText}</div>` +
       `</div>` +
-      `<div class="job-card-bottom">${countdown || '-- h -- m'}</div>`;
+      (showSides ? `<div class="job-card-right" onclick="timerTap(${job.id}, event)">${timerIcon(timerState, job)}</div>` : '');
+    if (showSides && showGraph) {
+      const graphEl = card.querySelector('#graph-' + job.id);
+      if (graphEl) buildMiniGraph(job, graphEl);
+    }
     card.onclick = () => openJobWindow(job);
     app.appendChild(card);
   });
-  // re-render quick schedule below job cards
-  if (typeof renderQuickSchedule === 'function' && appSettings.showQuickSchedule) renderQuickSchedule();
+  // enforce order: quick schedule then history
+  if (typeof renderQuickSchedule === 'function' && appSettings.showQuickSchedule) {
+    buildQuickSchedule(); renderQuickSchedule();
+  }
   if (typeof renderHistory === 'function') { buildHistory(); renderHistory(); }
 }
 
@@ -599,7 +823,7 @@ function tpLoadSmartRange(idx) {
   lsSet('sch_jobs', jobs);
   renderDayCards();
   renderJobs();
-  if (typeof renderQuickSchedule === 'function' && appSettings.showQuickSchedule) renderQuickSchedule();
+  if (typeof renderQuickSchedule === 'function' && appSettings.showQuickSchedule) { buildQuickSchedule(); renderQuickSchedule(); }
   if (typeof renderHistory === 'function') { buildHistory(); renderHistory(); }
   closeSchedModal();
 }
@@ -705,7 +929,7 @@ function tpConfirm() {
   lsSet('sch_jobs', jobs);
   renderDayCards();
   renderJobs();
-  if (typeof renderQuickSchedule === 'function' && appSettings.showQuickSchedule) renderQuickSchedule();
+  if (typeof renderQuickSchedule === 'function' && appSettings.showQuickSchedule) { buildQuickSchedule(); renderQuickSchedule(); }
   if (typeof renderHistory === 'function') { buildHistory(); renderHistory(); }
   closeSchedModal();
 }
@@ -786,7 +1010,7 @@ function fireTestNotification() {
         vibrate: [200, 100, 200]
       });
       status.textContent = 'Notification sent!';
-      status.style.color = 'var(--color-4)';
+      status.style.color = 'var(--primary)';
     });
   } else {
     // Fallback if SW not available
@@ -795,7 +1019,7 @@ function fireTestNotification() {
       icon: 'icon-192.png'
     });
     status.textContent = 'Notification sent!';
-    status.style.color = 'var(--color-4)';
+    status.style.color = 'var(--primary)';
   }
 }
 
