@@ -277,7 +277,12 @@ function getNextShiftCountdown(job) {
 /* ── render jobs ── */
 function renderJobs() {
   const app = document.getElementById('mainApp');
+  // preserve feature containers so they aren't wiped
+  const qsWrap = document.getElementById('quickSchedule');
+  const histWrap = document.getElementById('historyWrap');
   app.innerHTML = '';
+  if (qsWrap) app.appendChild(qsWrap);
+  if (histWrap) app.appendChild(histWrap);
   if (appSettings.showJobCards) {
     if (jobs.length === 0) {
       const placeholder = document.createElement('div');
