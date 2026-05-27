@@ -19,7 +19,9 @@ const TB_BASE_VAR_MAP = {
   muted:     '--muted',
   border:    '--border-color',
   color10:   '--color-10',
+  textLight: '--text-light',
   textDark:  '--text-dark',
+  textMid:   '--text-mid',
 };
 
 const TB_JOB_VAR_MAP = {
@@ -39,15 +41,17 @@ const TB_BASE_LABELS = {
   bg1:       'BG 1 — Page',
   bg2:       'BG 2 — Cards',
   bg3:       'BG 3 — Header',
-  bg4:       'BG 4 — Controls',
   primary:   'Primary',
   secondary: 'Secondary',
   accent:    'Accent',
   color1:    'Alert / Red',
   muted:     'Muted Text',
   border:    'Border Color',
-  color10:   'Text — Light',
+  color10:   'Legacy White',
+  bg4:       'BG 4 — White',
+  textLight: 'Text — Light',
   textDark:  'Text — Dark',
+  textMid:   'Text — Mid',
 };
 
 const TB_JOB_LABELS = {
@@ -58,10 +62,10 @@ const TB_JOB_LABELS = {
 
 const TB_DEFAULTS = {
   baseColors: {
-    bg1: '#233040', bg2: '#4d5f72', bg3: '#1e2d3f', bg4: '#828c98',
+    bg1: '#233040', bg2: '#4d5f72', bg3: '#1e2d3f', bg4: '#ffffff',
     primary: '#48a971', secondary: '#5A8DB8', accent: '#8a7ca8',
     color1: '#e07878', muted: '#b4bcc8', border: '#000000',
-    color10: '#ffffff', textDark: '#000000',
+    textLight: '#ffffff', textMid: '#b4bcc8', textDark: '#000000',
   },
   jobColors: {
     swatch1: '#C85A5A', swatch2: '#C7824A', swatch3: '#B8B85A',
@@ -151,7 +155,7 @@ function tbRerender() {
     border-bottom: var(--border-width) solid var(--border-color);
     font-size: var(--text-xs); font-weight: var(--fw-bold);
     letter-spacing: var(--ls-wider); text-transform: uppercase;
-    color: var(--muted);
+    color: var(--text-mid);
   }
   .tb-card-hdr-with-btns {
     display: flex; align-items: stretch;
@@ -163,13 +167,13 @@ function tbRerender() {
     width: 36px; flex-shrink: 0;
     background: var(--bg-3); border: none;
     border-left: var(--border-width) solid var(--border-color);
-    color: var(--muted);
+    color: var(--text-mid);
     font-size: var(--text-sm); font-weight: var(--fw-bold);
     cursor: pointer; display: flex; align-items: center; justify-content: center;
   }
   .tb-hdr-btn:first-child { border-left: none; border-right: var(--border-width) solid var(--border-color); }
   .tb-hdr-btn.disabled { opacity: 0.25; cursor: not-allowed; }
-  .tb-hdr-btn:not(.disabled):active { background: var(--bg-2); color: var(--color-10); }
+  .tb-hdr-btn:not(.disabled):active { background: var(--bg-2); color: var(--text-light); }
 
   /* color swatches */
   .tb-swatch-row {
@@ -193,7 +197,7 @@ function tbRerender() {
     background: var(--bg-3);
     border-top: var(--border-width) solid var(--border-color);
     font-size: var(--text-xs); font-weight: var(--fw-bold);
-    letter-spacing: var(--ls-wide); color: var(--muted);
+    letter-spacing: var(--ls-wide); color: var(--text-mid);
   }
 
   /* harmony */
@@ -203,13 +207,13 @@ function tbRerender() {
   }
   .tb-harmony-btn {
     flex: 1; border: none; border-right: var(--border-width) solid var(--border-color);
-    background: var(--bg-3); color: var(--muted);
+    background: var(--bg-3); color: var(--text-mid);
     font-size: var(--text-xs); font-weight: var(--fw-bold);
     letter-spacing: var(--ls-tight); text-transform: uppercase;
     cursor: pointer; display: flex; align-items: center; justify-content: center;
   }
   .tb-harmony-btn:last-child { border-right: none; }
-  .tb-harmony-btn.active { background: var(--primary); color: var(--color-10); }
+  .tb-harmony-btn.active { background: var(--primary); color: var(--text-light); }
   .tb-harmony-swatches { display: flex; height: var(--job-half); }
   .tb-harmony-swatch {
     flex: 1; cursor: pointer;
@@ -235,7 +239,7 @@ function tbRerender() {
     flex: 1; height: var(--qs-hdr);
     background: var(--bg-2); border: var(--border-width) solid var(--border-color);
     border-radius: var(--radius);
-    color: var(--color-10); font-size: var(--text-xs); font-weight: var(--fw-bold);
+    color: var(--text-light); font-size: var(--text-xs); font-weight: var(--fw-bold);
     text-align: center; letter-spacing: var(--ls-wide);
     padding: 0 6px;
   }
@@ -244,11 +248,11 @@ function tbRerender() {
     height: var(--qs-hdr); padding: 0 8px; flex-shrink: 0;
     background: var(--bg-2); border: var(--border-width) solid var(--border-color);
     border-radius: var(--radius);
-    color: var(--muted); font-size: 9px; font-weight: var(--fw-bold);
+    color: var(--text-mid); font-size: 9px; font-weight: var(--fw-bold);
     letter-spacing: var(--ls-tight); text-transform: uppercase;
     cursor: pointer;
   }
-  .tb-action-btn:active { background: var(--bg-3); color: var(--color-10); }
+  .tb-action-btn:active { background: var(--bg-3); color: var(--text-light); }
 
   /* sliders */
   .tb-slider-section {
@@ -264,7 +268,7 @@ function tbRerender() {
   .tb-slider-row:last-child { margin-bottom: 0; }
   .tb-slider-lbl {
     width: 18px; font-size: var(--text-xs); font-weight: var(--fw-bold);
-    color: var(--muted); flex-shrink: 0;
+    color: var(--text-mid); flex-shrink: 0;
   }
   .tb-slider {
     flex: 1; height: 4px;
@@ -284,7 +288,7 @@ function tbRerender() {
   }
   .tb-slider-val {
     width: 28px; text-align: right;
-    font-size: var(--text-xs); font-weight: var(--fw-bold); color: var(--color-10);
+    font-size: var(--text-xs); font-weight: var(--fw-bold); color: var(--text-light);
     flex-shrink: 0;
   }
 
@@ -300,13 +304,13 @@ function tbRerender() {
   }
   .tb-tab {
     flex: 1; border: none; border-right: var(--border-width) solid var(--border-color);
-    background: var(--bg-3); color: var(--muted);
+    background: var(--bg-3); color: var(--text-mid);
     font-size: var(--text-xs); font-weight: var(--fw-bold);
     letter-spacing: var(--ls-wider); text-transform: uppercase;
     cursor: pointer; display: flex; align-items: center; justify-content: center;
   }
   .tb-tab:last-child { border-right: none; }
-  .tb-tab.active { background: var(--primary); color: var(--color-10); }
+  .tb-tab.active { background: var(--primary); color: var(--text-light); }
   .tb-tab-panel { display: none; flex-direction: column; }
   .tb-tab-panel.active { display: flex; }
 
@@ -330,7 +334,7 @@ function tbRerender() {
     display: flex; align-items: center; justify-content: center;
     font-size: var(--text-xs); font-weight: var(--fw-bold);
     letter-spacing: var(--ls-wide); text-transform: uppercase;
-    color: var(--color-10); background: var(--bg-4);
+    color: var(--text-light); background: var(--bg-4);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 6px;
   }
   .tb-saved-swatches {
@@ -362,15 +366,17 @@ window.ThemeSystem = {
 
   /* ── open / close ── */
   open() {
-    // load current state from CSS vars
+    // start from defaults, then overlay current CSS var values
+    this.baseColors = {...TB_DEFAULTS.baseColors};
+    this.jobColors  = {...TB_DEFAULTS.jobColors};
     const cs = getComputedStyle(document.documentElement);
     Object.keys(TB_BASE_VAR_MAP).forEach(k => {
       const v = cs.getPropertyValue(TB_BASE_VAR_MAP[k]).trim();
-      if (v) this.baseColors[k] = v;
+      if (v && v !== '') this.baseColors[k] = v;
     });
     Object.keys(TB_JOB_VAR_MAP).forEach(k => {
       const v = cs.getPropertyValue(TB_JOB_VAR_MAP[k]).trim();
-      if (v) this.jobColors[k] = v;
+      if (v && v !== '') this.jobColors[k] = v;
     });
     this.selectedColor = { type: 'base', key: 'primary' };
     this.selectedHarmony = 'complementary';
@@ -792,7 +798,7 @@ window.ThemeSystem = {
     if (!list) return;
     const themes = this.getSavedThemes();
     if (themes.length === 0) {
-      list.innerHTML = `<div style="padding:16px;text-align:center;font-size:var(--text-xs);color:var(--muted);">No saved themes yet</div>`;
+      list.innerHTML = `<div style="padding:16px;text-align:center;font-size:var(--text-xs);color:var(--text-mid);">No saved themes yet</div>`;
       return;
     }
     list.innerHTML = '';
@@ -800,54 +806,58 @@ window.ThemeSystem = {
       const item = document.createElement('div');
       item.className = 'tb-saved-item';
       item.style.background = theme.baseColors.bg3 || '#1e2d3f';
+
       const isDelConf = !!this.deleteConfirm[i];
       const showSw    = !!this.showSwatches[i];
 
-      // name/swatches card
-      let centerHtml;
-      if (isDelConf) {
-        centerHtml = `<div class="tb-saved-card" style="flex:2;">
-          <div class="tb-saved-card-top" style="background:${theme.baseColors.color1 || '#e07878'};"></div>
-          <div class="tb-saved-card-bot">DELETE THEME?</div>
+      // pull theme colors with fallbacks
+      const pri = theme.baseColors.primary   || '#48a971';
+      const sec = theme.baseColors.secondary || '#5A8DB8';
+      const acc = theme.baseColors.accent    || '#8a7ca8';
+      const bg4 = theme.baseColors.bg4       || '#ffffff';
+      const bdr = theme.baseColors.border    || '#000000';
+      const tl  = theme.baseColors.textLight || '#ffffff';
+      const bw  = '3px';
+
+      // helper: build a card with themed border
+      const card = (hdrBg, label, onclick, extra='') =>
+        `<div class="tb-saved-card" onclick="${onclick}" style="border:${bw} solid ${bdr};${extra}">
+          <div class="tb-saved-card-top" style="background:${hdrBg};border-bottom:${bw} solid ${bdr};"></div>
+          <div class="tb-saved-card-bot" style="background:${bg4};color:${tl};">${label}</div>
         </div>`;
+
+      let leftCard, centerCard, rightCard;
+
+      if (isDelConf) {
+        // left=primary NO, center=secondary DELETE?, right=accent YES
+        leftCard   = card(pri, 'NO',      `ThemeSystem.deleteConfirm[${i}]=false;ThemeSystem.renderSavedList()`);
+        centerCard = `<div class="tb-saved-card" style="flex:2;border:${bw} solid ${bdr};">
+          <div class="tb-saved-card-top" style="background:${sec};border-bottom:${bw} solid ${bdr};"></div>
+          <div class="tb-saved-card-bot" style="background:${bg4};color:${tl};">DELETE?</div>
+        </div>`;
+        rightCard  = card(acc, 'YES',     `ThemeSystem.deleteTheme(${i})`);
       } else if (showSw) {
-        centerHtml = `<div class="tb-saved-card" style="flex:2;" onclick="ThemeSystem.showSwatches[${i}]=false;ThemeSystem.renderSavedList();">
+        // swatches visible in center
+        leftCard   = card(pri, 'DEL', `ThemeSystem.deleteConfirm[${i}]=true;ThemeSystem.renderSavedList()`, 'opacity:0.5;');
+        centerCard = `<div class="tb-saved-card" style="flex:2;border:${bw} solid ${bdr};cursor:pointer;" onclick="ThemeSystem.showSwatches[${i}]=false;ThemeSystem.renderSavedList();">
           <div class="tb-saved-swatches">
             ${Object.keys(theme.jobColors||{}).map((k,idx,arr) =>
-              `<div class="tb-saved-swatch" style="background:${theme.jobColors[k]};${idx===arr.length-1?'border-right:none':''}"></div>`
+              `<div class="tb-saved-swatch" style="background:${(theme.jobColors||{})[k]};${idx===arr.length-1?'border-right:none':`border-right:${bw} solid ${bdr}`}"></div>`
             ).join('')}
           </div>
         </div>`;
+        rightCard  = card(acc, 'LOAD', `ThemeSystem.loadTheme(${i})`);
       } else {
-        centerHtml = `<div class="tb-saved-card" style="flex:2;" onclick="ThemeSystem.showSwatches[${i}]=true;ThemeSystem.renderSavedList();">
-          <div class="tb-saved-card-top" style="background:${theme.baseColors.primary || '#48a971'};"></div>
-          <div class="tb-saved-card-bot">${theme.name}</div>
+        // normal: left=primary DEL, center=secondary name, right=accent LOAD
+        leftCard   = card(pri, 'DEL', `ThemeSystem.deleteConfirm[${i}]=true;ThemeSystem.renderSavedList()`, 'opacity:0.5;');
+        centerCard = `<div class="tb-saved-card" style="flex:2;border:${bw} solid ${bdr};cursor:pointer;" onclick="ThemeSystem.showSwatches[${i}]=true;ThemeSystem.renderSavedList();">
+          <div class="tb-saved-card-top" style="background:${sec};border-bottom:${bw} solid ${bdr};"></div>
+          <div class="tb-saved-card-bot" style="background:${bg4};color:${tl};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${theme.name}</div>
         </div>`;
+        rightCard  = card(acc, 'LOAD', `ThemeSystem.loadTheme(${i})`);
       }
 
-      // action cards
-      let delHtml, loadHtml;
-      if (isDelConf) {
-        delHtml = `<div class="tb-saved-card" onclick="ThemeSystem.deleteConfirm[${i}]=false;ThemeSystem.renderSavedList();">
-          <div class="tb-saved-card-top" style="background:${theme.baseColors.secondary||'#5A8DB8'};"></div>
-          <div class="tb-saved-card-bot">NO</div>
-        </div>`;
-        loadHtml = `<div class="tb-saved-card" onclick="ThemeSystem.deleteTheme(${i})">
-          <div class="tb-saved-card-top" style="background:${theme.baseColors.color1||'#e07878'};"></div>
-          <div class="tb-saved-card-bot">YES</div>
-        </div>`;
-      } else {
-        delHtml = `<div class="tb-saved-card" onclick="ThemeSystem.deleteConfirm[${i}]=true;ThemeSystem.renderSavedList();" style="opacity:0.6;">
-          <div class="tb-saved-card-top" style="background:${theme.baseColors.bg2||'#4d5f72'};"></div>
-          <div class="tb-saved-card-bot">DEL</div>
-        </div>`;
-        loadHtml = `<div class="tb-saved-card" onclick="ThemeSystem.loadTheme(${i})">
-          <div class="tb-saved-card-top" style="background:${theme.baseColors.accent||'#8a7ca8'};"></div>
-          <div class="tb-saved-card-bot">LOAD</div>
-        </div>`;
-      }
-
-      item.innerHTML = `<div style="display:flex;gap:var(--margin);width:100%;">${delHtml}${centerHtml}${loadHtml}</div>`;
+      item.innerHTML = `<div style="display:flex;gap:4px;width:100%;">${leftCard}${centerCard}${rightCard}</div>`;
       list.appendChild(item);
     });
   },
@@ -1051,19 +1061,28 @@ function tbBuildWindow() {
           <!-- job / QS / history — all same height side by side -->
           <div style="display:flex;gap:var(--margin);align-items:stretch;flex-shrink:0;min-height:64px;">
 
-            <!-- job card (primary header/footer) -->
+            <!-- job card: swatch-1 header, bg-2 body countdown (flex), qs-hdr footer matching other cards -->
             <div style="flex:1;border:var(--border-width) solid var(--border-color);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;">
-              <div style="height:var(--qs-hdr);box-sizing:border-box;flex-shrink:0;background:var(--primary);border-bottom:var(--border-width) solid var(--border-color);display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:var(--fw-bold);letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--color-10);">DOMINO'S</div>
-              <div style="flex:1;background:var(--bg-2);display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:var(--fw-bold);color:var(--muted);">19H 55M</div>
-              <div style="height:var(--qs-hdr);box-sizing:border-box;flex-shrink:0;background:var(--primary);border-top:var(--border-width) solid var(--border-color);display:flex;align-items:center;justify-content:center;gap:3px;">
-                <div style="width:3px;height:10px;background:var(--color-10);border-radius:2px;"></div>
-                <div style="width:3px;height:10px;background:var(--color-10);border-radius:2px;"></div>
+              <div style="height:var(--qs-hdr);box-sizing:border-box;flex-shrink:0;background:var(--primary);border-bottom:var(--border-width) solid var(--border-color);display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:var(--fw-bold);letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--text-light);">DOMINO'S</div>
+              <div style="flex:1;background:var(--bg-2);display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:var(--fw-bold);color:var(--text-mid);">19H 55M</div>
+              <div style="height:var(--qs-hdr);box-sizing:border-box;flex-shrink:0;background:var(--bg-2);border-top:var(--border-width) solid var(--border-color);display:flex;align-items:center;justify-content:center;gap:8px;">
+                <!-- play — text-mid solid triangle -->
+                <svg width="10" height="11" viewBox="0 0 16 16" fill="none">
+                  <path d="M2 2 Q2 1 3 1.5 L13.5 7.5 Q15 8 13.5 8.5 L3 14.5 Q2 15 2 14 Z" fill="var(--text-mid)"/>
+                </svg>
+                <!-- pause — color-1 red bars -->
+                <div style="display:flex;gap:3px;align-items:center;">
+                  <div style="width:3px;height:10px;background:var(--color-1);border-radius:2px;"></div>
+                  <div style="width:3px;height:10px;background:var(--color-1);border-radius:2px;"></div>
+                </div>
+                <!-- check — primary green checkmark -->
+                <div style="width:10px;height:7px;border-left:2px solid var(--primary);border-bottom:2px solid var(--primary);border-radius:1px;transform:rotate(-45deg) translate(1px,-1px);"></div>
               </div>
             </div>
 
-            <!-- QS card (accent header/footer) with grid lines -->
-            <div style="flex:1;border:var(--border-width) solid var(--border-color);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;">
-              <div style="height:var(--qs-hdr);box-sizing:border-box;flex-shrink:0;background:var(--accent);border-bottom:var(--border-width) solid var(--border-color);display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:var(--fw-bold);letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--color-10);">Today</div>
+            <!-- QS card: accent header/footer, bg-2 body with secondary-bordered shift bar and grid lines -->
+            <div style="flex:1;border:var(--border-width) solid var(--border-color);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;background:var(--accent);">
+              <div style="height:var(--qs-hdr);box-sizing:border-box;flex-shrink:0;background:var(--accent);border-bottom:var(--border-width) solid var(--border-color);display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:var(--fw-bold);letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--text-light);">Today</div>
               <div style="flex:1;background:var(--bg-2);position:relative;min-height:22px;overflow:hidden;">
                 <div style="position:absolute;inset:0;display:flex;">
                   <div style="flex:1;border-right:1px solid rgba(255,255,255,0.18);"></div>
@@ -1071,21 +1090,21 @@ function tbBuildWindow() {
                   <div style="flex:1;border-right:1px solid rgba(255,255,255,0.18);"></div>
                   <div style="flex:1;"></div>
                 </div>
-                <div style="position:absolute;top:50%;left:10%;width:60%;transform:translateY(-50%);height:12px;background:#fff;border:2px solid var(--secondary);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:800;color:var(--text-dark);">9AM–5PM</div>
+                <div style="position:absolute;top:50%;left:10%;width:60%;transform:translateY(-50%);height:12px;background:var(--bg-4);border:2px solid var(--secondary);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:800;color:var(--text-dark);">9AM–5PM</div>
               </div>
               <div style="height:var(--qs-hdr);box-sizing:border-box;flex-shrink:0;background:var(--accent);border-top:var(--border-width) solid var(--border-color);display:flex;align-items:center;justify-content:space-around;padding:0 4px;">
-                <span style="font-size:8px;font-weight:800;color:var(--color-10);">9</span>
-                <span style="font-size:8px;font-weight:800;color:var(--color-10);">12</span>
-                <span style="font-size:8px;font-weight:800;color:var(--color-10);">3</span>
-                <span style="font-size:8px;font-weight:800;color:var(--color-10);">6</span>
+                <span style="font-size:8px;font-weight:800;color:var(--text-light);">9</span>
+                <span style="font-size:8px;font-weight:800;color:var(--text-light);">12</span>
+                <span style="font-size:8px;font-weight:800;color:var(--text-light);">3</span>
+                <span style="font-size:8px;font-weight:800;color:var(--text-light);">6</span>
               </div>
             </div>
 
-            <!-- history card (secondary header/footer) — single date, no divider -->
+            <!-- history card: secondary header/footer, bg-2 body, text-light date -->
             <div style="flex:1;border:var(--border-width) solid var(--border-color);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;">
-              <div style="height:var(--qs-hdr);box-sizing:border-box;flex-shrink:0;background:var(--secondary);border-bottom:var(--border-width) solid var(--border-color);display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:var(--fw-bold);letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--color-10);">This Week</div>
-              <div style="flex:1;background:var(--bg-2);display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:var(--fw-bold);color:var(--color-10);">MAY 25TH</div>
-              <div style="height:var(--qs-hdr);box-sizing:border-box;flex-shrink:0;background:var(--secondary);border-top:var(--border-width) solid var(--border-color);display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:var(--fw-bold);color:var(--color-10);">38.50</div>
+              <div style="height:var(--qs-hdr);box-sizing:border-box;flex-shrink:0;background:var(--secondary);border-bottom:var(--border-width) solid var(--border-color);display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:var(--fw-bold);letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--text-light);">This Week</div>
+              <div style="flex:1;background:var(--bg-2);display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:var(--fw-bold);color:var(--text-light);">MAY 25TH</div>
+              <div style="height:var(--qs-hdr);box-sizing:border-box;flex-shrink:0;background:var(--secondary);border-top:var(--border-width) solid var(--border-color);display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:var(--fw-bold);color:var(--text-light);">38.50</div>
             </div>
 
           </div>
@@ -1109,14 +1128,14 @@ function tbBuildWindow() {
       <!-- Actions -->
       <div style="display:flex;gap:var(--margin);">
         <div class="delete-card" style="flex:1;height:var(--job-half);background:var(--primary);font-size:var(--text-xs);" onclick="ThemeSystem.openSaveModal()">Save Theme</div>
-        <div class="delete-card" style="flex:1;height:var(--job-half);background:var(--bg-2);color:var(--muted);font-size:var(--text-xs);" onclick="ThemeSystem.resetToDefaults()">Reset to Defaults</div>
+        <div class="delete-card" style="flex:1;height:var(--job-half);background:var(--bg-2);color:var(--text-mid);font-size:var(--text-xs);" onclick="ThemeSystem.resetToDefaults()">Reset to Defaults</div>
       </div>
 
     </div>
 
     <!-- SAVED PANEL -->
     <div class="tb-tab-panel tb-body" id="tbPanel-saved">
-      <div id="tbSavedList"></div>
+      <div id="tbSavedList" style="display:flex;flex-direction:column;gap:var(--margin);"></div>
     </div>
 
     <!-- SAVE MODAL -->
@@ -1125,11 +1144,11 @@ function tbBuildWindow() {
         <div class="label-card" style="border-radius:0;border:none;border-bottom:var(--border-width) solid var(--border-color);">Save Theme</div>
         <div style="padding:var(--margin);">
           <input id="tbThemeNameInput" type="text" placeholder="Theme name…"
-            style="width:100%;height:var(--card-height);background:var(--bg-3);border:var(--border-width) solid var(--border-color);border-radius:var(--radius);color:var(--color-10);font-size:var(--text-sm);font-weight:var(--fw-bold);padding:0 12px;"
+            style="width:100%;height:var(--card-height);background:var(--bg-3);border:var(--border-width) solid var(--border-color);border-radius:var(--radius);color:var(--text-light);font-size:var(--text-sm);font-weight:var(--fw-bold);padding:0 12px;"
             onkeypress="if(event.key==='Enter')ThemeSystem.confirmSave()">
         </div>
         <div style="display:flex;gap:var(--margin);padding:0 var(--margin) var(--margin);">
-          <div class="delete-card" style="flex:1;background:var(--bg-3);color:var(--muted);" onclick="ThemeSystem.closeSaveModal()">Cancel</div>
+          <div class="delete-card" style="flex:1;background:var(--bg-3);color:var(--text-mid);" onclick="ThemeSystem.closeSaveModal()">Cancel</div>
           <div class="delete-card" style="flex:1;background:var(--primary);" onclick="ThemeSystem.confirmSave()">Save</div>
         </div>
       </div>
@@ -1139,9 +1158,9 @@ function tbBuildWindow() {
     <div id="tbOverwriteModal" style="display:none;position:fixed;inset:0;z-index:9100;align-items:center;justify-content:center;backdrop-filter:blur(6px);background:rgba(0,0,0,0.3);">
       <div style="background:var(--bg-2);border:var(--border-width) solid var(--border-color);border-radius:var(--radius);width:90%;max-width:320px;overflow:hidden;">
         <div class="label-card" style="border-radius:0;border:none;border-bottom:var(--border-width) solid var(--border-color);">Overwrite Theme?</div>
-        <div style="padding:12px;text-align:center;font-size:var(--text-xs);color:var(--muted);">A theme with this name already exists.</div>
+        <div style="padding:12px;text-align:center;font-size:var(--text-xs);color:var(--text-mid);">A theme with this name already exists.</div>
         <div style="display:flex;gap:var(--margin);padding:0 var(--margin) var(--margin);">
-          <div class="delete-card" style="flex:1;background:var(--bg-3);color:var(--muted);" onclick="ThemeSystem.cancelOverwrite()">Cancel</div>
+          <div class="delete-card" style="flex:1;background:var(--bg-3);color:var(--text-mid);" onclick="ThemeSystem.cancelOverwrite()">Cancel</div>
           <div class="delete-card" style="flex:1;background:var(--color-1);" onclick="ThemeSystem.confirmOverwrite()">Overwrite</div>
         </div>
       </div>
@@ -1166,34 +1185,39 @@ function tbBuildWindow() {
   const root = document.documentElement;
   const bc = Object.assign({}, TB_DEFAULTS.baseColors, theme.baseColors);
   const jc = Object.assign({}, TB_DEFAULTS.jobColors, theme.jobColors);
+  // Apply CSS vars immediately so styles are correct on first paint
   Object.keys(bc).forEach(k => { const v = TB_BASE_VAR_MAP[k]; if (v) root.style.setProperty(v, bc[k]); });
   Object.keys(jc).forEach(k => { const v = TB_JOB_VAR_MAP[k]; if (v) root.style.setProperty(v, jc[k]); });
-  // remap job colors if jobs is already defined (app.js runs before theme.js)
-  if (typeof jobs !== 'undefined') {
-    const cs = getComputedStyle(root);
-    const swatchMap = {};
-    Object.keys(jc).forEach(k => {
-      const varName = TB_JOB_VAR_MAP[k];
-      if (!varName) return;
-      const oldHex = TB_DEFAULTS.jobColors[k] ? TB_DEFAULTS.jobColors[k].toLowerCase() : '';
-      const newHex = jc[k].toLowerCase();
-      if (oldHex && oldHex !== newHex) swatchMap[oldHex] = newHex;
-    });
-    if (Object.keys(swatchMap).length > 0) {
-      let changed = false;
-      jobs.forEach(job => {
-        if (!job.color) return;
-        const mapped = swatchMap[job.color.toLowerCase()];
-        if (mapped) { job.color = mapped; changed = true; }
-      });
-      if (changed && typeof lsSet === 'function') lsSet('sch_jobs', jobs);
-    }
-  }
 })();
 
 window.addEventListener('load', function () {
   // Build the theme builder window
   tbBuildWindow();
+
+  // Remap job colors AFTER jobs array is loaded, then re-render
+  const savedName = localStorage.getItem('shift_current_theme');
+  if (savedName) {
+    const themes = JSON.parse(localStorage.getItem('shift_themes') || '[]');
+    const theme = themes.find(t => t.name === savedName);
+    if (theme && typeof jobs !== 'undefined') {
+      const jc = Object.assign({}, TB_DEFAULTS.jobColors, theme.jobColors);
+      const swatchMap = {};
+      Object.keys(jc).forEach(k => {
+        const oldHex = (TB_DEFAULTS.jobColors[k] || '').toLowerCase();
+        const newHex = jc[k].toLowerCase();
+        if (oldHex && oldHex !== newHex) swatchMap[oldHex] = newHex;
+      });
+      if (Object.keys(swatchMap).length > 0) {
+        let changed = false;
+        jobs.forEach(job => {
+          if (!job.color) return;
+          const mapped = swatchMap[job.color.toLowerCase()];
+          if (mapped) { job.color = mapped; changed = true; }
+        });
+        if (changed && typeof lsSet === 'function') lsSet('sch_jobs', jobs);
+      }
+    }
+  }
 
   // Re-render after load so QS and history pick up theme vars
   tbRerender();
@@ -1203,7 +1227,7 @@ window.addEventListener('load', function () {
   if (themePanel) {
     const btn = document.createElement('div');
     btn.className = 'label-card';
-    btn.style.cssText = 'cursor:pointer;background:var(--bg-2);color:var(--primary);margin-top:var(--margin);';
+    btn.style.cssText = 'cursor:pointer;background:var(--bg-2);color:var(--color-10);margin-top:var(--margin);';
     btn.textContent = 'Open Theme Builder';
     btn.onclick = () => ThemeSystem.open();
     themePanel.appendChild(btn);

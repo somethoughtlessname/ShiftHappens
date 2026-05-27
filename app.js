@@ -160,15 +160,15 @@ function buildWindows() {
       <!-- OTHER TAB -->
       <div class="data-body" id="spanel-other" style="display:none;">
         <div class="label-card">Notifications</div>
-        <div style="font-size:var(--text-xs);color:var(--muted);padding:2px 4px 6px;">Test that push notifications are working on your device</div>
+        <div style="font-size:var(--text-xs);color:var(--text-mid);padding:2px 4px 6px;">Test that push notifications are working on your device</div>
         <div class="toggle-card" id="notifTestBtn" onclick="testNotification()" style="cursor:pointer;">
           <div class="toggle-card-top">
-            <span class="toggle-label" style="color:var(--primary);">Send Test Notification</span>
-            <span style="font-size:var(--text-xs);color:var(--muted);">&#9654;</span>
+            <span class="toggle-label">Send Test Notification</span>
+            <span style="font-size:var(--text-xs);color:var(--text-mid);">&#9654;</span>
           </div>
           <div class="toggle-card-blurb">Sends a test push notification to confirm permissions are set up correctly on this device</div>
         </div>
-        <div id="notifStatus" style="font-size:var(--text-xs);font-weight:var(--fw-bold);text-align:center;color:var(--muted);padding:4px;min-height:18px;"></div>
+        <div id="notifStatus" style="font-size:var(--text-xs);font-weight:var(--fw-bold);text-align:center;color:var(--text-mid);padding:4px;min-height:18px;"></div>
       </div>
     </div>
 
@@ -657,7 +657,7 @@ function timerIcon(state, job) {
   } else if (state === 'done') {
     return '<div class="job-card-check"></div>';
   }
-  return '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 2 Q2 1 3 1.5 L13.5 7.5 Q15 8 13.5 8.5 L3 14.5 Q2 15 2 14 Z" fill="currentColor" style="color:var(--muted)" stroke="var(--muted)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+  return '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 2 Q2 1 3 1.5 L13.5 7.5 Q15 8 13.5 8.5 L3 14.5 Q2 15 2 14 Z" fill="currentColor" style="color:var(--text-mid)" stroke="var(--muted)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>';
 }
 
 function getElapsedStr(job) {
@@ -707,10 +707,10 @@ function showTimerResetModal(job, key) {
     modal.id = 'timerResetModal';
     modal.className = 'modal-blur-overlay';
     modal.innerHTML = '<div style="background:var(--bg-2);border:var(--border-width) solid var(--border-color);border-radius:var(--radius);width:100%;max-width:320px;overflow:hidden;">'
-      + '<div style="padding:16px;font-size:var(--text-sm);font-weight:var(--fw-bold);color:var(--color-10);text-align:center;letter-spacing:var(--ls-wider);text-transform:uppercase;">Reset Today&#39;s Shift?</div>'
+      + '<div style="padding:16px;font-size:var(--text-sm);font-weight:var(--fw-bold);color:var(--text-light);text-align:center;letter-spacing:var(--ls-wider);text-transform:uppercase;">Reset Today&#39;s Shift?</div>'
       + '<div style="display:flex;border-top:var(--border-width) solid var(--border-color);">'
-      + '<div id="timerResetNo" style="flex:1;padding:12px;text-align:center;font-size:var(--text-sm);font-weight:var(--fw-bold);color:var(--muted);cursor:pointer;border-right:var(--border-width) solid var(--border-color);">Cancel</div>'
-      + '<div id="timerResetYes" style="flex:1;padding:12px;text-align:center;font-size:var(--text-sm);font-weight:var(--fw-bold);color:var(--color-1);cursor:pointer;">Reset</div>'
+      + '<div id="timerResetNo" style="flex:1;padding:12px;text-align:center;font-size:var(--text-sm);font-weight:var(--fw-bold);color:var(--text-mid);cursor:pointer;border-right:var(--border-width) solid var(--border-color);">Cancel</div>'
+      + '<div id="timerResetYes" style="flex:1;padding:12px;text-align:center;font-size:var(--text-sm);font-weight:var(--fw-bold);color:var(--text-light);cursor:pointer;">Reset</div>'
       + '</div></div>';
     document.body.appendChild(modal);
   }
@@ -732,7 +732,7 @@ function buildMiniGraph(job, container) {
   const cs       = getComputedStyle(document.documentElement);
   const green    = cs.getPropertyValue('--primary').trim();
   const blue     = cs.getPropertyValue('--secondary').trim();
-  const white    = cs.getPropertyValue('--color-10').trim();
+  const white    = cs.getPropertyValue('--text-light').trim();
   const n        = appSettings.miniGraphDays || 3;
   const total    = n * 2 + 1;
   const today    = new Date(); today.setHours(0,0,0,0);
@@ -1128,7 +1128,7 @@ function renderTimePicker() {
     ? tpSmartPresets.map((p,i) =>
         `<button class="tp-preset" onclick="tpLoadSmartRange(${i})" style="flex-direction:column;gap:2px;font-size:var(--text-xs);">` +
           `<span>${p.start}</span>` +
-          `<span style="color:var(--muted);">—</span>` +
+          `<span style="color:var(--text-mid);">—</span>` +
           `<span>${p.end}</span>` +
         `</button>`).join('')
     : '';
@@ -1313,6 +1313,29 @@ function fireTestNotification() {
     status.style.color = 'var(--primary)';
   }
 }
+
+
+/* ── emergency theme reset — tap 10x consecutively ── */
+(function setupEmergencyReset() {
+  let tapCount = 0;
+  let tapTimer = null;
+  document.addEventListener('touchend', function() {
+    tapCount++;
+    clearTimeout(tapTimer);
+    if (tapCount >= 10) {
+      tapCount = 0;
+      if (typeof ThemeSystem !== 'undefined') {
+        ThemeSystem.resetToDefaults();
+      } else {
+        // fallback: clear all inline CSS vars
+        const root = document.documentElement;
+        root.removeAttribute('style');
+      }
+      localStorage.removeItem('shift_current_theme');
+    }
+    tapTimer = setTimeout(() => { tapCount = 0; }, 1000);
+  });
+})();
 
 /* ── init ── */
 buildWindows();

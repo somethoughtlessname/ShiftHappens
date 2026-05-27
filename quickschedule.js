@@ -163,7 +163,7 @@ function renderQuickSchedule() {
         /* grid lines */
         ticks.forEach(tick => {
           const line = document.createElement('div');
-          line.style.cssText = `position:absolute;top:0;height:${rowHeight}px;width:1px;background:rgba(255,255,255,0.25);left:${pct(tick)}%;transform:translateX(-50%);pointer-events:none;`;
+          line.style.cssText = `position:absolute;top:0;height:${rowHeight}px;width:1px;background:rgba(255,255,255,0.25);left:${pct(tick)}%;transform:translateX(-50%);pointer-events:none;z-index:0;`;
           rowInner.appendChild(line);
         });
 
@@ -174,7 +174,7 @@ function renderQuickSchedule() {
           const w  = pct(shift.endMins) - l;
           jc.style.cssText = `position:absolute;top:0;height:${rowHeight}px;left:${l}%;width:${w}%;z-index:2;`
             + `border:${QS_BDR_PX}px solid ${shift.job.color};border-radius:${QS_RADIUS};`
-            + `background:#fff;color:#000;font-size:10px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;`
+            + `background:var(--bg-4);color:var(--text-dark);font-size:10px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;`
             + `display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;`
             + `padding:0 4px;box-sizing:border-box;cursor:pointer;`;
           jc.textContent = shift.job.title;
@@ -227,7 +227,7 @@ function renderQuickSchedule() {
     const dot = document.createElement('div');
     dot.id = 'qsTimeDot';
     dot.style.cssText = 'position:absolute;pointer-events:none;z-index:20;'
-      + 'width:4px;height:4px;background:#fff;border-radius:1px;'
+      + 'width:4px;height:4px;background:var(--text-light);border-radius:1px;'
       + 'left:' + dotLeft + ';'
       + 'top:' + dotTop + 'px;transform:translate(-50%,-50%) rotate(45deg);';
     card.appendChild(dot);
@@ -277,7 +277,7 @@ function renderQuickSchedule() {
   ticks.forEach(tick => {
     const lbl = document.createElement('div');
     lbl.style.cssText = `position:absolute;left:${pct(tick)}%;top:50%;transform:translate(-50%,-50%);`
-      + `font-size:10px;font-weight:800;color:#ffffff;letter-spacing:0.04em;z-index:1;`;
+      + `font-size:10px;font-weight:800;color:var(--text-light);letter-spacing:0.04em;z-index:1;`;
     lbl.textContent = hr12(tick);
     axisInner.appendChild(lbl);
   });

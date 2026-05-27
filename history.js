@@ -124,27 +124,26 @@ function hWeekCard(label, offset, anchorDow) {
   const workedMins = isLastWeek || isThisWeek ? hSumHours('worked', start, end) : 0;
   const projMins   = isThisWeek ? hProjected(start, end) : 0;
 
-  const cs      = getComputedStyle(document.documentElement);
-  const green   = cs.getPropertyValue('--swatch-4').trim();
-  const darkBg  = cs.getPropertyValue('--bg-2').trim();
-  const textCol = cs.getPropertyValue('--color-10').trim();
-  const mutedCol= cs.getPropertyValue('--muted').trim();
-  const bdrW    = cs.getPropertyValue('--border-width').trim() || '3px';
-  const bdrC    = cs.getPropertyValue('--border-color').trim() || '#000';
-  const radius  = cs.getPropertyValue('--radius').trim() || '8px';
+  const green   = 'var(--secondary)';
+  const darkBg  = 'var(--bg-2)';
+  const textCol = 'var(--color-10)';
+  const mutedCol= 'var(--muted)';
+  const bdrW    = 'var(--border-width)';
+  const bdrC    = 'var(--border-color)';
+  const radius  = 'var(--radius)';
 
   const card = document.createElement('div');
   card.style.cssText = `flex:1;border:${bdrW} solid ${bdrC};border-radius:${radius};overflow:hidden;display:flex;flex-direction:column;min-width:0;`;
 
   // header row
   const hdr = document.createElement('div');
-  hdr.style.cssText = `background:${green};height:var(--qs-hdr);box-sizing:border-box;display:flex;align-items:center;justify-content:center;text-align:center;font-size:var(--text-xs);font-weight:var(--fw-bold);letter-spacing:var(--ls-wider);text-transform:uppercase;color:${textCol};`;
+  hdr.style.cssText = `background:${green};height:var(--qs-hdr);box-sizing:border-box;display:flex;align-items:center;justify-content:center;text-align:center;font-size:var(--text-xs);font-weight:var(--fw-bold);letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--text-light);`;
   hdr.textContent = label;
   card.appendChild(hdr);
 
   // start date
   const startEl = document.createElement('div');
-  startEl.style.cssText = `background:${darkBg};height:var(--job-half);box-sizing:border-box;display:flex;align-items:center;justify-content:center;text-align:center;font-size:var(--text-xs);font-weight:var(--fw-bold);color:${textCol};border-top:${bdrW} solid ${bdrC};`;
+  startEl.style.cssText = `background:${darkBg};height:var(--job-half);box-sizing:border-box;display:flex;align-items:center;justify-content:center;text-align:center;font-size:var(--text-xs);font-weight:var(--fw-bold);color:var(--color-10);border-top:${bdrW} solid ${bdrC};`;
   startEl.textContent = hFmtDate(start);
   card.appendChild(startEl);
 
@@ -158,13 +157,13 @@ function hWeekCard(label, offset, anchorDow) {
 
   // end date
   const endEl = document.createElement('div');
-  endEl.style.cssText = `background:${darkBg};height:var(--job-half);display:flex;align-items:center;justify-content:center;text-align:center;font-size:var(--text-xs);font-weight:var(--fw-bold);color:${textCol};`;
+  endEl.style.cssText = `background:${darkBg};height:var(--job-half);display:flex;align-items:center;justify-content:center;text-align:center;font-size:var(--text-xs);font-weight:var(--fw-bold);color:var(--color-10);`;
   endEl.textContent = hFmtDate(end);
   card.appendChild(endEl);
 
   // hours row
   const hrs = document.createElement('div');
-  hrs.style.cssText = `background:${green};height:var(--job-half);box-sizing:border-box;display:flex;align-items:center;justify-content:center;text-align:center;font-size:var(--text-xs);font-weight:var(--fw-bold);color:${textCol};border-top:${bdrW} solid ${bdrC};`;
+  hrs.style.cssText = `background:${green};height:var(--job-half);box-sizing:border-box;display:flex;align-items:center;justify-content:center;text-align:center;font-size:var(--text-xs);font-weight:var(--fw-bold);color:var(--text-light);border-top:${bdrW} solid ${bdrC};`;
 
   if (isLastWeek) {
     hrs.textContent = hFmtHours(workedMins);
@@ -218,21 +217,20 @@ function hFmtShortDate(d) {
 }
 
 function hLast10Card(anchorDow) {
-  const cs      = getComputedStyle(document.documentElement);
-  const green   = cs.getPropertyValue('--swatch-4').trim();
-  const darkBg  = cs.getPropertyValue('--bg-2').trim();
-  const textCol = cs.getPropertyValue('--color-10').trim();
-  const mutedCol= cs.getPropertyValue('--muted').trim();
-  const bdrW    = cs.getPropertyValue('--border-width').trim() || '3px';
-  const bdrC    = cs.getPropertyValue('--border-color').trim() || '#000';
-  const radius  = cs.getPropertyValue('--radius').trim() || '8px';
+  const green   = 'var(--secondary)';
+  const darkBg  = 'var(--bg-2)';
+  const textCol = 'var(--color-10)';
+  const mutedCol= 'var(--muted)';
+  const bdrW    = 'var(--border-width)';
+  const bdrC    = 'var(--border-color)';
+  const radius  = 'var(--radius)';
 
   const card = document.createElement('div');
   card.style.cssText = `border:${bdrW} solid ${bdrC};border-radius:${radius};overflow:hidden;`;
 
   // header
   const hdr = document.createElement('div');
-  hdr.style.cssText = `background:${green};height:var(--qs-hdr);box-sizing:border-box;display:flex;align-items:center;justify-content:center;text-align:center;font-size:var(--text-xs);font-weight:var(--fw-bold);letter-spacing:var(--ls-wider);text-transform:uppercase;color:${textCol};`;
+  hdr.style.cssText = `background:${green};height:var(--qs-hdr);box-sizing:border-box;display:flex;align-items:center;justify-content:center;text-align:center;font-size:var(--text-xs);font-weight:var(--fw-bold);letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--text-light);`;
   hdr.textContent = 'Last 10 Weeks';
   card.appendChild(hdr);
 
@@ -250,7 +248,7 @@ function hLast10Card(anchorDow) {
 
     // start date
     const sEl = document.createElement('div');
-    sEl.style.cssText = `background:${darkBg};padding:calc(var(--margin) / 2) 1px;text-align:center;font-size:var(--text-xs);font-weight:var(--fw-bold);color:${textCol};white-space:nowrap;overflow:hidden;`;
+    sEl.style.cssText = `background:${darkBg};padding:calc(var(--margin) / 2) 1px;text-align:center;font-size:var(--text-xs);font-weight:var(--fw-bold);color:var(--color-10);white-space:nowrap;overflow:hidden;`;
     sEl.textContent = hFmtShortDate(start);
     col.appendChild(sEl);
 
@@ -264,13 +262,13 @@ function hLast10Card(anchorDow) {
 
     // end date
     const eEl = document.createElement('div');
-    eEl.style.cssText = `background:${darkBg};padding:calc(var(--margin) / 2) 1px;text-align:center;font-size:var(--text-xs);font-weight:var(--fw-bold);color:${textCol};white-space:nowrap;overflow:hidden;`;
+    eEl.style.cssText = `background:${darkBg};padding:calc(var(--margin) / 2) 1px;text-align:center;font-size:var(--text-xs);font-weight:var(--fw-bold);color:var(--color-10);white-space:nowrap;overflow:hidden;`;
     eEl.textContent = hFmtShortDate(end);
     col.appendChild(eEl);
 
     // hours
     const hEl = document.createElement('div');
-    hEl.style.cssText = `background:${green};padding:2px 1px;text-align:center;font-size:var(--text-xs);font-weight:var(--fw-bold);color:${textCol};border-top:${bdrW} solid ${bdrC};white-space:nowrap;overflow:hidden;`;
+    hEl.style.cssText = `background:${green};padding:2px 1px;text-align:center;font-size:var(--text-xs);font-weight:var(--fw-bold);color:var(--text-light);border-top:${bdrW} solid ${bdrC};white-space:nowrap;overflow:hidden;`;
     hEl.textContent = hFmtHours(workedMins);
     col.appendChild(hEl);
 
