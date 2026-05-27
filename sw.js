@@ -1,11 +1,12 @@
-const CACHE = 'shift-happens-v1';
+const CACHE = 'shift-happens-v3';
 
 // Only cache the shell — never cache JS files so updates are instant
 const CACHE_ASSETS = [
   './index.html',
   './icon-192.png',
   './icon-512.png',
-  './manifest.json'
+  './manifest.json',
+  './history.js'
 ];
 
 self.addEventListener('install', e => {
