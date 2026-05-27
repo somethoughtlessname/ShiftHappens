@@ -751,6 +751,63 @@ body {
 .toggle-pill.on { background: var(--primary); }
 .toggle-pill.on::after { transform: translateX(18px); background: var(--color-10); }
 
+
+
+/* ═══════════════════════════════════════════════════════
+   THEME OVERLAYS
+═══════════════════════════════════════════════════════ */
+
+/* CRT scanline overlay */
+body.theme-crt::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 9999;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0,0,0,0) 0px,
+    rgba(0,0,0,0) 2px,
+    rgba(0,0,0,0.25) 2px,
+    rgba(0,0,0,0.25) 4px
+  );
+  animation: crtFlicker 0.15s infinite;
+}
+body.theme-crt { filter: brightness(0.9) contrast(1.1); }
+@keyframes crtFlicker {
+  0%   { opacity: 1; }
+  92%  { opacity: 1; }
+  93%  { opacity: 0.85; }
+  94%  { opacity: 1; }
+  98%  { opacity: 1; }
+  99%  { opacity: 0.9; }
+  100% { opacity: 1; }
+}
+
+/* Black & white */
+body.theme-bw { filter: grayscale(1) contrast(1.1); }
+
+/* Sepia */
+body.theme-sepia { filter: sepia(0.85) contrast(1.05) brightness(0.95); }
+
+/* Neon — high contrast glow */
+body.theme-neon { filter: brightness(1.1) saturate(2) contrast(1.2); }
+body.theme-neon::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 9999;
+  pointer-events: none;
+  background: rgba(0,255,180,0.04);
+  mix-blend-mode: screen;
+}
+
+/* Dusk — warm amber tint */
+body.theme-dusk::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 9999;
+  pointer-events: none;
+  background: rgba(255, 160, 40, 0.18);
+  mix-blend-mode: multiply;
+}
+body.theme-dusk { filter: brightness(0.95) contrast(0.95) saturate(0.8); }
+
   `;
   document.head.appendChild(style);
 })();

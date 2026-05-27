@@ -124,6 +124,7 @@ function buildWindows() {
         <button class="filter-btn active" id="stab-display"  onclick="settingsTab('display')">Display</button>
         <button class="filter-btn"        id="stab-cards"    onclick="settingsTab('cards')">Cards</button>
         <button class="filter-btn"        id="stab-other"    onclick="settingsTab('other')">Other</button>
+        <button class="filter-btn"        id="stab-theme"    onclick="settingsTab('theme')">Theme</button>
       </div>
 
       <!-- DISPLAY TAB -->
@@ -148,6 +149,12 @@ function buildWindows() {
         <div id="miniGraphDaysSlot"></div>
 
         <div id="timeDotToggleSlot"></div>
+      </div>
+
+      <!-- THEME TAB -->
+      <div class="data-body" id="spanel-theme" style="display:none;">
+        <div class="label-card">Display Theme</div>
+        <div id="themePickerSlot"></div>
       </div>
 
       <!-- OTHER TAB -->
@@ -181,7 +188,7 @@ function buildWindows() {
 
 
 /* ── app settings ── */
-const _settingsDefaults = { showJobCards: true, showQuickSchedule: true, showTimeDot: true, showHistory: true, showTimerSections: true, showMiniGraph: true, miniGraphDays: 3 };
+const _settingsDefaults = { showJobCards: true, showQuickSchedule: true, showTimeDot: true, showHistory: true, showTimerSections: true, showMiniGraph: true, miniGraphDays: 3, theme: 'none' };
 let appSettings = Object.assign({}, _settingsDefaults, ls('sch_settings', {}));
 
 function settingToggle(key) {
@@ -192,6 +199,21 @@ function settingToggle(key) {
 }
 
 function updateSettingsUI() {
+  const themeSlot = document.getElementById('themePickerSlot');
+  if (themeSlot) {
+    const cur = appSettings.theme || 'none';
+    const themes = [
+      { id: 'none',  label: 'Off' },
+      { id: 'crt',   label: 'CRT' },
+      { id: 'bw',    label: 'B&W' },
+      { id: 'sepia', label: 'Sepia' },
+      { id: 'neon',  label: 'Neon' },
+      { id: 'dusk',  label: 'Dusk' },
+    ];
+    themeSlot.innerHTML = `<div class="filter-card" style="flex-shrink:0;">${
+      themes.map(t => `<button class="filter-btn${cur===t.id?' active':''}" onclick="setTheme('${t.id}')">${t.label}</button>`).join('')
+    }</div>`;
+  }
   const tsSlot = document.getElementById('timerSectionsToggleSlot');
   if (tsSlot) {
     tsSlot.innerHTML = `<div class="toggle-card" id="toggleTimerSections" onclick="settingToggle('showTimerSections')"><span class="toggle-label">Left & Right Sections</span><span class="toggle-pill" id="pillTimerSections"></span></div>`;
@@ -330,8 +352,277 @@ function getNextShiftCountdown(job) {
 
 
 /* ── shift timer ── */
+/* ── theme engine ── */
+let fxIntervals = [];
+let fxRAFs = [];
+let currentTheme = 'none';
+
+function clearThemeFx() {
+  fxIntervals.forEach(id => { clearInterval(id); clearTimeout(id); });
+  fxIntervals = [];
+  fxRAFs.forEach(cancelAnimationFrame);
+  fxRAFs = [];
+  const fx = document.getElementById('fx');
+  if (fx) fx.innerHTML = '';
+  document.body.style.filter = '';
+  document.querySelectorAll('.job-card-top,.job-card-bottom,.label-card').forEach(el => {
+    el.style.opacity = ''; el.style.transition = '';
+  });
+}
+
+function setTheme(id) {
+  appSettings.theme = id;
+  lsSet('sch_settings', appSettings);
+  clearThemeFx();
+  currentTheme = id;
+  if (id === 'crt')        startCRT();
+  else if (id === 'sepia') startSepia();
+  else if (id === 'neon')  startNeon();
+  else if (id === 'bw')    startBW();
+  else if (id === 'dusk')  startDusk();
+  // only refresh the theme picker buttons, not full updateSettingsUI
+  const themeSlot = document.getElementById('themePickerSlot');
+  if (themeSlot) {
+    themeSlot.querySelectorAll('.filter-btn').forEach(btn => {
+      const t = btn.getAttribute('onclick').match(/setTheme\('(.*?)'\)/);
+      if (t) btn.classList.toggle('active', t[1] === id);
+    });
+  }
+}
+
+function applyTheme() {
+  const t = appSettings.theme || 'none';
+  currentTheme = t;
+  clearThemeFx();
+  if (t === 'crt')   startCRT();
+  else if (t === 'sepia') startSepia();
+  else if (t === 'neon')  startNeon();
+  else if (t === 'bw')    startBW();
+  else if (t === 'dusk')  startDusk();
+}
+
+/* ── CRT — Fallout Pip-Boy terminal ── */
+function startCRT() {
+  const fx = document.getElementById('fx');
+  if (!fx) return;
+  document.body.style.filter = 'brightness(0.75) contrast(1.4) saturate(0) sepia(1) hue-rotate(80deg) brightness(1.1)';
+  const sl = document.createElement('div');
+  sl.style.cssText = 'position:absolute;inset:0;background:repeating-linear-gradient(to bottom,transparent 0px,transparent 2px,rgba(0,0,0,0.4) 2px,rgba(0,0,0,0.4) 3px);';
+  fx.appendChild(sl);
+  const vg = document.createElement('div');
+  vg.style.cssText = 'position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 45%,rgba(0,0,0,0.92) 100%);';
+  fx.appendChild(vg);
+  const glow = document.createElement('div');
+  glow.style.cssText = 'position:absolute;inset:0;background:rgba(0,255,60,0.18);mix-blend-mode:screen;';
+  fx.appendChild(glow);
+  let waveY = 0;
+  const wave = document.createElement('div');
+  wave.style.cssText = 'position:absolute;left:0;right:0;height:40px;background:linear-gradient(to bottom,transparent,rgba(0,255,60,0.06),transparent);top:0;pointer-events:none;';
+  fx.appendChild(wave);
+  fxIntervals.push(setInterval(() => { waveY = (waveY + 2) % window.innerHeight; wave.style.top = waveY + 'px'; }, 16));
+  function spawnGlitch() {
+    if (currentTheme !== 'crt') return;
+    const type = Math.random();
+    if (type < 0.4) {
+      const count = Math.floor(Math.random() * 6) + 2;
+      for (let i = 0; i < count; i++) {
+        const g = document.createElement('div');
+        const top = Math.random() * 98, ht = Math.random() * 4 + 1, shift = (Math.random() - 0.5) * 60;
+        g.style.cssText = `position:absolute;top:${top}%;left:0;right:0;height:${ht}px;background:rgba(0,255,60,${0.15+Math.random()*0.25});transform:translateX(${shift}px);`;
+        fx.appendChild(g);
+        setTimeout(() => g && g.remove(), 20 + Math.random() * 80);
+      }
+    } else if (type < 0.6) {
+      const b = 1.2 + Math.random() * 0.3;
+      document.body.style.filter = `brightness(${b}) contrast(1.4) saturate(0) sepia(1) hue-rotate(80deg) brightness(1.1)`;
+      setTimeout(() => { if (currentTheme === 'crt') document.body.style.filter = 'brightness(0.75) contrast(1.4) saturate(0) sepia(1) hue-rotate(80deg) brightness(1.1)'; }, 20 + Math.random() * 60);
+    } else if (type < 0.75) {
+      const g = document.createElement('div');
+      const left = Math.random() * 70, w = Math.random() * 30 + 5, top = Math.random() * 85, ht = Math.random() * 20 + 4;
+      g.style.cssText = `position:absolute;top:${top}%;left:${left}%;width:${w}%;height:${ht}px;background:rgba(0,0,0,0.85);`;
+      fx.appendChild(g);
+      setTimeout(() => g && g.remove(), 30 + Math.random() * 120);
+    } else if (type < 0.88) {
+      const smear = document.createElement('div');
+      const top = Math.random() * 95;
+      smear.style.cssText = `position:absolute;top:${top}%;left:0;right:0;height:${Math.random()*8+1}px;background:linear-gradient(to right,transparent,rgba(0,255,60,0.5),rgba(0,255,60,0.3),transparent);`;
+      fx.appendChild(smear);
+      setTimeout(() => smear && smear.remove(), 40 + Math.random() * 100);
+    } else {
+      const roll = Math.random() * 12 - 6;
+      const app = document.getElementById('mainApp');
+      if (app) { app.style.transform = `translateY(${roll}px)`; setTimeout(() => app.style.transform = '', 40 + Math.random() * 60); }
+    }
+    fxIntervals.push(setTimeout(spawnGlitch, Math.random() < 0.25 ? 80 + Math.random() * 200 : 600 + Math.random() * 2500));
+  }
+  let crtB = 0.75, crtTarget = 0.75;
+  fxIntervals.push(setInterval(() => {
+    if (currentTheme !== 'crt') return;
+    if (Math.random() < 0.04) crtTarget = 0.68 + Math.random() * 0.14;
+    crtB += (crtTarget - crtB) * 0.06;
+    document.body.style.filter = `brightness(${crtB.toFixed(3)}) contrast(1.4) saturate(0) sepia(1) hue-rotate(80deg) brightness(1.1)`;
+  }, 16));
+  spawnGlitch();
+}
+
+/* ── Sepia — film accurate ── */
+function startSepia() {
+  const fx = document.getElementById('fx');
+  if (!fx) return;
+  document.body.style.filter = 'sepia(0.95) contrast(1.08) brightness(0.9) saturate(0.8)';
+  const canvas = document.createElement('canvas');
+  canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;opacity:0.28;';
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  fx.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  function drawGrain() {
+    if (currentTheme !== 'sepia') return;
+    const img = ctx.createImageData(canvas.width, canvas.height);
+    for (let y = 0; y < canvas.height; y += 4) for (let x = 0; x < canvas.width; x += 4) {
+      const v = Math.random() * 255;
+      for (let dy = 0; dy < 4; dy++) for (let dx = 0; dx < 4; dx++) {
+        const i = ((y+dy)*canvas.width+(x+dx))*4;
+        if (i < img.data.length-3) { const j=(Math.random()-0.5)*60; img.data[i]=img.data[i+1]=img.data[i+2]=Math.max(0,Math.min(255,v+j)); img.data[i+3]=Math.random()*60; }
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+    fxRAFs.push(requestAnimationFrame(drawGrain));
+  }
+  drawGrain();
+  const vg = document.createElement('div');
+  vg.style.cssText = 'position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 40%,rgba(40,15,0,0.75) 100%);';
+  fx.appendChild(vg);
+  function spawnBurn() {
+    if (currentTheme !== 'sepia') return;
+    const burn = document.createElement('div');
+    const size = 30 + Math.random() * 80;
+    burn.style.cssText = `position:absolute;width:${size}px;height:${size}px;left:${Math.random()*100}%;top:${Math.random()*100}%;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(ellipse,rgba(255,240,180,0.6) 0%,rgba(255,220,120,0.3) 40%,transparent 70%);filter:blur(${size*0.15}px);opacity:0;`;
+    fx.appendChild(burn);
+    let op = 0;
+    const gi = setInterval(() => { op = Math.min(1, op + 0.08); burn.style.opacity = op; if (op >= 1) { clearInterval(gi); setTimeout(() => { const si = setInterval(() => { op = Math.max(0, op - 0.06); burn.style.opacity = op; if (op <= 0) { clearInterval(si); burn.remove(); } }, 30); fxIntervals.push(si); }, 200 + Math.random() * 600); } }, 30);
+    fxIntervals.push(gi);
+    fxIntervals.push(setTimeout(spawnBurn, 1500 + Math.random() * 3000));
+  }
+  spawnBurn();
+  fxIntervals.push(setInterval(() => {
+    if (Math.random() < 0.08) { const s = document.createElement('div'); const x=10+Math.random()*80,gap=Math.random()*20; s.style.cssText=`position:absolute;top:${gap}%;bottom:${gap}%;left:${x}%;width:${Math.random()<0.5?1:2}px;background:rgba(255,230,160,${0.3+Math.random()*0.4});`; fx.appendChild(s); setTimeout(()=>s.remove(),80+Math.random()*300); }
+  }, 1200));
+  fxIntervals.push(setInterval(() => {
+    const count = Math.floor(Math.random()*5)+1;
+    for (let i=0;i<count;i++) { const d=document.createElement('div'); const sz=Math.random()*4+1; d.style.cssText=`position:absolute;width:${sz}px;height:${sz*0.6}px;border-radius:50%;top:${Math.random()*100}%;left:${Math.random()*100}%;background:rgba(255,220,140,${0.5+Math.random()*0.5});transform:rotate(${Math.random()*360}deg);`; fx.appendChild(d); setTimeout(()=>d.remove(),30+Math.random()*80); }
+  }, 80));
+  fxIntervals.push(setInterval(() => {
+    if (Math.random() < 0.07) { const b=0.78+Math.random()*0.2; document.body.style.filter=`sepia(0.95) contrast(1.08) brightness(${b}) saturate(0.8)`; setTimeout(()=>{ if(currentTheme==='sepia') document.body.style.filter='sepia(0.95) contrast(1.08) brightness(0.9) saturate(0.8)'; },40+Math.random()*60); }
+  }, 150));
+}
+
+/* ── Neon — chaotic glow ── */
+function startNeon() {
+  const fx = document.getElementById('fx');
+  if (!fx) return;
+  document.body.style.filter = 'brightness(1.05) saturate(2) contrast(1.2)';
+  const gl = document.createElement('div');
+  gl.style.cssText = 'position:absolute;inset:0;background:rgba(0,255,180,0.04);mix-blend-mode:screen;';
+  fx.appendChild(gl);
+  function spawnBurst() {
+    if (currentTheme !== 'neon') return;
+    const burst = document.createElement('div');
+    const size = 40 + Math.random() * 120;
+    const colors = ['rgba(0,255,180,0.35)','rgba(180,0,255,0.3)','rgba(0,180,255,0.3)','rgba(255,0,180,0.25)'];
+    burst.style.cssText = `position:absolute;width:${size}px;height:${size}px;left:${Math.random()*100}%;top:${Math.random()*100}%;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(ellipse,${colors[Math.floor(Math.random()*4)]} 0%,transparent 70%);filter:blur(${size*0.3}px);opacity:0;`;
+    fx.appendChild(burst);
+    setTimeout(() => { burst.style.transition='opacity 0.05s'; burst.style.opacity='1'; }, 10);
+    setTimeout(() => { burst.style.opacity='0'; setTimeout(()=>burst.remove(),100); }, 50+Math.random()*150);
+    fxIntervals.push(setTimeout(spawnBurst, 200+Math.random()*800));
+  }
+  spawnBurst();
+  fxIntervals.push(setInterval(() => {
+    if (Math.random() < 0.15) {
+      const els = document.querySelectorAll('.job-card-top,.job-card-bottom,.label-card');
+      const target = els[Math.floor(Math.random()*els.length)];
+      if (target) { target.style.transition='opacity 0.02s'; target.style.opacity=0.1+Math.random()*0.5; setTimeout(()=>{ target.style.opacity=''; setTimeout(()=>target.style.transition='',100); },20+Math.random()*120); }
+    }
+  }, 200));
+  fxIntervals.push(setInterval(() => {
+    if (currentTheme !== 'neon') return;
+    const b = 0.9 + Math.random() * 0.25;
+    document.body.style.filter = `brightness(${b}) saturate(2) contrast(1.2)`;
+  }, 120));
+}
+
+/* ── B&W — noisy SD TV ── */
+function startBW() {
+  const fx = document.getElementById('fx');
+  if (!fx) return;
+  document.body.style.filter = 'grayscale(1) contrast(1.1) brightness(0.9)';
+  const canvas = document.createElement('canvas');
+  canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;opacity:0.22;';
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  fx.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  function drawNoise() {
+    if (currentTheme !== 'bw') return;
+    const img = ctx.createImageData(canvas.width, canvas.height);
+    for (let i=0;i<img.data.length;i+=4) { const v=Math.random()*255; img.data[i]=img.data[i+1]=img.data[i+2]=v; img.data[i+3]=180; }
+    ctx.putImageData(img, 0, 0);
+    fxRAFs.push(requestAnimationFrame(drawNoise));
+  }
+  drawNoise();
+  let bwBrightness=0.9, bwTarget=0.9, bwFading=false;
+  fxIntervals.push(setInterval(() => {
+    if (currentTheme !== 'bw') return;
+    if (!bwFading && Math.random()<0.06) { bwFading=true; bwTarget=0.45+Math.random()*0.35; canvas.style.transition=`opacity ${300+Math.random()*400}ms ease`; canvas.style.opacity=0.45+Math.random()*0.35; setTimeout(()=>{ if(currentTheme==='bw'){ bwTarget=0.9; canvas.style.transition=`opacity ${400+Math.random()*500}ms ease`; canvas.style.opacity='0.22'; setTimeout(()=>{bwFading=false;},600); } },300+Math.random()*800); }
+  }, 800));
+  fxIntervals.push(setInterval(() => { if(currentTheme!=='bw')return; bwBrightness+=(bwTarget-bwBrightness)*0.08; document.body.style.filter=`grayscale(1) contrast(1.1) brightness(${bwBrightness.toFixed(3)})`; }, 16));
+  fxIntervals.push(setInterval(() => {
+    if (Math.random()<0.15) { const band=document.createElement('div'); band.style.cssText=`position:absolute;top:${Math.random()*90}%;left:0;right:0;height:${Math.random()*15+3}px;background:rgba(${Math.random()>0.5?255:0},${Math.random()>0.5?255:0},${Math.random()>0.5?255:0},${0.1+Math.random()*0.2});`; fx.appendChild(band); setTimeout(()=>band.remove(),30+Math.random()*100); }
+  }, 150));
+}
+
+/* ── Dusk — indie film ── */
+function startDusk() {
+  const fx = document.getElementById('fx');
+  if (!fx) return;
+  document.body.style.filter = 'brightness(0.88) saturate(0.75) contrast(1.05) sepia(0.2)';
+  const warm = document.createElement('div');
+  warm.style.cssText = 'position:absolute;inset:0;background:rgba(255,130,20,0.12);mix-blend-mode:multiply;';
+  fx.appendChild(warm);
+  const vg = document.createElement('div');
+  vg.style.cssText = 'position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 35%,rgba(100,40,0,0.5) 100%);';
+  fx.appendChild(vg);
+  function spawnFlare() {
+    if (currentTheme !== 'dusk') return;
+    const flare = document.createElement('div');
+    const x=10+Math.random()*80, y=Math.random()*50, size=60+Math.random()*140;
+    flare.style.cssText = `position:absolute;left:${x}%;top:${y}%;transform:translate(-50%,-50%);pointer-events:none;width:${size}px;height:${size*0.4}px;opacity:0;`;
+    flare.innerHTML = `<div style="position:absolute;width:${size*0.4}px;height:${size*0.4}px;border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(255,220,120,0.9) 0%,rgba(255,180,60,0.4) 40%,transparent 70%);filter:blur(${size*0.05}px);"></div><div style="position:absolute;width:${size}px;height:${size*0.15}px;top:50%;left:0;transform:translateY(-50%);background:linear-gradient(to right,transparent,rgba(255,200,80,0.35),rgba(255,255,200,0.6),rgba(255,200,80,0.35),transparent);filter:blur(2px);"></div>`;
+    fx.appendChild(flare);
+    setTimeout(()=>{ flare.style.transition='opacity 0.15s'; flare.style.opacity=0.7+Math.random()*0.3; },10);
+    setTimeout(()=>{ flare.style.opacity='0'; setTimeout(()=>flare.remove(),200); },300+Math.random()*800);
+    fxIntervals.push(setTimeout(spawnFlare, 2000+Math.random()*5000));
+  }
+  spawnFlare();
+  fxIntervals.push(setInterval(() => {
+    if (Math.random()<0.08) { const b=0.78+Math.random()*0.18; document.body.style.filter=`brightness(${b}) saturate(0.75) contrast(1.05) sepia(0.2)`; setTimeout(()=>{ if(currentTheme==='dusk') document.body.style.filter='brightness(0.88) saturate(0.75) contrast(1.05) sepia(0.2)'; },40+Math.random()*80); }
+  }, 200));
+  const grain = document.createElement('canvas');
+  grain.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;opacity:0.1;';
+  grain.width=window.innerWidth; grain.height=window.innerHeight;
+  fx.appendChild(grain);
+  const gctx = grain.getContext('2d');
+  function drawDuskGrain() {
+    if (currentTheme !== 'dusk') return;
+    const img = gctx.createImageData(grain.width, grain.height);
+    for (let y=0;y<grain.height;y+=3) for (let x=0;x<grain.width;x+=3) { const v=Math.random()*255; for(let dy=0;dy<3;dy++) for(let dx=0;dx<3;dx++){const i=((y+dy)*grain.width+(x+dx))*4; if(i<img.data.length-3){img.data[i]=img.data[i+1]=img.data[i+2]=v;img.data[i+3]=30;}} }
+    gctx.putImageData(img, 0, 0);
+    fxRAFs.push(requestAnimationFrame(drawDuskGrain));
+  }
+  drawDuskGrain();
+}
+
+
 function settingsTab(tab) {
-  ['display','cards','other'].forEach(t => {
+  ['display','cards','other','theme'].forEach(t => {
     document.getElementById('spanel-' + t).style.display = t === tab ? 'flex' : 'none';
     document.getElementById('stab-'   + t).classList.toggle('active', t === tab);
   });
@@ -1025,6 +1316,7 @@ function fireTestNotification() {
 
 /* ── init ── */
 buildWindows();
+applyTheme();
 updateSettingsUI();
 renderJobs();
 setInterval(() => { renderJobs(); }, 60000);
