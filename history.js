@@ -177,6 +177,7 @@ function hWeekCard(label, offset, anchorDow) {
 
 /* ── main render ── */
 function renderHistory() {
+  if (typeof appSettings === 'undefined' || typeof jobs === 'undefined') return;
   let wrap = document.getElementById('historyWrap');
   if (!wrap) { buildHistory(); wrap = document.getElementById('historyWrap'); if (!wrap) return; }
   wrap.innerHTML = '';
