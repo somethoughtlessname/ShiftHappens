@@ -148,7 +148,8 @@ function buildWindows() {
 
 
 /* ── app settings ── */
-let appSettings = ls('sch_settings', { showJobCards: true, showQuickSchedule: true, showTimeDot: true, showHistory: true });
+const _settingsDefaults = { showJobCards: true, showQuickSchedule: true, showTimeDot: true, showHistory: true };
+let appSettings = Object.assign({}, _settingsDefaults, ls('sch_settings', {}));
 
 function settingToggle(key) {
   appSettings[key] = !appSettings[key];
