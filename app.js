@@ -124,10 +124,11 @@ function buildWindows() {
           <span class="toggle-label">Job Cards</span>
           <span class="toggle-pill" id="pillJobCards"></span>
         </div>
-        <div class="toggle-card" id="toggleQuickSchedule" onclick="settingToggle('showQuickSchedule')">
-          <span class="toggle-label">Quick Schedule</span>
-          <span class="toggle-pill" id="pillQuickSchedule"></span>
-        </div>
+        <div id="quickScheduleToggleSlot"></div>
+        <div id="timeDotToggleSlot"></div>
+        <div id="historyToggleSlot"></div>
+        <div class="label-card" id="notifTestBtn" onclick="testNotification()" style="cursor:pointer;background:var(--bg-2);color:var(--color-4);">Test Notification</div>
+        <div class="label-card" id="notifStatus" style="font-size:var(--text-xs);"></div>
       </div>
     </div>
 
@@ -147,7 +148,7 @@ function buildWindows() {
 
 
 /* ── app settings ── */
-let appSettings = ls('sch_settings', { showJobCards: true, showQuickSchedule: true });
+let appSettings = ls('sch_settings', { showJobCards: true, showQuickSchedule: true, showTimeDot: true, showHistory: true });
 
 function settingToggle(key) {
   appSettings[key] = !appSettings[key];
@@ -157,9 +158,31 @@ function settingToggle(key) {
 }
 
 function updateSettingsUI() {
-  const keys = ['showJobCards', 'showQuickSchedule'];
-  const pills = { showJobCards: 'pillJobCards', showQuickSchedule: 'pillQuickSchedule' };
-  const cards = { showJobCards: 'toggleJobCards', showQuickSchedule: 'toggleQuickSchedule' };
+  // inject quickschedule toggles only if quickschedule.js loaded
+  const qsSlot = document.getElementById('quickScheduleToggleSlot');
+  if (qsSlot) {
+    if (typeof renderQuickSchedule === 'function') {
+      qsSlot.innerHTML = `<div class="toggle-card" id="toggleQuickSchedule" onclick="settingToggle('showQuickSchedule')"><span class="toggle-label">Quick Schedule</span><span class="toggle-pill" id="pillQuickSchedule"></span></div>`;
+    } else { qsSlot.innerHTML = ''; }
+  }
+  const tdSlot = document.getElementById('timeDotToggleSlot');
+  if (tdSlot) {
+    if (typeof renderQuickSchedule === 'function') {
+      tdSlot.innerHTML = `<div class="toggle-card" id="toggleTimeDot" onclick="settingToggle('showTimeDot')"><span class="toggle-label">Time Indicator</span><span class="toggle-pill" id="pillTimeDot"></span></div>`;
+    } else { tdSlot.innerHTML = ''; }
+  }
+  // inject history toggle only if history.js loaded
+  const slot = document.getElementById('historyToggleSlot');
+  if (slot) {
+    if (typeof renderHistory === 'function') {
+      slot.innerHTML = `<div class="toggle-card" id="toggleHistory" onclick="settingToggle('showHistory')"><span class="toggle-label">History</span><span class="toggle-pill" id="pillHistory"></span></div>`;
+    } else {
+      slot.innerHTML = '';
+    }
+  }
+  const keys = ['showJobCards', 'showQuickSchedule', 'showTimeDot', 'showHistory'];
+  const pills = { showJobCards: 'pillJobCards', showQuickSchedule: 'pillQuickSchedule', showTimeDot: 'pillTimeDot', showHistory: 'pillHistory' };
+  const cards = { showJobCards: 'toggleJobCards', showQuickSchedule: 'toggleQuickSchedule', showTimeDot: 'toggleTimeDot', showHistory: 'toggleHistory' };
   keys.forEach(k => {
     const on = appSettings[k];
     const pill = document.getElementById(pills[k]);
@@ -187,11 +210,19 @@ function nwPickColor(el) {
   document.querySelectorAll('#nwColorCard .nw-swatch').forEach(s => s.classList.remove('selected'));
   el.classList.add('selected');
   nwSelectedColor = el.dataset.color;
+  // update active dow button color
+  const activeDow = document.querySelector('#nwDowCard .dow-btn.active');
+  if (activeDow && nwSelectedColor) { activeDow.style.background = nwSelectedColor; activeDow.style.color = 'var(--color-10)'; }
   nwCheckReady();
 }
 function nwPickDow(el) {
-  document.querySelectorAll('#nwDowCard .dow-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#nwDowCard .dow-btn').forEach(b => {
+    b.classList.remove('active');
+    b.style.background = '';
+    b.style.color = '';
+  });
   el.classList.add('active');
+  if (nwSelectedColor) { el.style.background = nwSelectedColor; el.style.color = 'var(--color-10)'; }
   nwSelectedDow = parseInt(el.dataset.dow);
 }
 function nwCheckReady() {
@@ -212,6 +243,7 @@ function nwCreate() {
   nwSelectedDow = 1;
   document.getElementById('nwFooter').classList.remove('ready');
   if (typeof renderQuickSchedule === 'function' && appSettings.showQuickSchedule) renderQuickSchedule();
+  if (typeof renderHistory === 'function') renderHistory();
   closeWindow('newWindow');
 }
 
@@ -251,6 +283,8 @@ function renderJobs() {
       const placeholder = document.createElement('div');
       placeholder.className = 'label-card';
       placeholder.textContent = 'Tap New to Add a Job';
+      placeholder.style.cursor = 'pointer';
+      placeholder.onclick = () => openWindow('newWindow');
       app.appendChild(placeholder);
     } else {
       const lbl = document.createElement('div');
@@ -273,13 +307,16 @@ function renderJobs() {
   });
   // re-render quick schedule below job cards
   if (typeof renderQuickSchedule === 'function' && appSettings.showQuickSchedule) renderQuickSchedule();
+  if (typeof renderHistory === 'function') renderHistory();
 }
 
 /* ── job window ── */
 function openJobWindow(job) {
   activeJobId    = job.id;
   activeFirstDow = job.firstDow !== undefined ? job.firstDow : 1;
-  document.getElementById('jobWindowTitle').textContent = job.title;
+  const titleEl = document.getElementById('jobWindowTitle');
+  titleEl.textContent = job.title;
+  titleEl.style.cssText = `background:${job.color};font-size:var(--text-md);font-weight:var(--fw-heavy);letter-spacing:var(--ls-wider);`;
   activeWeek  = 'this';
   activeHours = 'scheduled';
   updateWeekUI();
@@ -297,7 +334,10 @@ function openJobSettings() {
   jsSelectedColor = job.color;
   const savedDow = job.firstDow !== undefined ? job.firstDow : 1;
   document.querySelectorAll('#dowCard .dow-btn').forEach(b => {
-    b.classList.toggle('active', parseInt(b.dataset.dow) === savedDow);
+    const isActive = parseInt(b.dataset.dow) === savedDow;
+    b.classList.toggle('active', isActive);
+    b.style.background = isActive ? job.color : '';
+    b.style.color = isActive ? 'var(--color-10)' : '';
   });
   document.getElementById('deleteCard').classList.remove('confirm');
   document.getElementById('deleteCard').textContent = 'Delete Job';
@@ -318,13 +358,20 @@ function jsPickColor(el) {
   el.classList.add('selected');
   jsSelectedColor = el.dataset.color;
   const job = jobs.find(j => j.id === activeJobId);
-  if (job) { job.color = jsSelectedColor; lsSet('sch_jobs', jobs); renderJobs(); }
+  if (job) { job.color = jsSelectedColor; lsSet('sch_jobs', jobs); renderJobs();
+    const titleEl = document.getElementById('jobWindowTitle');
+    if (titleEl) titleEl.style.background = jsSelectedColor; }
 }
 function jsPickDow(el) {
-  document.querySelectorAll('#dowCard .dow-btn').forEach(b => b.classList.remove('active'));
-  el.classList.add('active');
-  activeFirstDow = parseInt(el.dataset.dow);
   const job = jobs.find(j => j.id === activeJobId);
+  document.querySelectorAll('#dowCard .dow-btn').forEach(b => {
+    b.classList.remove('active');
+    b.style.background = '';
+    b.style.color = '';
+  });
+  el.classList.add('active');
+  if (job) { el.style.background = job.color; el.style.color = 'var(--color-10)'; }
+  activeFirstDow = parseInt(el.dataset.dow);
   if (job) { job.firstDow = activeFirstDow; lsSet('sch_jobs', jobs); }
   updateDateRange();
 }
@@ -415,9 +462,10 @@ function parseTimeToMins(t) {
 function calcDuration(s, e) {
   const sm = parseTimeToMins(s), em = parseTimeToMins(e);
   if (sm === null || em === null) return '00.00';
+  // HH.MM where .50 = 30min
   let diff = em - sm;
   if (diff <= 0) diff += 24 * 60;
-  return `${String(Math.floor(diff/60)).padStart(2,'0')}.${String(diff%60).padStart(2,'0')}`;
+  return `${String(Math.floor(diff/60)).padStart(2,'0')}.${String(Math.round(diff%60/60*100)).padStart(2,'0')}`;
 }
 
 /* ── schedule data helpers ── */
@@ -546,6 +594,7 @@ function tpLoadSmartRange(idx) {
   renderDayCards();
   renderJobs();
   if (typeof renderQuickSchedule === 'function' && appSettings.showQuickSchedule) renderQuickSchedule();
+  if (typeof renderHistory === 'function') renderHistory();
   closeSchedModal();
 }
 
@@ -651,6 +700,7 @@ function tpConfirm() {
   renderDayCards();
   renderJobs();
   if (typeof renderQuickSchedule === 'function' && appSettings.showQuickSchedule) renderQuickSchedule();
+  if (typeof renderHistory === 'function') renderHistory();
   closeSchedModal();
 }
 function closeSchedModal() { document.getElementById('schedModal').classList.remove('open'); }
@@ -691,6 +741,56 @@ function clearFullSchedule() {
   const job = jobs.find(j => j.id === activeJobId);
   if (job) { job.schedule = {}; job.worked = {}; lsSet('sch_jobs', jobs); renderDayCards(); renderJobs(); }
   clearFullPending = false; card.classList.remove('confirm'); card.textContent = 'Clear Full Schedule';
+}
+
+
+/* ── notification test ── */
+function testNotification() {
+  const status = document.getElementById('notifStatus');
+  if (!('Notification' in window)) {
+    status.textContent = 'Notifications not supported';
+    status.style.color = 'var(--color-1)';
+    return;
+  }
+  if (Notification.permission === 'granted') {
+    fireTestNotification();
+  } else if (Notification.permission === 'denied') {
+    status.textContent = 'Notifications blocked — enable in browser settings';
+    status.style.color = 'var(--color-1)';
+  } else {
+    Notification.requestPermission().then(perm => {
+      if (perm === 'granted') fireTestNotification();
+      else {
+        status.textContent = 'Permission denied';
+        status.style.color = 'var(--color-1)';
+      }
+    });
+  }
+}
+
+function fireTestNotification() {
+  const status = document.getElementById('notifStatus');
+  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.ready.then(reg => {
+      reg.showNotification('Shift Happens', {
+        body: 'Your shift starts in 30 minutes',
+        icon: 'icon-192.png',
+        badge: 'icon-192.png',
+        tag: 'shift-test',
+        vibrate: [200, 100, 200]
+      });
+      status.textContent = 'Notification sent!';
+      status.style.color = 'var(--color-4)';
+    });
+  } else {
+    // Fallback if SW not available
+    new Notification('Shift Happens', {
+      body: 'Your shift starts in 30 minutes',
+      icon: 'icon-192.png'
+    });
+    status.textContent = 'Notification sent!';
+    status.style.color = 'var(--color-4)';
+  }
 }
 
 /* ── init ── */

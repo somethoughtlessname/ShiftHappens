@@ -3,7 +3,8 @@
 */
 
 const QS_DAYS    = 7;
-const QS_ROW_PX  = 22;   // matches --qs-row
+const QS_ROW_PX  = 18;  // matches --qs-row
+const QS_HDR_PX  = 18;  // matches --qs-hdr
 const QS_BDR_PX  = 3;    // matches --border-width
 const QS_RADIUS  = '8px'; // matches --radius
 
@@ -73,7 +74,7 @@ function renderQuickSchedule() {
   }
   const axisLeft  = Math.floor(axisMin / 60) * 60;
   const axisRight = Math.ceil(axisMax  / 60) * 60;
-  const bufLeft   = axisLeft;   // margin handled via CSS padding = QS_ROW_PX
+  const bufLeft   = axisLeft;
   const bufRight  = axisRight;
   const totalSpan = bufRight - bufLeft;
 
@@ -116,22 +117,29 @@ function renderQuickSchedule() {
   card.className = 'qs-card';
   wrap.appendChild(card);
 
+  let todayHasShifts = false;
   days.forEach(({ date, shifts }, idx) => {
     const isToday     = date.getTime() === today.getTime();
     const validShifts = shifts.filter(s => !s.isOff && s.startMins !== null && s.endMins !== null);
     const allOff      = shifts.length > 0 && shifts.every(s => s.isOff);
     const hasShifts   = validShifts.length > 0;
+    if (isToday && hasShifts && !allOff) todayHasShifts = true;
 
     const dayLabel = isToday
       ? 'TODAY'
       : `${DAY_NAMES[date.getDay()].toUpperCase()}  ${MONTHS[date.getMonth()].toUpperCase()} ${date.getDate()}`;
 
     /* day header — inline height to guarantee render */
+    const hdrHeight = isToday ? QS_ROW_PX : QS_HDR_PX;
     const hdr = document.createElement('div');
     hdr.className = 'qs-day-hdr' + (idx === 0 ? ' qs-first' : '');
-    hdr.style.background = QS_PURPLE;
-    hdr.style.height = QS_ROW_PX + 'px';
-    hdr.textContent  = dayLabel;
+    hdr.style.cssText = `background:${QS_PURPLE};height:${hdrHeight}px;position:relative;overflow:visible;`;
+
+    const hdrText = document.createElement('span');
+    hdrText.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);white-space:nowrap;';
+    hdrText.textContent = dayLabel;
+    hdr.appendChild(hdrText);
+
     card.appendChild(hdr);
 
     if (hasShifts) {
@@ -174,15 +182,52 @@ function renderQuickSchedule() {
         card.appendChild(rowEl);
       });
 
+
     } else {
       /* empty row */
       const emptyRow = document.createElement('div');
       emptyRow.className    = 'qs-job-row qs-row-off';
       emptyRow.style.height = QS_ROW_PX + 'px';
-      emptyRow.textContent  = allOff ? 'YOU HAVE THE DAY OFF!' : 'NO SHIFTS SCHEDULED YET';
+      if (allOff) {
+        emptyRow.textContent = 'YOU HAVE THE DAY OFF!';
+        emptyRow.style.color = 'var(--color-10)';
+      } else {
+        emptyRow.textContent = 'NO SHIFTS SCHEDULED YET';
+      }
       card.appendChild(emptyRow);
+
     }
   });
+
+  /* ── today time dot — on border between today header and today row ── */
+  if (typeof appSettings !== "undefined" && appSettings.showTimeDot && todayHasShifts) {
+    const nowMins2 = new Date().getHours() * 60 + new Date().getMinutes();
+    // Three zones: left margin (fixed 1hr = QS_ROW_PX px), content (flex), right margin (fixed 1hr = QS_ROW_PX px)
+    let dotLeft;
+    if (nowMins2 <= axisLeft) {
+      // in left margin — map axisLeft-60..axisLeft to 0..QS_ROW_PX px
+      const px = QS_ROW_PX * Math.max(0, (nowMins2 - (axisLeft - 60)) / 60);
+      dotLeft = px.toFixed(2) + 'px';
+    } else if (nowMins2 >= axisRight) {
+      // in right margin — map axisRight..axisRight+60 to calc(100% - QS_ROW_PX)..calc(100%)
+      const px = QS_ROW_PX * Math.min(1, (nowMins2 - axisRight) / 60);
+      dotLeft = 'calc(100% - ' + (QS_ROW_PX - px).toFixed(2) + 'px)';
+    } else {
+      // in content — pct() maps axisLeft..axisRight to 0..100% of content area
+      const cp = pct(nowMins2);
+      dotLeft = 'calc(' + QS_ROW_PX + 'px + ' + cp.toFixed(2) + '% - ' + (cp / 100 * QS_ROW_PX * 2).toFixed(2) + 'px)';
+    }
+    // today is always first day (di=0), border is at bottom of today header = QS_ROW_PX from card top
+    const dotTop = QS_ROW_PX;
+    card.style.position = 'relative';
+    const dot = document.createElement('div');
+    dot.id = 'qsTimeDot';
+    dot.style.cssText = 'position:absolute;pointer-events:none;z-index:20;'
+      + 'width:4px;height:4px;background:#fff;border-radius:1px;'
+      + 'left:' + dotLeft + ';'
+      + 'top:' + dotTop + 'px;transform:translate(-50%,-50%) rotate(45deg);';
+    card.appendChild(dot);
+  }
 
   /* ── axis ── */
   const axis = document.createElement('div');
@@ -252,6 +297,9 @@ function qsAssignRows(shifts) {
   return rows;
 }
 
-/* ── self-init ── */
-buildQuickSchedule();
-renderQuickSchedule();
+/* ── init ── */
+window.addEventListener('load', function() {
+  buildQuickSchedule();
+  renderQuickSchedule();
+  if (typeof updateSettingsUI === 'function') updateSettingsUI();
+});

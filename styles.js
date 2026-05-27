@@ -26,7 +26,8 @@ input  { outline: none; -webkit-tap-highlight-color: transparent; }
   --color-purple: var(--swatch-7);  /* purple — uses swatch-7 */
   --job-half:     calc((var(--card-height) - var(--border-width)) / 2);
   --modal-btn:    #738494;
-  --qs-row:       22px;
+  --qs-row:       18px;  /* timeline row height */
+  --qs-hdr:       18px;  /* day header height */
   --qs-grid:      rgba(255,255,255,0.18);
   --qs-job-bdr:   var(--border-width);
   --swatch-1:      #C85A5A;  /* red     */
@@ -63,7 +64,7 @@ html, body {
 }
 body {
   display: flex; flex-direction: column; align-items: center;
-  padding: calc(var(--card-height) + var(--margin)) var(--margin) 60px;
+  padding: calc(var(--card-height) + var(--margin)) var(--margin) var(--margin);
 }
 
 /* ── MAIN HEADER ── */
@@ -181,14 +182,13 @@ body {
   position: relative;
 }
 .nw-swatch:last-child { border-right: none; }
-.nw-swatch:active { filter: brightness(1.25); }
+.nw-swatch:active { filter: none; }
 .nw-swatch::after {
   content: '';
   position: absolute; top: 50%; left: 50%;
   transform: translate(-50%, -50%) scale(0);
   width: 14px; height: 14px; border-radius: 50%;
   background: var(--color-10);
-  box-shadow: 0 0 0 2px rgba(0,0,0,0.55);
   transition: transform 0.12s;
 }
 .nw-swatch.selected::after { transform: translate(-50%, -50%) scale(1); }
@@ -204,7 +204,7 @@ body {
   transition: background 0.15s, color 0.15s;
 }
 .nw-footer.ready { background: var(--color-4-2); color: var(--color-10); cursor: pointer; }
-.nw-footer.ready:active { filter: brightness(1.2); }
+.nw-footer.ready:active { filter: none; }
 
 /* ── FILTER CARDS ── */
 .filter-card {
@@ -225,7 +225,7 @@ body {
 }
 .filter-btn:last-child { border-right: none; }
 .filter-btn.active { background: var(--color-4-2); color: var(--color-10); }
-.filter-btn:active { filter: brightness(1.15); }
+.filter-btn:active { filter: none; }
 
 /* ── DATE RANGE CARD ── */
 .date-range-card {
@@ -341,7 +341,7 @@ body {
 }
 .dow-btn:last-child { border-right: none; }
 .dow-btn.active { background: var(--color-4-2); color: var(--color-10); }
-.dow-btn:active { filter: brightness(1.15); }
+.dow-btn:active { filter: none; }
 
 /* ── DOT GRID ── */
 .dot-grid {
@@ -375,7 +375,7 @@ body {
   font-size: var(--text-sm); font-weight: var(--fw-bold); letter-spacing: var(--ls-wider); text-transform: uppercase;
   color: var(--color-10); cursor: pointer; user-select: none;
 }
-.delete-card:active { filter: brightness(1.2); }
+.delete-card:active { filter: none; }
 .delete-card.confirm { background: #fff; color: var(--color-1); }
 
 /* ── CLEAR CARDS ── */
@@ -388,7 +388,7 @@ body {
   font-size: var(--text-sm); font-weight: var(--fw-bold); letter-spacing: var(--ls-wider); text-transform: uppercase;
   color: var(--color-10); cursor: pointer; user-select: none; flex-shrink: 0;
 }
-.clear-card:active { filter: brightness(1.1); }
+.clear-card:active { filter: none; }
 .clear-card.confirm { background: #fff; color: var(--color-1); }
 .clear-card-wrap {
   padding: var(--margin);
@@ -467,7 +467,7 @@ body {
   font-size: var(--text-md); font-weight: var(--fw-bold); cursor: pointer;
   display: flex; align-items: center; justify-content: center;
 }
-.tp-btn:active { filter: brightness(1.3); }
+.tp-btn:active { filter: none; }
 .tp-btn.tp-red    { background: var(--color-1); }
 .tp-btn.tp-blue   { background: var(--color-blue); font-size: var(--text-sm); letter-spacing: var(--ls-wide); }
 .tp-btn.tp-purple { background: var(--color-purple); font-size: var(--text-sm); letter-spacing: var(--ls-wide); }
@@ -480,7 +480,7 @@ body {
   font-size: var(--text-sm); font-weight: var(--fw-bold); cursor: pointer;
   display: flex; align-items: center; justify-content: center;
 }
-.tp-preset:active { filter: brightness(1.3); }
+.tp-preset:active { filter: none; }
 .tp-footer { display: flex; gap: var(--margin); height: var(--card-height); flex-shrink: 0; }
 .tp-cancel {
   flex: 1; background: var(--bg-2);
@@ -494,7 +494,7 @@ body {
   border-radius: var(--radius); color: var(--color-10);
   font-size: var(--text-sm); font-weight: var(--fw-bold); letter-spacing: var(--ls-wide); text-transform: uppercase; cursor: pointer;
 }
-.tp-cancel:active, .tp-set:active { filter: brightness(1.2); }
+.tp-cancel:active, .tp-set:active { filter: none; }
 
 /* ── QUICK SCHEDULE ── */
 .qs-wrap {
@@ -508,7 +508,7 @@ body {
   display: flex; flex-direction: column;
 }
 .qs-day-hdr {
-  height: var(--qs-row);
+  /* height set inline per day */
   display: flex; align-items: center; justify-content: center;
   background: var(--swatch-7);
   border-top: var(--border-width) solid var(--border-color);
@@ -550,7 +550,7 @@ body {
   white-space: nowrap; text-overflow: ellipsis;
   padding: 0 4px; box-sizing: border-box;
 }
-.qs-job-card:active { filter: brightness(0.9); }
+.qs-job-card:active { filter: none; }
 .qs-axis {
   position: relative;
   height: var(--qs-row);

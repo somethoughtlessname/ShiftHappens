@@ -1,0 +1,278 @@
+/* history.js — History feature
+   Requires: app.js globals — jobs, parseTimeToMins, localDateKey, MONTHS
+*/
+
+function buildHistory() {
+  let wrap = document.getElementById('historyWrap');
+  if (!wrap) {
+    wrap = document.createElement('div');
+    wrap.id = 'historyWrap';
+    wrap.style.cssText = 'width:100%;max-width:540px;display:flex;flex-direction:column;gap:var(--margin);';
+    const mainApp = document.getElementById('mainApp');
+    if (mainApp) mainApp.appendChild(wrap);
+  }
+}
+
+/* ── helpers ── */
+function hOrdinal(n) {
+  const s = ['th','st','nd','rd'], v = n % 100;
+  return n + (s[(v-20)%10] || s[v] || s[0]);
+}
+
+function hFmtDate(d) {
+  return `${MONTHS[d.getMonth()].toUpperCase()} ${hOrdinal(d.getDate()).toUpperCase()}`;
+}
+
+function hFmtHours(totalMins) {
+  const h = Math.floor(totalMins / 60);
+  const m = totalMins % 60;
+  return `${String(h).padStart(2,'0')}.${String(Math.round(m / 60 * 100)).padStart(2,'0')}`;
+}
+
+function hGetWeekRange(anchorDow, offset) {
+  const now  = new Date();
+  const diff = (now.getDay() - anchorDow + 7) % 7;
+  const start = new Date(now);
+  start.setDate(now.getDate() - diff + offset * 7);
+  start.setHours(0,0,0,0);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  end.setHours(23,59,59,999);
+  return { start, end };
+}
+
+function hSumHours(store, start, end) {
+  // sum all jobs' store (schedule or worked) between start and end dates
+  let total = 0;
+  const d = new Date(start);
+  while (d <= end) {
+    const key = localDateKey(d);
+    jobs.forEach(job => {
+      const dayData = job[store] && job[store][key];
+      if (!dayData || !dayData.start || !dayData.end) { d.setDate(d.getDate()+0); return; }
+      if (dayData.start === 'OFF' || dayData.start === 'NONE') return;
+      const s = parseTimeToMins(dayData.start);
+      const e = parseTimeToMins(dayData.end);
+      if (s === null || e === null) return;
+      let diff2 = e - s;
+      if (diff2 <= 0) diff2 += 24 * 60;
+      total += diff2;
+    });
+    d.setDate(d.getDate() + 1);
+  }
+  return total;
+}
+
+function hProjected(start, end) {
+  const now = new Date();
+  const nowMins = now.getHours() * 60 + now.getMinutes();
+  let total = 0;
+  const d = new Date(start);
+  while (d <= end) {
+    const key = localDateKey(d);
+    const isToday = localDateKey(d) === localDateKey(now);
+    const isFuture = d > now;
+    jobs.forEach(job => {
+      if (!job.schedule || !job.schedule[key]) return;
+      const dayData = job.schedule[key];
+      if (!dayData.start || dayData.start === 'OFF' || dayData.start === 'NONE') return;
+      const s = parseTimeToMins(dayData.start);
+      const e = parseTimeToMins(dayData.end);
+      if (s === null || e === null) return;
+      let dur = e - s;
+      if (dur <= 0) dur += 24 * 60;
+
+      if (isFuture) {
+        // future day — count full shift
+        total += dur;
+      } else if (isToday) {
+        // today — only count if shift hasn't started yet
+        if (nowMins < s) total += dur;
+      }
+      // past days and in-progress shifts not counted
+    });
+    // add worked hours for past days and today
+    if (!isFuture) {
+      const wd = job => {
+        if (!job.worked || !job.worked[key]) return 0;
+        const wd2 = job.worked[key];
+        if (!wd2.start || wd2.start === 'OFF' || wd2.start === 'NONE') return 0;
+        const s2 = parseTimeToMins(wd2.start);
+        const e2 = parseTimeToMins(wd2.end);
+        if (s2 === null || e2 === null) return 0;
+        let dur2 = e2 - s2;
+        if (dur2 <= 0) dur2 += 24 * 60;
+        return dur2;
+      };
+      jobs.forEach(job => { total += wd(job); });
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  return total;
+}
+
+/* ── build a week card ── */
+function hWeekCard(label, offset, anchorDow) {
+  const { start, end } = hGetWeekRange(anchorDow, offset);
+  const isThisWeek = offset === 0;
+  const isLastWeek = offset === -1;
+
+  const schedMins  = hSumHours('schedule', start, end);
+  const workedMins = isLastWeek || isThisWeek ? hSumHours('worked', start, end) : 0;
+  const projMins   = isThisWeek ? hProjected(start, end) : 0;
+
+  const cs      = getComputedStyle(document.documentElement);
+  const green   = cs.getPropertyValue('--swatch-4').trim();
+  const darkBg  = cs.getPropertyValue('--bg-2').trim();
+  const textCol = cs.getPropertyValue('--color-10').trim();
+  const mutedCol= cs.getPropertyValue('--muted').trim();
+  const bdrW    = cs.getPropertyValue('--border-width').trim() || '3px';
+  const bdrC    = cs.getPropertyValue('--border-color').trim() || '#000';
+  const radius  = cs.getPropertyValue('--radius').trim() || '8px';
+
+  const card = document.createElement('div');
+  card.style.cssText = `flex:1;border:${bdrW} solid ${bdrC};border-radius:${radius};overflow:hidden;display:flex;flex-direction:column;min-width:0;`;
+
+  // header row
+  const hdr = document.createElement('div');
+  hdr.style.cssText = `background:${green};padding:4px;text-align:center;font-size:var(--text-xs);font-weight:var(--fw-bold);letter-spacing:var(--ls-wider);text-transform:uppercase;color:${textCol};`;
+  hdr.textContent = label;
+  card.appendChild(hdr);
+
+  // start date
+  const startEl = document.createElement('div');
+  startEl.style.cssText = `background:${darkBg};padding:3px;text-align:center;font-size:var(--text-xs);font-weight:var(--fw-bold);color:${textCol};border-top:${bdrW} solid ${bdrC};`;
+  startEl.textContent = hFmtDate(start);
+  card.appendChild(startEl);
+
+  // divider line
+  const div = document.createElement('div');
+  div.style.cssText = `height:3px;background:${mutedCol};width:75%;margin:0 auto;display:block;`;
+  const divWrap = document.createElement('div');
+  divWrap.style.cssText = `background:${darkBg};padding:3px 0;`;
+  divWrap.appendChild(div);
+  card.appendChild(divWrap);
+
+  // end date
+  const endEl = document.createElement('div');
+  endEl.style.cssText = `background:${darkBg};padding:3px;text-align:center;font-size:var(--text-xs);font-weight:var(--fw-bold);color:${textCol};`;
+  endEl.textContent = hFmtDate(end);
+  card.appendChild(endEl);
+
+  // hours row
+  const hrs = document.createElement('div');
+  hrs.style.cssText = `background:${green};padding:4px;text-align:center;font-size:var(--text-xs);font-weight:var(--fw-bold);color:${textCol};border-top:${bdrW} solid ${bdrC};`;
+
+  if (isLastWeek) {
+    hrs.textContent = hFmtHours(workedMins);
+  } else if (isThisWeek) {
+    hrs.textContent = `${hFmtHours(workedMins)} / ${hFmtHours(schedMins)} (${hFmtHours(projMins)})`;
+  } else {
+    hrs.textContent = hFmtHours(schedMins);
+  }
+  card.appendChild(hrs);
+
+  return card;
+}
+
+/* ── main render ── */
+function renderHistory() {
+  let wrap = document.getElementById('historyWrap');
+  if (!wrap) { buildHistory(); wrap = document.getElementById('historyWrap'); if (!wrap) return; }
+  wrap.innerHTML = '';
+  if (!appSettings.showHistory) return;
+
+  // title
+  const title = document.createElement('div');
+  title.className = 'label-card';
+  title.textContent = 'History';
+  wrap.appendChild(title);
+
+  // use first job's firstDow as anchor
+  const anchorDow = (jobs.length > 0 && jobs[0].firstDow !== undefined) ? jobs[0].firstDow : 1;
+
+  // this week + next week row
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:var(--margin);';
+  row.appendChild(hWeekCard('This Week',  0, anchorDow));
+  row.appendChild(hWeekCard('Next Week',  1, anchorDow));
+  wrap.appendChild(row);
+
+  // last 10 weeks grid
+  wrap.appendChild(hLast10Card(anchorDow));
+}
+
+window.addEventListener('load', function() {
+  buildHistory();
+  renderHistory();
+  if (typeof updateSettingsUI === 'function') updateSettingsUI();
+});
+
+/* ── last 10 weeks grid ── */
+function hFmtShortDate(d) {
+  return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function hLast10Card(anchorDow) {
+  const cs      = getComputedStyle(document.documentElement);
+  const green   = cs.getPropertyValue('--swatch-4').trim();
+  const darkBg  = cs.getPropertyValue('--bg-2').trim();
+  const textCol = cs.getPropertyValue('--color-10').trim();
+  const mutedCol= cs.getPropertyValue('--muted').trim();
+  const bdrW    = cs.getPropertyValue('--border-width').trim() || '3px';
+  const bdrC    = cs.getPropertyValue('--border-color').trim() || '#000';
+  const radius  = cs.getPropertyValue('--radius').trim() || '8px';
+
+  const card = document.createElement('div');
+  card.style.cssText = `border:${bdrW} solid ${bdrC};border-radius:${radius};overflow:hidden;`;
+
+  // header
+  const hdr = document.createElement('div');
+  hdr.style.cssText = `background:${green};padding:4px;text-align:center;font-size:var(--text-xs);font-weight:var(--fw-bold);letter-spacing:var(--ls-wider);text-transform:uppercase;color:${textCol};`;
+  hdr.textContent = 'Last 10 Weeks';
+  card.appendChild(hdr);
+
+  // grid row
+  const grid = document.createElement('div');
+  grid.style.cssText = `display:flex;border-top:${bdrW} solid ${bdrC};`;
+
+  for (let i = 1; i <= 10; i++) {
+    const { start, end } = hGetWeekRange(anchorDow, -i);
+    const workedMins = hSumHours('worked', start, end);
+
+    const col = document.createElement('div');
+    col.style.cssText = `flex:1;display:flex;flex-direction:column;min-width:0;`
+      + (i < 10 ? `border-right:${bdrW} solid ${bdrC};` : '');
+
+    // start date
+    const sEl = document.createElement('div');
+    sEl.style.cssText = `background:${darkBg};padding:2px 1px;text-align:center;font-size:var(--text-xs);font-weight:var(--fw-bold);color:${textCol};white-space:nowrap;overflow:hidden;`;
+    sEl.textContent = hFmtShortDate(start);
+    col.appendChild(sEl);
+
+    // divider
+    const divWrap = document.createElement('div');
+    divWrap.style.cssText = `background:${darkBg};padding:2px 0;`;
+    const div = document.createElement('div');
+    div.style.cssText = `height:2px;background:${mutedCol};width:75%;margin:0 auto;`;
+    divWrap.appendChild(div);
+    col.appendChild(divWrap);
+
+    // end date
+    const eEl = document.createElement('div');
+    eEl.style.cssText = `background:${darkBg};padding:2px 1px;text-align:center;font-size:var(--text-xs);font-weight:var(--fw-bold);color:${textCol};white-space:nowrap;overflow:hidden;`;
+    eEl.textContent = hFmtShortDate(end);
+    col.appendChild(eEl);
+
+    // hours
+    const hEl = document.createElement('div');
+    hEl.style.cssText = `background:${green};padding:2px 1px;text-align:center;font-size:var(--text-xs);font-weight:var(--fw-bold);color:${textCol};border-top:${bdrW} solid ${bdrC};white-space:nowrap;overflow:hidden;`;
+    hEl.textContent = hFmtHours(workedMins);
+    col.appendChild(hEl);
+
+    grid.appendChild(col);
+  }
+
+  card.appendChild(grid);
+  return card;
+}
