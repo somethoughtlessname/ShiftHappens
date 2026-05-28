@@ -22,10 +22,9 @@ function getSwatchColors() {
   const s = getComputedStyle(document.documentElement);
   return [1,2,3,4,5,6,7,8,9,10].map(i => s.getPropertyValue('--swatch-' + i).trim());
 }
-const SWATCH_COLORS = getSwatchColors();
 
 function buildSwatches(onclickFn) {
-  return SWATCH_COLORS.map(c =>
+  return getSwatchColors().map(c =>
     `<button class="nw-swatch" style="background:${c};" data-color="${c}" onclick="${onclickFn}(this)"></button>`
   ).join('');
 }
@@ -131,7 +130,7 @@ function buildWindows() {
       <div class="data-body" id="spanel-display">
         <div class="label-card">What shows in the main window</div>
 
-        <div class="toggle-card" id="toggleJobCards" onclick="settingToggle('showJobCards')"><div class="toggle-card-top"><span class="toggle-label">Job Cards</span><span class="toggle-pill" id="pillJobCards"></span></div><div class="toggle-card-blurb">Shows each job as a card with time until next shift</div></div>
+        <div class="toggle-card" id="toggleJobCards" onclick="settingToggle('showJobCards')"><div class="toggle-check"><svg width=\"16\" height=\"13\" viewBox=\"0 0 16 13\" fill=\"none\"><path d=\"M1.5 6.5 L6 11 L14.5 1.5\" stroke=\"white\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></div><div class="toggle-content"><div class="toggle-label">Job Cards</div><div class="toggle-blurb">Shows each job as a card with your next shift countdown</div></div></div>
 
         <div id="quickScheduleToggleSlot"></div>
 
@@ -140,7 +139,7 @@ function buildWindows() {
 
       <!-- CARDS TAB -->
       <div class="data-body" id="spanel-cards" style="display:none;">
-        <div class="label-card">Left &amp; right sections on each job card</div>
+        <div class="label-card">Job Card Sections</div>
 
         <div id="timerSectionsToggleSlot"></div>
 
@@ -155,6 +154,8 @@ function buildWindows() {
       <div class="data-body" id="spanel-theme" style="display:none;">
         <div class="label-card">Display Theme</div>
         <div id="themePickerSlot"></div>
+        <div class="label-card">Pick a Theme</div>
+        <div id="settingsSavedThemesList"></div>
       </div>
 
       <!-- OTHER TAB -->
@@ -162,11 +163,13 @@ function buildWindows() {
         <div class="label-card">Notifications</div>
         <div style="font-size:var(--text-xs);color:var(--text-mid);padding:2px 4px 6px;">Test that push notifications are working on your device</div>
         <div class="toggle-card" id="notifTestBtn" onclick="testNotification()" style="cursor:pointer;">
-          <div class="toggle-card-top">
-            <span class="toggle-label">Send Test Notification</span>
-            <span style="font-size:var(--text-xs);color:var(--text-mid);">&#9654;</span>
+          <div class="toggle-check" style="background:var(--secondary);">
+            <svg width="12" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 2 Q2 1 3 1.5 L13.5 7.5 Q15 8 13.5 8.5 L3 14.5 Q2 15 2 14 Z" fill="var(--text-light)"/></svg>
           </div>
-          <div class="toggle-card-blurb">Sends a test push notification to confirm permissions are set up correctly on this device</div>
+          <div class="toggle-content">
+            <div class="toggle-label">Send Test Notification</div>
+            <div class="toggle-blurb">Test that push notifications are working on this device</div>
+          </div>
         </div>
         <div id="notifStatus" style="font-size:var(--text-xs);font-weight:var(--fw-bold);text-align:center;color:var(--text-mid);padding:4px;min-height:18px;"></div>
       </div>
@@ -199,79 +202,125 @@ function settingToggle(key) {
 }
 
 function updateSettingsUI() {
+  const CHK = `<svg width="16" height="13" viewBox="0 0 16 13" fill="none"><path d="M1.5 6.5 L6 11 L14.5 1.5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+  function makeToggle(id, onclick, label, blurb) {
+    return `<div class="toggle-card" id="${id}" onclick="${onclick}"><div class="toggle-check">${CHK}</div><div class="toggle-content"><div class="toggle-label">${label}</div><div class="toggle-blurb">${blurb}</div></div></div>`;
+  }
+
+  // Theme overlay picker
   const themeSlot = document.getElementById('themePickerSlot');
   if (themeSlot) {
     const cur = appSettings.theme || 'none';
     const themes = [
-      { id: 'none',  label: 'Off' },
-      { id: 'crt',   label: 'CRT' },
-      { id: 'bw',    label: 'B&W' },
-      { id: 'sepia', label: 'Sepia' },
-      { id: 'neon',  label: 'Neon' },
-      { id: 'dusk',  label: 'Dusk' },
+      { id: 'none', label: 'Off' }, { id: 'crt', label: 'CRT' }, { id: 'bw', label: 'B&W' },
+      { id: 'sepia', label: 'Sepia' }, { id: 'neon', label: 'Neon' }, { id: 'dusk', label: 'Dusk' },
     ];
     themeSlot.innerHTML = `<div class="filter-card" style="flex-shrink:0;">${
       themes.map(t => `<button class="filter-btn${cur===t.id?' active':''}" onclick="setTheme('${t.id}')">${t.label}</button>`).join('')
     }</div>`;
   }
+
+  // Timer sections
   const tsSlot = document.getElementById('timerSectionsToggleSlot');
-  if (tsSlot) {
-    tsSlot.innerHTML = `<div class="toggle-card" id="toggleTimerSections" onclick="settingToggle('showTimerSections')"><span class="toggle-label">Left & Right Sections</span><span class="toggle-pill" id="pillTimerSections"></span></div>`;
-  }
+  if (tsSlot) tsSlot.innerHTML = makeToggle('toggleTimerSections', "settingToggle('showTimerSections')", 'Quick Shift Timer', 'Timer button on the right side of each job card');
+
+  // Mini graph
   const mgSlot = document.getElementById('miniGraphToggleSlot');
-  if (mgSlot) {
-    mgSlot.innerHTML = `<div class=\"toggle-card\" id=\"toggleMiniGraph\" onclick=\"settingToggle(&apos;showMiniGraph&apos;)\"><div class=\"toggle-card-top\"><span class=\"toggle-label\">Weekly Graph</span><span class=\"toggle-pill\" id=\"pillMiniGraph\"></span></div><div class=\"toggle-card-blurb\">Bar graph on the left panel showing hours per day. Green = past worked, blue = today, white = future scheduled</div></div>`;
-  }
+  if (mgSlot) mgSlot.innerHTML = makeToggle('toggleMiniGraph', "settingToggle('showMiniGraph')", 'Weekly Graph', 'Daily bars showing past worked and upcoming scheduled hours');
+
+  // Mini graph days
   const mgDays = document.getElementById('miniGraphDaysSlot');
   if (mgDays) {
     const cur = appSettings.miniGraphDays || 3;
-    mgDays.innerHTML = `<div class="filter-card" style="flex-shrink:0;border-radius:var(--radius);">
+    mgDays.innerHTML = `<div class="filter-card" style="flex-shrink:0;">
       <button class="filter-btn${cur===3?' active':''}" onclick="setMiniGraphDays(3)">3 Days</button>
       <button class="filter-btn${cur===5?' active':''}" onclick="setMiniGraphDays(5)">5 Days</button>
       <button class="filter-btn${cur===7?' active':''}" onclick="setMiniGraphDays(7)">7 Days</button>
     </div>`;
   }
-  // inject quickschedule toggles only if quickschedule.js loaded
+
+  // Quick schedule slot (only if loaded)
   const qsSlot = document.getElementById('quickScheduleToggleSlot');
   if (qsSlot) {
-    if (typeof renderQuickSchedule === 'function') {
-      qsSlot.innerHTML = `<div class=\"toggle-card\" id=\"toggleQuickSchedule\" onclick=\"settingToggle(&apos;showQuickSchedule&apos;)\"><div class=\"toggle-card-top\"><span class=\"toggle-label\">Quick Schedule</span><span class=\"toggle-pill\" id=\"pillQuickSchedule\"></span></div><div class=\"toggle-card-blurb\">7-day timeline of all scheduled shifts with hour markers and current time indicator</div></div>`;
-
-    } else { qsSlot.innerHTML = ''; }
+    qsSlot.innerHTML = typeof renderQuickSchedule === 'function'
+      ? makeToggle('toggleQuickSchedule', "settingToggle('showQuickSchedule')", 'Quick Schedule', '7-day shift timeline with hour markers across all jobs')
+      : '';
   }
+
+  // Time dot slot (only if QS loaded)
   const tdSlot = document.getElementById('timeDotToggleSlot');
   if (tdSlot) {
-    if (typeof renderQuickSchedule === 'function') {
-      tdSlot.innerHTML = `<div class="toggle-card" id="toggleTimeDot" onclick="settingToggle('showTimeDot')"><span class="toggle-label">Current Time Indicator</span><span class="toggle-pill" id="pillTimeDot"></span></div>`;
-
-    } else { tdSlot.innerHTML = ''; }
+    tdSlot.innerHTML = typeof renderQuickSchedule === 'function'
+      ? makeToggle('toggleTimeDot', "settingToggle('showTimeDot')", 'Current Time Indicator', 'Small diamond on the schedule marking where you are now')
+      : '';
   }
-  // inject history toggle only if history.js loaded
+
+  // History slot (only if loaded)
   const slot = document.getElementById('historyToggleSlot');
   if (slot) {
-    if (typeof renderHistory === 'function') {
-      slot.innerHTML = `<div class=\"toggle-card\" id=\"toggleHistory\" onclick=\"settingToggle(&apos;showHistory&apos;)\"><div class=\"toggle-card-top\"><span class=\"toggle-label\">History</span><span class=\"toggle-pill\" id=\"pillHistory\"></span></div><div class=\"toggle-card-blurb\">This week, next week, and last 10 weeks of worked and scheduled hours</div></div>`;
+    slot.innerHTML = typeof renderHistory === 'function'
+      ? makeToggle('toggleHistory', "settingToggle('showHistory')", 'History', 'This week, next week and the last 10 weeks of hours')
+      : '';
+  }
 
+  // Saved themes quick-apply list
+  const stList = document.getElementById('settingsSavedThemesList');
+  if (stList && typeof ThemeSystem !== 'undefined') {
+    const themes = ThemeSystem.getSavedThemes();
+    if (themes.length === 0) {
+      stList.innerHTML = '<div style="font-size:var(--text-xs);color:var(--text-mid);padding:4px 8px;">No saved themes yet — use the Theme Builder to create one</div>';
     } else {
-      slot.innerHTML = '';
+      stList.style.cssText = 'display:flex;flex-direction:column;gap:var(--margin);';
+      stList.innerHTML = '';
+      themes.forEach((theme, i) => {
+        if (!theme?.baseColors) return;
+        const pri = theme.baseColors.primary   || '#48a971';
+        const sec = theme.baseColors.secondary || '#5A8DB8';
+        const acc = theme.baseColors.accent    || '#8a7ca8';
+        const bg4 = theme.baseColors.bg4       || '#ffffff';
+        const bdr = theme.baseColors.border    || '#000000';
+        const tl  = theme.baseColors.textLight || '#ffffff';
+        const bw  = '3px';
+
+        const card = document.createElement('div');
+        card.style.cssText = `border:var(--border-width) solid var(--border-color);border-radius:var(--radius);overflow:hidden;cursor:pointer;display:flex;flex-direction:column;`;
+        card.onclick = () => {
+          ThemeSystem.loadTheme(i);
+          // refresh the saved themes list after applying
+          if (typeof updateSettingsUI === 'function') updateSettingsUI();
+        };
+        card.innerHTML =
+          // top row — primary / secondary / accent color bands
+          `<div style="display:flex;height:var(--qs-hdr);">
+            <div style="flex:1;background:${pri};border-right:${bw} solid ${bdr};"></div>
+            <div style="flex:1;background:${sec};border-right:${bw} solid ${bdr};"></div>
+            <div style="flex:1;background:${acc};"></div>
+          </div>` +
+          // bottom row — name
+          `<div style="height:var(--job-half);background:var(--bg-2);border-top:${bw} solid ${bdr};display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:var(--fw-bold);letter-spacing:var(--ls-wide);text-transform:uppercase;color:var(--text-mid);">${theme.name}</div>`;
+
+        stList.appendChild(card);
+      });
     }
   }
-  const keys = ['showJobCards', 'showQuickSchedule', 'showTimeDot', 'showHistory', 'showTimerSections', 'showMiniGraph'];
-  const pills = { showJobCards: 'pillJobCards', showQuickSchedule: 'pillQuickSchedule', showTimeDot: 'pillTimeDot', showHistory: 'pillHistory', showTimerSections: 'pillTimerSections', showMiniGraph: 'pillMiniGraph' };
-  const cards = { showJobCards: 'toggleJobCards', showQuickSchedule: 'toggleQuickSchedule', showTimeDot: 'toggleTimeDot', showHistory: 'toggleHistory', showTimerSections: 'toggleTimerSections', showMiniGraph: 'toggleMiniGraph' };
-  keys.forEach(k => {
-    const on = appSettings[k];
-    const pill = document.getElementById(pills[k]);
-    const card = document.getElementById(cards[k]);
-    if (pill) pill.classList.toggle('on', on);
-    if (card) card.classList.toggle('active', on);
+
+  // Apply active class based on settings
+  const toggleMap = {
+    showJobCards: 'toggleJobCards', showQuickSchedule: 'toggleQuickSchedule',
+    showTimeDot: 'toggleTimeDot', showHistory: 'toggleHistory',
+    showTimerSections: 'toggleTimerSections', showMiniGraph: 'toggleMiniGraph',
+  };
+  Object.keys(toggleMap).forEach(k => {
+    const card = document.getElementById(toggleMap[k]);
+    if (card) card.classList.toggle('active', !!appSettings[k]);
   });
 }
 
 /* ── window helpers ── */
 function openWindow(id) {
   document.getElementById(id).classList.add('open');
-  if (id === 'newWindow') nwAutoSelect();
+  if (id === 'newWindow') { refreshSwatchCards(); nwAutoSelect(); }
 }
 function closeWindow(id) {
   document.getElementById(id).classList.remove('open');
@@ -806,18 +855,18 @@ function renderJobs() {
     card.className = 'job-card';
     const timerState  = getTimerState(job);
     const bottomText  = timerState === 'running' ? (getElapsedStr(job) || '00h 00m') : (countdown || '-- h -- m');
-    const showSides   = appSettings.showTimerSections !== false;
+    const showTimer   = appSettings.showTimerSections !== false;
     const showGraph   = appSettings.showMiniGraph !== false;
     card.innerHTML =
-      (showSides && showGraph ? `<div class="job-card-left" id="graph-${job.id}" style="display:flex;flex-direction:row;align-items:flex-end;padding:3px 4px;gap:1px;"></div>` : '') +
+      (showGraph ? `<div class="job-card-left" id="graph-${job.id}" style="display:flex;flex-direction:row;align-items:flex-end;padding:3px 4px;gap:1px;"></div>` : '') +
       `<div class="job-card-center">` +
         `<div class="job-card-top" style="background:${job.color}">` +
           `<span class="job-card-title">${job.title}</span>` +
         `</div>` +
         `<div class="job-card-bottom">${bottomText}</div>` +
       `</div>` +
-      (showSides ? `<div class="job-card-right" onclick="timerTap(${job.id}, event)">${timerIcon(timerState, job)}</div>` : '');
-    if (showSides && showGraph) {
+      (showTimer ? `<div class="job-card-right" onclick="timerTap(${job.id}, event)">${timerIcon(timerState, job)}</div>` : '');
+    if (showGraph) {
       const graphEl = card.querySelector('#graph-' + job.id);
       if (graphEl) buildMiniGraph(job, graphEl);
     }
@@ -832,7 +881,15 @@ function renderJobs() {
 }
 
 /* ── job window ── */
+function refreshSwatchCards() {
+  const nw = document.getElementById('nwColorCard');
+  const js = document.getElementById('jsColorCard');
+  if (nw) nw.innerHTML = buildSwatches('nwPickColor');
+  if (js) js.innerHTML = buildSwatches('jsPickColor');
+}
+
 function openJobWindow(job) {
+  refreshSwatchCards();
   activeJobId    = job.id;
   activeFirstDow = job.firstDow !== undefined ? job.firstDow : 1;
   const titleEl = document.getElementById('jobWindowTitle');

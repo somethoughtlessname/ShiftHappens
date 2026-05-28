@@ -714,45 +714,37 @@ body {
    SETTINGS TOGGLE CARD
 ═══════════════════════════════════════════════════════ */
 .toggle-card {
-  display: flex; flex-direction: column;
+  height: var(--card-height);
+  display: flex; flex-direction: row; align-items: stretch;
   border: var(--border-width) solid var(--border-color);
   border-radius: var(--radius); overflow: hidden; flex-shrink: 0;
   background: var(--bg-2); cursor: pointer;
 }
-.toggle-card-top {
-  height: var(--card-height);
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 12px; flex-shrink: 0;
+.toggle-check {
+  width: var(--card-height); flex-shrink: 0;
+  border-right: var(--border-width) solid var(--border-color);
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-3); transition: background 0.15s;
 }
-.toggle-card-blurb {
-  font-size: var(--text-xs); font-weight: var(--fw-semi);
-  color: var(--text-mid);
-  padding: var(--margin) 12px calc(var(--margin) * 2);
-  line-height: 1.5;
-  border-top: var(--border-width) solid var(--border-color);
+.toggle-card.active .toggle-check { background: var(--primary); }
+.toggle-check svg { display: none; }
+.toggle-card.active .toggle-check svg { display: block; }
+.toggle-content {
+  flex: 1; display: flex; flex-direction: column; min-width: 0;
 }
 .toggle-label {
-  font-size: var(--text-sm); font-weight: var(--fw-bold);
+  height: var(--job-half); flex-shrink: 0;
+  display: flex; align-items: center; padding: 0 10px;
+  font-size: var(--text-xs); font-weight: var(--fw-bold);
   letter-spacing: var(--ls-wider); text-transform: uppercase;
   color: var(--text-light);
+  border-bottom: var(--border-width) solid var(--border-color);
 }
-
-.toggle-pill {
-  width: 42px; height: 24px; border-radius: 12px;
-  background: var(--bg-2);
-  border: var(--border-width) solid var(--border-color);
-  position: relative; flex-shrink: 0;
-  transition: background 0.15s;
+.toggle-blurb {
+  flex: 1; display: flex; align-items: center; padding: 0 10px;
+  font-size: var(--text-xs); font-weight: var(--fw-semi);
+  color: var(--text-mid); line-height: 1.3;
 }
-.toggle-pill::after {
-  content: '';
-  position: absolute; top: 2px; left: 2px;
-  width: 16px; height: 16px; border-radius: 50%;
-  background: var(--muted);
-  transition: transform 0.15s, background 0.15s;
-}
-.toggle-pill.on { background: var(--primary); }
-.toggle-pill.on::after { transform: translateX(18px); background: var(--color-10); }
 
 
 
