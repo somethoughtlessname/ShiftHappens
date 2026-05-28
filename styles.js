@@ -88,12 +88,14 @@ button, input { outline: none; -webkit-tap-highlight-color: transparent; }
    BASE
 ═══════════════════════════════════════════════════════ */
 html, body {
+  --fx-over-active: 0;
   width: 100%; min-height: 100vh;
   background: var(--bg-1); color: var(--text-light);
   font-family: 'Segoe UI', system-ui, sans-serif;
   font-size: var(--text-md);
 }
 body {
+  --fx-over-active: 0;
   display: flex; flex-direction: column; align-items: center;
   padding: calc(var(--card-height) + var(--margin)) var(--margin) var(--margin);
 }
@@ -129,13 +131,18 @@ body {
 .app {
   width: 100%; max-width: 540px;
   display: flex; flex-direction: column; gap: var(--margin);
+  position: relative; z-index: 10;
 }
+/* when overlay is 'over', elevate text and borders above fx-fore */
+body.overlay-over .app { z-index: 10003; }
+body.overlay-over .data-window { z-index: 10203; }
+body.overlay-over .header { z-index: 10100; }
 
 
 /* ═══════════════════════════════════════════════════════
    LABEL CARD  (white section header)
 ═══════════════════════════════════════════════════════ */
-.label-card {
+.label-card { isolation: isolate;
   height: calc(var(--job-half) + var(--border-width) * 2);
   display: flex; align-items: center; justify-content: center;
   border: var(--border-width) solid var(--border-color);
@@ -150,7 +157,7 @@ body {
 /* ═══════════════════════════════════════════════════════
    JOB CARD  (main window)
 ═══════════════════════════════════════════════════════ */
-.job-card {
+.job-card { isolation: isolate;
   border: var(--border-width) solid var(--border-color);
   border-radius: var(--radius); overflow: hidden; flex-shrink: 0;
   display: flex; flex-direction: row; align-items: stretch;
@@ -260,6 +267,7 @@ body {
 .data-window-settings:active { background: var(--bg-2); }
 
 .data-body {
+  --fx-over-active: 0;
   flex: 1; overflow-y: auto;
   padding: var(--margin);
   display: flex; flex-direction: column; gap: var(--margin);
@@ -395,7 +403,7 @@ body {
   letter-spacing: var(--ls-wider); text-transform: uppercase;
   color: var(--text-light);
 }
-.day-card {
+.day-card { isolation: isolate;
   height: var(--card-height);
   display: flex; align-items: stretch;
   border: var(--border-width) solid var(--border-color);
@@ -421,6 +429,7 @@ body {
   color: var(--text-dark);
 }
 .day-body {
+  --fx-over-active: 0;
   flex: 1; display: flex; align-items: stretch;
   background: var(--bg-2);
 }
@@ -551,6 +560,7 @@ body {
   color: var(--text-light); pointer-events: none;
 }
 .sched-modal-body {
+  --fx-over-active: 0;
   padding: var(--margin);
   display: flex; flex-direction: column; gap: var(--margin);
 }
