@@ -110,7 +110,7 @@ body {
   display: flex;
   border-bottom: var(--border-width) solid var(--border-color);
   background: var(--bg-3);
-  z-index: 100;
+  z-index: 50;
 }
 .header-action-btn {
   flex: 1;
@@ -131,12 +131,12 @@ body {
 .app {
   width: 100%; max-width: 540px;
   display: flex; flex-direction: column; gap: var(--margin);
-  position: relative; z-index: 10;
+  position: relative; z-index: 2;
 }
 /* when overlay is 'over', elevate text and borders above fx-fore */
 body.overlay-over .app { z-index: 10003; }
 body.overlay-over .data-window { z-index: 10203; }
-body.overlay-over .header { z-index: 10100; }
+body.overlay-over .header-tab { z-index: 10100; }
 
 
 /* ═══════════════════════════════════════════════════════
@@ -229,9 +229,10 @@ body.overlay-over .header { z-index: 10100; }
   display: none; position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   background: var(--bg-1);
-  z-index: 200; flex-direction: column;
+  z-index: 100; flex-direction: column;
 }
 .data-window.open { display: flex; }
+.data-window > *:not(.win-fx-back):not(.win-fx-fore) { position: relative; z-index: 1; }
 
 .data-window-header {
   height: var(--card-height); flex-shrink: 0;
@@ -525,7 +526,7 @@ body.overlay-over .header { z-index: 10100; }
   inset: 0;
   background: rgba(0,0,0,0.55);
   backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
-  z-index: 600;
+  z-index: 10500;
   align-items: center; justify-content: center;
   padding: 15px; overflow-y: auto;
 }

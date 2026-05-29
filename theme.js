@@ -135,7 +135,7 @@ function tbRerender() {
   s.textContent = `
   /* ── Theme Builder Window ── */
   #themeBuilderWindow {
-    z-index: 500;
+    z-index: 10000;
     --job-half: 21px;
     --card-height: 45px;
     --qs-hdr: 18px;
@@ -369,7 +369,6 @@ window.ThemeSystem = {
 
   /* ── open / close ── */
   open() {
-    // pause main overlay while theme builder is open
     if (typeof clearThemeFx === 'function') clearThemeFx();
     // start from defaults, then overlay current CSS var values
     this.baseColors = {...TB_DEFAULTS.baseColors};
@@ -396,6 +395,21 @@ window.ThemeSystem = {
     this.render();
     this.setupListeners();
     this.saveToHistory();
+    // sync overlay selector to current config
+    if (typeof getOverlayCfg === 'function') {
+      const cfg = getOverlayCfg();
+      const activeId = cfg.overlay || 'none';
+      document.querySelectorAll('#tbOverlaySel .tb-swatch').forEach(sw => {
+        const isOn = sw.dataset.ov === activeId;
+        sw.style.background = isOn ? 'var(--primary)' : 'var(--bg-3)';
+        sw.style.color = isOn ? 'var(--text-light)' : 'var(--text-mid)';
+      });
+      const nameEl = document.getElementById('tbOverlayName');
+      if (nameEl) nameEl.textContent = activeId === 'none' ? '—' : activeId.toUpperCase();
+      if (typeof buildOverlaySettings === 'function') buildOverlaySettings(activeId);
+      if (typeof tbBuildLayerWrap === 'function') tbBuildLayerWrap(activeId);
+      if (typeof applyOverlayToPreview === 'function') applyOverlayToPreview(activeId);
+    }
   },
 
   close() {
@@ -627,9 +641,15 @@ window.ThemeSystem = {
         sw.style.background = 'var(--primary)'; sw.style.color = 'var(--text-light)';
         const nameEl = document.getElementById('tbOverlayName');
         if (nameEl) nameEl.textContent = id === 'none' ? '—' : id.toUpperCase();
-        // delegate to app's buildOverlaySettings + setOverlay
+        // save to config so it persists when builder closes
+        if (typeof getOverlayCfg === 'function') getOverlayCfg().overlay = id;
+        if (typeof lsSet === 'function') lsSet('sch_settings', appSettings);
+        // update settings rows
         if (typeof buildOverlaySettings === 'function') buildOverlaySettings(id);
-        if (typeof setOverlay === 'function') setOverlay(id);
+        // apply ONLY to preview card visually
+        if (typeof applyOverlayToPreview === 'function') applyOverlayToPreview(id);
+        // also apply to main window fx layers
+        if (typeof applyOverlay === 'function') applyOverlay();
         tbBuildLayerWrap(id);
       };
     });
@@ -1114,8 +1134,8 @@ function tbBuildWindow() {
       </div>
 
       <!-- Overlay Settings -->
-      <div id="tbOverlaySettingsCard" style="overflow:hidden;">
-        <div id="tbOverlaySettings" style="min-height:calc(var(--job-half)*2);"><div style="min-height:calc(var(--job-half)*2);display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);color:var(--muted);letter-spacing:var(--ls-wide);">SELECT AN OVERLAY</div></div>
+      <div id="tbOverlaySettingsCard" style="border:var(--border-width) solid var(--border-color);border-radius:var(--radius);overflow:hidden;">
+        <div id="tbOverlaySettings" style="min-height:calc(var(--job-half)*2);background:var(--bg-2);"><div style="height:calc(var(--job-half)*2);display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);color:var(--muted);letter-spacing:var(--ls-wide);">SELECT AN OVERLAY</div></div>
       </div>
 
       <!-- Harmony -->
@@ -1708,7 +1728,7 @@ function tbBuildLayerWrap(id) {
   const wrap = document.getElementById('tbLayerWrap');
   if (!wrap) return;
   wrap.innerHTML = '';
-  const LAYER_F = ['grn','crt','stt','dtr','pxl','gls','crs'];
+  const LAYER_F = ['grn','crt','stt','dtr','pxl','gls','crs','vgn'];
   const LAYER_M = ['prx'];
   if (![...LAYER_F,...LAYER_M].includes(id)) return;
   const cfg = typeof getOverlayCfg === 'function' ? getOverlayCfg() : {};
@@ -1722,6 +1742,9 @@ function tbBuildLayerWrap(id) {
       if (cfg[id]) cfg[id].layer = v;
       if (typeof lsSet === 'function') lsSet('sch_settings', appSettings);
       tbBuildLayerWrap(id);
+      // update preview card in real time
+      if (typeof applyOverlayToPreview === 'function') applyOverlayToPreview(id);
+      // also update main window fx layers immediately
       if (typeof applyOverlay === 'function') applyOverlay();
     };
     wrap.appendChild(b);
