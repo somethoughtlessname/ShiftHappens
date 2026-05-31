@@ -417,7 +417,6 @@ body.overlay-over .header-tab { z-index: 10100; }
   border: var(--border-width) solid var(--border-color);
   border-radius: var(--radius); overflow: hidden; flex-shrink: 0;
   background: var(--bg-2);
-  flex: 1;
 }
 .day-card-plus {
   flex-shrink: 0;
