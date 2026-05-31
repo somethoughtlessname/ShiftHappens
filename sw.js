@@ -1,4 +1,4 @@
-const CACHE = 'shift-happens-v1780057167';
+const CACHE = 'shift-happens-v1780191545';
 
 const CACHE_ASSETS = [
   './index.html',
