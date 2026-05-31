@@ -59,13 +59,30 @@ function renderDayCards() {
       half.style.cursor = 'pointer';
       half.addEventListener('click', () => openSchedModal(capturedDate, half.dataset.section));
     });
-    container.appendChild(card);
     if(!isOff){const s=parseTimeToMins(startVal),e=parseTimeToMins(endVal);if(s!==null&&e!==null){let diff=e-s;if(diff<=0)diff+=24*60;totalMins+=diff;}}
     if(hasExtra&&ex0.start&&ex0.end){const s=parseTimeToMins(ex0.start),e=parseTimeToMins(ex0.end);if(s!==null&&e!==null){let diff=e-s;if(diff<=0)diff+=24*60;totalMins+=diff;}}
     if(appSettings.showSecondShift !== false) {
-    const plusBtn = document.createElement('div');
-    plusBtn.className = 'day-card-plus';
-    if(hasExtra)plusBtn.style.background='var(--accent)';
+    const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--margin')) || 4;
+    const sqW = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--card-height')) || 45;
+    const rowW = container.clientWidth > 10 ? container.clientWidth : (window.innerWidth - gap*2);
+    // cardW: card fills row minus plusBtn, gap between them, and 4px right margin
+    const cardW  = rowW - sqW - gap - 4;
+    // card2W: same but minus two squares
+    const card2W = rowW - sqW*2 - gap*2 - 4;
+    // tx: how far track slides = card width + gap after it
+    const tx = cardW + gap;
+    // total track width = view1 + view2 (each = rowW - 4)
+    const trackW = cardW + gap + sqW + gap + card2W + gap + sqW;
+    const dcRow = document.createElement('div');
+    dcRow.className = 'dc-row'; dcRow.dataset.dcRow = '1';
+    const dcTrack = document.createElement('div');
+    dcTrack.style.cssText = 'display:flex;align-items:stretch;gap:'+gap+'px;height:var(--card-height);transition:none;width:'+trackW+'px;';
+    card.style.cssText += ';flex-shrink:0;flex:none;width:'+cardW+'px;';
+    dcTrack.appendChild(card);
+
+    // Plus button
+    const ex0s2 = ex0.start&&ex0.start!=='NONE'?ex0.start:'START';
+    const ex0e2 = ex0.end&&ex0.end!=='NONE'?ex0.end:'END';
     const _svgNS='http://www.w3.org/2000/svg';
     const _svg=document.createElementNS(_svgNS,'svg');
     _svg.setAttribute('width','26');_svg.setAttribute('height','26');_svg.setAttribute('viewBox','0 0 50 50');
@@ -77,16 +94,23 @@ function renderDayCards() {
     function _pMorph(fromS,toS,dur,fromCol,toCol){var from=_pStates[fromS],to=_pStates[toS],start=null;function ease(t){return t<0.5?2*t*t:-1+(4-2*t)*t;}function hx(c){return parseInt(c,16);}function parseCol(v){var m=v.replace('#','');return[hx(m.slice(0,2)),hx(m.slice(2,4)),hx(m.slice(4,6))];}function step(ts){if(!start)start=ts;var t=Math.min((ts-start)/dur,1),e=ease(t);function lp(a,b){return a+(b-a)*e;}_pl1.setAttribute('x1',lp(from.l1[0],to.l1[0]));_pl1.setAttribute('y1',lp(from.l1[1],to.l1[1]));_pl1.setAttribute('x2',lp(from.l1[2],to.l1[2]));_pl1.setAttribute('y2',lp(from.l1[3],to.l1[3]));_pl2.setAttribute('x1',lp(from.l2[0],to.l2[0]));_pl2.setAttribute('y1',lp(from.l2[1],to.l2[1]));_pl2.setAttribute('x2',lp(from.l2[2],to.l2[2]));_pl2.setAttribute('y2',lp(from.l2[3],to.l2[3]));if(fromCol&&toCol){var fc=parseCol(fromCol),tc=parseCol(toCol);plusBtn.style.background='rgb('+Math.round(lp(fc[0],tc[0]))+','+Math.round(lp(fc[1],tc[1]))+','+Math.round(lp(fc[2],tc[2]))+')'}if(t<1)requestAnimationFrame(step);else if(toCol)plusBtn.style.background='rgb('+tc[0]+','+tc[1]+','+tc[2]+')';}requestAnimationFrame(step);}
     _pSet(hasExtra?'fwd':'plus');
     _svg.appendChild(_pl1);_svg.appendChild(_pl2);
+    const plusBtn = document.createElement('div');
+    plusBtn.className = 'day-card-plus';
+    if(hasExtra)plusBtn.style.background='var(--accent)';
     plusBtn.appendChild(_svg);
+    dcTrack.appendChild(plusBtn);
+
+    // Card 2
     const card2 = document.createElement('div');
     card2.className = 'day-card';
-    card2.style.cssText = 'flex-shrink:0;width:calc(100% - var(--card-height)*2 - var(--margin)*2);display:none;overflow:hidden;';
-    const ex0s=ex0.start&&ex0.start!=='NONE'?ex0.start:'START';
-    const ex0e=ex0.end&&ex0.end!=='NONE'?ex0.end:'END';
-    card2.innerHTML = '<div class="day-body" style="flex:1"><div class="day-body-half" data-section="start" style="max-width:calc(50% - 1px)">'+ex0s+'</div><div class="day-body-half" data-section="end">'+ex0e+'</div></div><div class="day-hours'+todayCls+'">'+calcDuration(ex0.start,ex0.end)+'</div>';
+    card2.style.cssText = 'flex-shrink:0;width:'+card2W+'px;overflow:hidden;';
+    card2.innerHTML = '<div class="day-body" style="flex:1"><div class="day-body-half" data-section="start" style="max-width:calc(50% - 1px)">'+ex0s2+'</div><div class="day-body-half" data-section="end">'+ex0e2+'</div></div><div class="day-hours'+todayCls+'">'+calcDuration(ex0.start,ex0.end)+'</div>';
     card2.querySelectorAll('.day-body-half').forEach(function(b){b.style.cursor='pointer';b.onclick=function(){openSchedModal(capturedDate,b.dataset.section,1);};});
+    dcTrack.appendChild(card2);
+
+    // Close button
     const closeBtn = document.createElement('div');
-    closeBtn.style.cssText = 'flex-shrink:0;display:none;width:var(--card-height);height:var(--card-height);border:var(--border-width) solid var(--border-color);border-radius:var(--radius);background:var(--color-1);align-items:center;justify-content:center;font-size:14px;font-weight:900;color:var(--text-light);cursor:pointer;position:relative;margin-top:calc(-1*(var(--card-height) + var(--margin)));margin-left:calc(100% - var(--card-height));';
+    closeBtn.style.cssText = 'flex-shrink:0;width:var(--card-height);height:var(--card-height);border:var(--border-width) solid var(--border-color);border-radius:var(--radius);background:var(--color-1);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:var(--text-light);cursor:pointer;';
     const _xsvg=document.createElementNS(_svgNS,'svg');
     _xsvg.setAttribute('width','26');_xsvg.setAttribute('height','26');_xsvg.setAttribute('viewBox','0 0 50 50');
     const _xl1=document.createElementNS(_svgNS,'line');const _xl2=document.createElementNS(_svgNS,'line');
@@ -94,7 +118,11 @@ function renderDayCards() {
     _xl1.setAttribute('x1','12');_xl1.setAttribute('y1','12');_xl1.setAttribute('x2','38');_xl1.setAttribute('y2','38');
     _xl2.setAttribute('x1','38');_xl2.setAttribute('y1','12');_xl2.setAttribute('x2','12');_xl2.setAttribute('y2','38');
     _xsvg.appendChild(_xl1);_xsvg.appendChild(_xl2);closeBtn.appendChild(_xsvg);
-    closeBtn.dataset.dk = dateKey;
+    dcTrack.appendChild(closeBtn);
+    dcRow.appendChild(dcTrack);
+    container.appendChild(dcRow);
+
+    // Color morph for close button
     function _cMorph(toSwap, dur) {
       var cs = getComputedStyle(document.documentElement);
       function ph(v){var m=v.replace('#','');return[parseInt(m.slice(0,2),16),parseInt(m.slice(2,4),16),parseInt(m.slice(4,6),16)];}
@@ -115,13 +143,62 @@ function renderDayCards() {
       }
       requestAnimationFrame(step);
     }
+
+    // Slide helpers
+    const T = 'transform 1.12s cubic-bezier(0.4,0,0.2,1)';
+    function dcOpen() {
+      dcTrack.style.transition = T;
+      dcTrack.style.transform = 'translateX(-'+tx+'px)';
+    }
+    function dcClose(then) {
+      dcTrack.style.transition = T;
+      dcTrack.style.transform = '';
+      dcTrack.addEventListener('transitionend', function h(){ dcTrack.removeEventListener('transitionend',h); if(then)then(); });
+    }
+
+    // Plus button click
+    plusBtn.onclick = function() {
+      if(isOff) {
+        var cs2=getComputedStyle(document.documentElement);
+        function ph2(v){var m=v.replace('#','');return[parseInt(m.slice(0,2),16),parseInt(m.slice(2,4),16),parseInt(m.slice(4,6),16)];}
+        var cur=ph2(cs2.getPropertyValue(hasExtra?'--accent':'--secondary').trim());
+        var grey=ph2(cs2.getPropertyValue('--muted').trim());
+        function flash(fc,tc,dur,then){var s=null;function ease(t){return t<0.5?2*t*t:-1+(4-2*t)*t;}function step(ts){if(!s)s=ts;var t=Math.min((ts-s)/dur,1),e=ease(t);function lp(a,b){return Math.round(a+(b-a)*e);}plusBtn.style.background='rgb('+lp(fc[0],tc[0])+','+lp(fc[1],tc[1])+','+lp(fc[2],tc[2])+')';if(t<1)requestAnimationFrame(step);else if(then)then();}requestAnimationFrame(step);}
+        flash(cur,grey,200,function(){setTimeout(function(){flash(grey,cur,300,null);},2500);});
+        return;
+      }
+      const open = plusBtn._dcOpen === true;
+      plusBtn._dcOpen = !open;
+      _dcExpanded[dateKey] = !open;
+      var forceplus = !!(open && plusBtn._forceplus);
+      if(forceplus) delete plusBtn._forceplus;
+      if(hasExtra && !forceplus){
+        var cs=getComputedStyle(document.documentElement);
+        var sec=cs.getPropertyValue('--secondary').trim();
+        var acc=cs.getPropertyValue('--accent').trim();
+        var fromCol=open?sec:acc;
+        var toCol=open?(forceplus?sec:acc):sec;
+        _pMorph(open?'back':'fwd',open?(forceplus?'plus':'fwd'):'back',1120,fromCol,toCol);
+      } else {
+        _pMorph(open?'back':'plus',open?'plus':'back',1120);
+        plusBtn.style.background='';
+      }
+      if(open) {
+        dcClose(null);
+      } else {
+        dcOpen();
+      }
+    };
+
+    // Close button click
+    closeBtn.dataset.dk = dateKey;
     closeBtn.onclick = function() {
       if(closeBtn.dataset.confirm==='1') {
         closeBtn.dataset.confirm='';
         plusBtn._forceplus = true;
         plusBtn.onclick();
-        card.addEventListener('transitionend', function h(){
-          card.removeEventListener('transitionend', h);
+        dcTrack.addEventListener('transitionend', function h(){
+          dcTrack.removeEventListener('transitionend', h);
           setTimeout(function(){ dcDelExtra(closeBtn.dataset.dk); }, 50);
         });
       } else {
@@ -137,75 +214,23 @@ function renderDayCards() {
         },2500);
       }
     };
-    plusBtn.onclick = function() {
-      if(isOff) {
-        var cs2=getComputedStyle(document.documentElement);
-        function ph2(v){var m=v.replace('#','');return[parseInt(m.slice(0,2),16),parseInt(m.slice(2,4),16),parseInt(m.slice(4,6),16)];}
-        var cur=ph2(cs2.getPropertyValue(hasExtra?'--accent':'--secondary').trim());
-        var grey=ph2(cs2.getPropertyValue('--muted').trim());
-        function flash(fc,tc,dur,then){var s=null;function ease(t){return t<0.5?2*t*t:-1+(4-2*t)*t;}function step(ts){if(!s)s=ts;var t=Math.min((ts-s)/dur,1),e=ease(t);function lp(a,b){return Math.round(a+(b-a)*e);}plusBtn.style.background='rgb('+lp(fc[0],tc[0])+','+lp(fc[1],tc[1])+','+lp(fc[2],tc[2])+')';if(t<1)requestAnimationFrame(step);else if(then)then();}requestAnimationFrame(step);}
-        flash(cur,grey,200,function(){setTimeout(function(){flash(grey,cur,300,null);},2500);});
-        return;
-      }
-      const open = plusBtn._dcOpen === true;
-      const tx = plusBtn.offsetLeft - 4;
-      _dcExpanded[dateKey] = !open;
-      const T = 'transform 1.12s cubic-bezier(0.4,0,0.2,1)';
-      card.style.transition = plusBtn.style.transition = card2.style.transition = closeBtn.style.transition = 'none';
-      if(!open){
-        card2.style.display = closeBtn.style.display = 'flex';
-        card2.style.marginTop = closeBtn.style.marginTop = 'calc(-1*(var(--card-height) + var(--margin)))';
-        card2.style.transform = 'translateX(calc(var(--card-height) + var(--margin) + '+tx+'px + '+card.offsetWidth+'px + var(--margin)))';
-        closeBtn.style.transform = 'translateX(calc('+tx+'px + '+card.offsetWidth+'px + var(--margin)))';
-      }
-      plusBtn._dcOpen = !open;
-      var forceplus = !!(open && plusBtn._forceplus);
-      if(forceplus) delete plusBtn._forceplus;
-      if(hasExtra && !forceplus){
-        var cs=getComputedStyle(document.documentElement);
-        var sec=cs.getPropertyValue('--secondary').trim();
-        var acc=cs.getPropertyValue('--accent').trim();
-        var fromCol=open?sec:acc;
-        var toCol=open?acc:sec;
-        _pMorph(open?'back':'fwd',open?'fwd':'back',1120,fromCol,toCol);
-      } else {
-        _pMorph(open?'back':'plus',open?'plus':'back',1120);
-        plusBtn.style.background='';
-      }
-      requestAnimationFrame(function(){
-        card.style.transition = plusBtn.style.transition = card2.style.transition = closeBtn.style.transition = T;
-        card.style.transform = open ? '' : 'translateX(calc(-100% - var(--margin) - '+tx+'px))';
-        plusBtn.style.transform = open ? '' : 'translateX(-'+tx+'px)';
-        card2.style.transform = open ? 'translateX(calc(var(--card-height) + var(--margin) + '+tx+'px + '+card.offsetWidth+'px + var(--margin)))' : 'translateX(calc(var(--card-height) + var(--margin)))';
-        closeBtn.style.transform = open ? 'translateX(calc('+tx+'px + '+card.offsetWidth+'px + var(--margin)))' : 'translateX(0)';
-        if(open){card2.addEventListener('transitionend',function h(){card2.style.display=closeBtn.style.display='none';card2.style.marginTop=closeBtn.style.marginTop=card2.style.transform=closeBtn.style.transform=card2.style.transition=closeBtn.style.transition='';card2.removeEventListener('transitionend',h);});
-        }
-      });
-    };
-    container.appendChild(plusBtn);
-    container.appendChild(card2);
-    container.appendChild(closeBtn);
+
+    // Restore expanded state instantly
     if(_dcExpanded[dateKey]){
       if(hasExtra){
-        // snap to open state without animating
-        const tx = plusBtn.offsetLeft - 4;
-        const cw = card.offsetWidth;
-        card.style.transition = plusBtn.style.transition = card2.style.transition = closeBtn.style.transition = 'none';
-        card.style.transform = 'translateX(calc(-100% - var(--margin) - '+tx+'px))';
-        plusBtn.style.transform = 'translateX(-'+tx+'px)';
         plusBtn._dcOpen = true;
         _pSet('back');
         plusBtn.style.background = 'var(--secondary)';
-        card2.style.display = closeBtn.style.display = 'flex';
-        card2.style.marginTop = closeBtn.style.marginTop = 'calc(-1*(var(--card-height) + var(--margin)))';
-        card2.style.transform = 'translateX(calc(var(--card-height) + var(--margin)))';
-        closeBtn.style.transform = 'translateX(0)';
-        closeBtn.style.background = 'var(--color-1)';
-        _xl1.style.stroke='white';_xl2.style.stroke='white';
+        dcTrack.style.transition = 'none';
+        dcTrack.style.transform = 'translateX(-'+tx+'px)';
       } else {
-        delete _dcExpanded[dateKey];plusBtn.style.background='';_pSet('plus');
+        delete _dcExpanded[dateKey];
+        plusBtn.style.background='';
+        _pSet('plus');
       }
     }
+    } else {
+      container.appendChild(card);
     } // end showSecondShift
   }
   const totEl = document.getElementById('totalsValue');

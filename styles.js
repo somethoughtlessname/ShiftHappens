@@ -417,13 +417,10 @@ body.overlay-over .header-tab { z-index: 10100; }
   border: var(--border-width) solid var(--border-color);
   border-radius: var(--radius); overflow: hidden; flex-shrink: 0;
   background: var(--bg-2);
-  width: var(--dc-card-w, calc(100% - var(--card-height) - var(--margin)));
+  flex: 1;
 }
 .day-card-plus {
-  position: relative;
-  margin-top: calc(-1 * (var(--card-height) + var(--margin)));
-  margin-left: calc(100% - var(--card-height));
-  align-self: flex-start;
+  flex-shrink: 0;
   width: var(--card-height);
   height: var(--card-height);
   border: var(--border-width) solid var(--border-color);
@@ -432,6 +429,10 @@ body.overlay-over .header-tab { z-index: 10100; }
   display: flex; align-items: center; justify-content: center;
   font-size: 14px; font-weight: 900; color: var(--text-light);
   cursor: pointer;
+}
+.dc-row {
+  overflow: hidden;
+  height: var(--card-height);
 }
 .day-letter {
   position: relative;

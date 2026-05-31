@@ -173,10 +173,8 @@ let appSettings = Object.assign({}, _settingsDefaults, ls('sch_settings', {}));
 function updateDaySqVar() {
   if(appSettings.showSecondShift===false) {
     document.documentElement.style.setProperty('--day-sq','30px');
-    document.documentElement.style.setProperty('--dc-card-w','100%');
   } else {
     document.documentElement.style.removeProperty('--day-sq');
-    document.documentElement.style.removeProperty('--dc-card-w');
   }
 }
 function settingToggle(key) {

@@ -497,6 +497,7 @@ function pxlInjectRoot(root, BIG, ps, op) {
     if (el.classList.contains('day-body-half')) return;
     if (el.classList.contains('filter-btn')) return;
     if (el.classList.contains('toggle-check')) return;
+    if (el.dataset.dcRow) return;
     if (el.dataset.pxlDone) return;
     const cs = getComputedStyle(el);
     const bg = cs.backgroundColor;
@@ -647,5 +648,3 @@ function getOverlayFns() { return {
 
 function setTheme(id) { setOverlay(id); }
 function applyTheme() { applyOverlay(); }
-
-
