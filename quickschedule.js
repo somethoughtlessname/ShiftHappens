@@ -1,5 +1,5 @@
-/* quickschedule.js — Quick Schedule feature
-   Requires: app.js globals — jobs, parseTimeToMins, localDateKey, MONTHS, DAY_NAMES, openJobWindow
+/* quickschedule.js - Quick Schedule feature
+   Requires: app.js globals - jobs, parseTimeToMins, localDateKey, MONTHS, DAY_NAMES, openJobWindow
 */
 
 const QS_DAYS    = 7;
@@ -40,7 +40,7 @@ function renderQuickSchedule() {
   wrap.innerHTML = '';
   if (!jobs || jobs.length === 0) return;
 
-  /* ── collect days ── */
+  /* -- collect days -- */
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const days = [];
@@ -56,15 +56,24 @@ function renderQuickSchedule() {
       const isOff = s.start === 'OFF';
       const startMins = (!isOff && s.start && s.start !== 'NONE') ? parseTimeToMins(s.start) : null;
       const endMins   = (!isOff && s.end   && s.end   !== 'NONE') ? parseTimeToMins(s.end)   : null;
-      // normalise overnight: if end < start, add 24hrs
       const normEnd = (endMins !== null && startMins !== null && endMins < startMins)
         ? endMins + 1440 : endMins;
       shifts.push({ job, startMins, endMins: normEnd, isOff });
+      // Extra shifts for same job/day
+      if (!isOff && Array.isArray(s.extra)) {
+        s.extra.forEach(ex => {
+          const exStart = (ex.start && ex.start !== 'NONE') ? parseTimeToMins(ex.start) : null;
+          const exEnd   = (ex.end   && ex.end   !== 'NONE') ? parseTimeToMins(ex.end)   : null;
+          if (exStart === null || exEnd === null) return;
+          const exNormEnd = exEnd < exStart ? exEnd + 1440 : exEnd;
+          shifts.push({ job, startMins: exStart, endMins: exNormEnd, isOff: false });
+        });
+      }
     });
     days.push({ date, shifts });
   }
 
-  /* ── axis range ── */
+  /* -- axis range -- */
   let axisMin = Infinity, axisMax = -Infinity;
   days.forEach(({ shifts }) => shifts.forEach(s => {
     if (s.isOff || s.startMins === null || s.endMins === null) return;
@@ -89,7 +98,7 @@ function renderQuickSchedule() {
   function hr12(m) { const h = Math.floor(m / 60) % 24; return h > 12 ? h - 12 : (h === 0 ? 12 : h); }
 
 
-  /* ── night overlay helper (6PM–6AM = 1080–1800 normalised) ── */
+  /* -- night overlay helper (6PM-6AM = 1080-1800 normalised) -- */
   const NIGHT_START = 18 * 60;       // 6PM in mins
   const NIGHT_END   = 6 * 60 + 1440; // 6AM next day in mins
 
@@ -110,13 +119,13 @@ function renderQuickSchedule() {
     container.appendChild(overlay);
   }
 
-  /* ── title ── */
+  /* -- title -- */
   const title = document.createElement('div');
   title.className = 'label-card';
   title.textContent = 'Quick Schedule';
   wrap.appendChild(title);
 
-  /* ── unified card ── */
+  /* -- unified card -- */
   const card = document.createElement('div');
   card.className = 'qs-card';
   wrap.appendChild(card);
@@ -133,7 +142,7 @@ function renderQuickSchedule() {
       ? 'TODAY'
       : `${DAY_NAMES[date.getDay()].toUpperCase()}  ${MONTHS[date.getMonth()].toUpperCase()} ${date.getDate()}`;
 
-    /* day header — inline height to guarantee render */
+    /* day header - inline height to guarantee render */
     const hdrHeight = isToday ? QS_ROW_PX : QS_HDR_PX;
     const hdr = document.createElement('div');
     hdr.className = 'qs-day-hdr' + (idx === 0 ? ' qs-first' : '');
@@ -203,21 +212,21 @@ function renderQuickSchedule() {
     }
   });
 
-  /* ── today time dot — on border between today header and today row ── */
+  /* -- today time dot - on border between today header and today row -- */
   if (typeof appSettings !== "undefined" && appSettings.showTimeDot && todayHasShifts) {
     const nowMins2 = new Date().getHours() * 60 + new Date().getMinutes();
     // Three zones: left margin (fixed 1hr = QS_ROW_PX px), content (flex), right margin (fixed 1hr = QS_ROW_PX px)
     let dotLeft;
     if (nowMins2 <= axisLeft) {
-      // in left margin — map axisLeft-60..axisLeft to 0..QS_ROW_PX px
+      // in left margin - map axisLeft-60..axisLeft to 0..QS_ROW_PX px
       const px = QS_ROW_PX * Math.max(0, (nowMins2 - (axisLeft - 60)) / 60);
       dotLeft = px.toFixed(2) + 'px';
     } else if (nowMins2 >= axisRight) {
-      // in right margin — map axisRight..axisRight+60 to calc(100% - QS_ROW_PX)..calc(100%)
+      // in right margin - map axisRight..axisRight+60 to calc(100% - QS_ROW_PX)..calc(100%)
       const px = QS_ROW_PX * Math.min(1, (nowMins2 - axisRight) / 60);
       dotLeft = 'calc(100% - ' + (QS_ROW_PX - px).toFixed(2) + 'px)';
     } else {
-      // in content — pct() maps axisLeft..axisRight to 0..100% of content area
+      // in content - pct() maps axisLeft..axisRight to 0..100% of content area
       const cp = pct(nowMins2);
       dotLeft = 'calc(' + QS_ROW_PX + 'px + ' + cp.toFixed(2) + '% - ' + (cp / 100 * QS_ROW_PX * 2).toFixed(2) + 'px)';
     }
@@ -233,14 +242,14 @@ function renderQuickSchedule() {
     card.appendChild(dot);
   }
 
-  /* ── axis ── */
+  /* -- axis -- */
   const axis = document.createElement('div');
   axis.className    = 'qs-axis';
   axis.style.height = QS_ROW_PX + 'px';
 
   function isNight(m) { const t = m % 1440; return t >= 1080 || t < 360; }
 
-  /* single gradient background — margins always light, night center darkens */
+  /* single gradient background - margins always light, night center darkens */
   function toFullPct(cp) {
     return `calc(${(QS_ROW_PX*(1-2*cp/100)).toFixed(2)}px + ${cp.toFixed(2)}%)`;
   }
@@ -301,7 +310,7 @@ function qsAssignRows(shifts) {
   return rows;
 }
 
-/* ── init ── */
+/* -- init -- */
 window.addEventListener('load', function() {
   buildQuickSchedule();
   renderQuickSchedule();

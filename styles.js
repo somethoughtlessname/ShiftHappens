@@ -2,9 +2,9 @@
   const style = document.createElement('style');
   style.textContent = `
 
-/* ═══════════════════════════════════════════════════════
+/* -------------------------------------------------------
    RESET
-═══════════════════════════════════════════════════════ */
+------------------------------------------------------- */
 *, *::before, *::after {
   box-sizing: border-box; margin: 0; padding: 0;
   -webkit-tap-highlight-color: transparent;
@@ -12,43 +12,43 @@
 button, input { outline: none; -webkit-tap-highlight-color: transparent; }
 
 
-/* ═══════════════════════════════════════════════════════
+/* -------------------------------------------------------
    DESIGN TOKENS
-═══════════════════════════════════════════════════════ */
+------------------------------------------------------- */
 :root {
 
-  /* ── Spacing & Geometry ── */
+  /* -- Spacing & Geometry -- */
   --margin:        4px;
   --card-height:   45px;
   --drop-height:   32px;
   --border-width:  3px;
   --border-color:  #000;
   --radius:        8px;
-  --day-sq:        30px;
+  --day-sq:        calc(var(--card-height) / 2);
   --job-half:      calc((var(--card-height) - var(--border-width)) / 2);
 
-  /* ── Backgrounds ── */
+  /* -- Backgrounds -- */
   --bg-1:   #233040;  /* page background */
   --bg-2:   #4d5f72;  /* card / panel background */
   --bg-3:   #1e2d3f;  /* header / dark panel */
-  --bg-4:   #ffffff;  /* white surfaces — label cards, day squares, QS shift bars */
+  --bg-4:   #ffffff;  /* white surfaces - label cards, day squares, QS shift bars */
 
-  /* ── Text ── */
-  /* ── Text Colors ── */
-  --text-light: #ffffff;   /* light text — on dark backgrounds */
-  --text-dark:  #000000;   /* dark text — on light/bg-4 backgrounds */
-  --text-mid:   #b4bcc8;   /* mid text — inactive, secondary labels */
-  --color-10:   #ffffff;   /* alias → --text-light (keep for non-text uses) */
-  --muted:     #b4bcc8;  /* muted — secondary / placeholder text */
+  /* -- Text -- */
+  /* -- Text Colors -- */
+  --text-light: #ffffff;   /* light text - on dark backgrounds */
+  --text-dark:  #000000;   /* dark text - on light/bg-4 backgrounds */
+  --text-mid:   #b4bcc8;   /* mid text - inactive, secondary labels */
+  --color-10:   #ffffff;   /* alias - --text-light (keep for non-text uses) */
+  --muted:     #b4bcc8;  /* muted - secondary / placeholder text */
   --modal-btn: #738494;  /* number pad button background */
 
-  /* ── Semantic Colors ── */
-  --color-1:    #e07878;  /* red — error / delete / timer running */
-  --primary:    #48a971;  /* green — main action, confirm, success */
-  --secondary:  #5A8DB8;  /* blue — secondary action, active filter tabs, off days */
-  --accent:     #8a7ca8;  /* purple — quick schedule headers, accent */
+  /* -- Semantic Colors -- */
+  --color-1:    #e07878;  /* red - error / delete / timer running */
+  --primary:    #48a971;  /* green - main action, confirm, success */
+  --secondary:  #5A8DB8;  /* blue - secondary action, active filter tabs, off days */
+  --accent:     #8a7ca8;  /* purple - quick schedule headers, accent */
 
-  /* ── Job Color Swatches (color picker) ── */
+  /* -- Job Color Swatches (color picker) -- */
   --swatch-1:   #C85A5A;  /* red     */
   --swatch-2:   #C7824A;  /* orange  */
   --swatch-3:   #B8B85A;  /* gold    */
@@ -60,7 +60,7 @@ button, input { outline: none; -webkit-tap-highlight-color: transparent; }
   --swatch-9:   #a06090;  /* rose    */
   --swatch-10:  #7a9070;  /* sage    */
 
-  /* ── Typography ── */
+  /* -- Typography -- */
   --text-xs:   10px;
   --text-sm:   12px;
   --text-md:   14px;
@@ -69,14 +69,14 @@ button, input { outline: none; -webkit-tap-highlight-color: transparent; }
   --fw-bold:   800;
   --fw-heavy:  900;
 
-  /* ── Letter Spacing ── */
+  /* -- Letter Spacing -- */
   --ls-tight:   0.02em;
   --ls-normal:  0.04em;
   --ls-wide:    0.08em;
   --ls-wider:   0.1em;
   --ls-widest:  0.12em;
 
-  /* ── Quick Schedule ── */
+  /* -- Quick Schedule -- */
   --qs-row:     18px;  /* timeline row and axis height */
   --qs-hdr:     18px;  /* day header height */
   --qs-job-bdr: var(--border-width);  /* job card border width */
@@ -84,9 +84,9 @@ button, input { outline: none; -webkit-tap-highlight-color: transparent; }
 }
 
 
-/* ═══════════════════════════════════════════════════════
+/* -------------------------------------------------------
    BASE
-═══════════════════════════════════════════════════════ */
+------------------------------------------------------- */
 html, body {
   --fx-over-active: 0;
   width: 100%; min-height: 100vh;
@@ -101,9 +101,9 @@ body {
 }
 
 
-/* ═══════════════════════════════════════════════════════
+/* -------------------------------------------------------
    MAIN HEADER
-═══════════════════════════════════════════════════════ */
+------------------------------------------------------- */
 .header-tab {
   position: fixed; top: 0; left: 0; right: 0;
   height: var(--card-height);
@@ -125,9 +125,9 @@ body {
 .header-action-btn:last-child { border-right: none; color: var(--text-mid); }
 
 
-/* ═══════════════════════════════════════════════════════
+/* -------------------------------------------------------
    APP SHELL
-═══════════════════════════════════════════════════════ */
+------------------------------------------------------- */
 .app {
   width: 100%; max-width: 540px;
   display: flex; flex-direction: column; gap: var(--margin);
@@ -139,10 +139,10 @@ body.overlay-over .data-window { z-index: 10203; }
 body.overlay-over .header-tab { z-index: 10100; }
 
 
-/* ═══════════════════════════════════════════════════════
+/* -------------------------------------------------------
    LABEL CARD  (white section header)
-═══════════════════════════════════════════════════════ */
-.label-card { isolation: isolate;
+------------------------------------------------------- */
+.label-card {
   height: calc(var(--job-half) + var(--border-width) * 2);
   display: flex; align-items: center; justify-content: center;
   border: var(--border-width) solid var(--border-color);
@@ -154,10 +154,10 @@ body.overlay-over .header-tab { z-index: 10100; }
 }
 
 
-/* ═══════════════════════════════════════════════════════
+/* -------------------------------------------------------
    JOB CARD  (main window)
-═══════════════════════════════════════════════════════ */
-.job-card { isolation: isolate;
+------------------------------------------------------- */
+.job-card {
   border: var(--border-width) solid var(--border-color);
   border-radius: var(--radius); overflow: hidden; flex-shrink: 0;
   display: flex; flex-direction: row; align-items: stretch;
@@ -196,7 +196,7 @@ body.overlay-over .header-tab { z-index: 10100; }
   color: var(--text-mid);
 }
 
-/* ── Timer button — right section states ── */
+/* -- Timer button - right section states -- */
 .job-card-arrow { display: flex; align-items: center; justify-content: center; }
 
 .job-card-pause { display: flex; gap: 4px; align-items: center; }
@@ -222,9 +222,9 @@ body.overlay-over .header-tab { z-index: 10100; }
 }
 
 
-/* ═══════════════════════════════════════════════════════
+/* -------------------------------------------------------
    DATA WINDOW  (full-screen overlay panel)
-═══════════════════════════════════════════════════════ */
+------------------------------------------------------- */
 .data-window {
   display: none; position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -275,9 +275,9 @@ body.overlay-over .header-tab { z-index: 10100; }
 }
 
 
-/* ═══════════════════════════════════════════════════════
+/* -------------------------------------------------------
    MODAL OVERLAY  (blur backdrop)
-═══════════════════════════════════════════════════════ */
+------------------------------------------------------- */
 .modal-blur-overlay {
   position: fixed; inset: 0; z-index: 300;
   display: flex; align-items: center; justify-content: center;
@@ -288,13 +288,15 @@ body.overlay-over .header-tab { z-index: 10100; }
 }
 
 
-/* ═══════════════════════════════════════════════════════
+/* -------------------------------------------------------
    FORM ELEMENTS
-═══════════════════════════════════════════════════════ */
+------------------------------------------------------- */
 
 /* Title input */
 .nw-title-card {
+  position: relative;
   height: var(--card-height);
+  background: var(--bg-2);
   border: var(--border-width) solid var(--border-color);
   border-radius: var(--radius); overflow: hidden; flex-shrink: 0;
 }
@@ -302,8 +304,9 @@ body.overlay-over .header-tab { z-index: 10100; }
   width: 100%; height: 100%;
   background: var(--bg-2); border: none;
   color: var(--text-light);
-  font-size: var(--text-sm); font-weight: var(--fw-semi);
-  letter-spacing: var(--ls-normal); padding: 0 12px;
+  font-size: var(--text-md); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wider); text-transform: uppercase;
+  text-align: center; padding: 0 12px;
 }
 .nw-title-input::placeholder { color: var(--text-mid); }
 
@@ -366,35 +369,39 @@ body.overlay-over .header-tab { z-index: 10100; }
 .dow-btn:active { filter: none; }
 
 
-/* ═══════════════════════════════════════════════════════
+/* -------------------------------------------------------
    FILTER / TAB CARDS
-═══════════════════════════════════════════════════════ */
+------------------------------------------------------- */
 .filter-card {
+  position: relative;
   height: var(--card-height);
+  background: var(--bg-2);
   display: flex; align-items: stretch;
   border: var(--border-width) solid var(--border-color);
   border-radius: var(--radius); overflow: hidden; flex-shrink: 0;
 }
 .filter-btn {
+  position: relative;
   flex: 1; border: none; cursor: pointer;
   background: var(--bg-2);
-  border-right: var(--border-width) solid var(--border-color);
+  border-left: var(--border-width) solid var(--border-color);
   color: var(--text-mid);
   font-size: var(--text-sm); font-weight: var(--fw-bold);
   letter-spacing: var(--ls-wide); text-transform: uppercase;
   display: flex; align-items: center; justify-content: center;
   transition: background 0.1s, color 0.1s;
 }
-.filter-btn:last-child { border-right: none; }
+.filter-btn:first-child { border-left: none; }
 .filter-btn.active          { background: var(--primary);   color: var(--text-light); }
 .filter-btn.active.secondary { background: var(--secondary);  color: var(--text-light); }
 .filter-btn:active { filter: none; }
 
 
-/* ═══════════════════════════════════════════════════════
-   JOB WINDOW — DAY CARDS
-═══════════════════════════════════════════════════════ */
+/* -------------------------------------------------------
+   JOB WINDOW - DAY CARDS
+------------------------------------------------------- */
 .date-range-card {
+  position: relative; z-index: 0;
   height: var(--card-height);
   display: flex; align-items: center; justify-content: center;
   border: var(--border-width) solid var(--border-color);
@@ -404,14 +411,30 @@ body.overlay-over .header-tab { z-index: 10100; }
   letter-spacing: var(--ls-wider); text-transform: uppercase;
   color: var(--text-light);
 }
-.day-card { isolation: isolate;
+.day-card {
   height: var(--card-height);
   display: flex; align-items: stretch;
   border: var(--border-width) solid var(--border-color);
   border-radius: var(--radius); overflow: hidden; flex-shrink: 0;
   background: var(--bg-2);
+  width: var(--dc-card-w, calc(100% - var(--card-height) - var(--margin)));
+}
+.day-card-plus {
+  position: relative;
+  margin-top: calc(-1 * (var(--card-height) + var(--margin)));
+  margin-left: calc(100% - var(--card-height));
+  align-self: flex-start;
+  width: var(--card-height);
+  height: var(--card-height);
+  border: var(--border-width) solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--secondary);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 900; color: var(--text-light);
+  cursor: pointer;
 }
 .day-letter {
+  position: relative;
   width: var(--day-sq); min-width: var(--day-sq); flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
   background: var(--bg-4);
@@ -421,6 +444,7 @@ body.overlay-over .header-tab { z-index: 10100; }
   color: var(--text-dark);
 }
 .day-date {
+  position: relative;
   width: var(--day-sq); min-width: var(--day-sq); flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
   background: var(--bg-4);
@@ -442,10 +466,11 @@ body.overlay-over .header-tab { z-index: 10100; }
 }
 .day-body-half:last-child { border-right: none; }
 .day-half-off {
-  background: var(--secondary) !important;  /* OFF day — blue */
+  background: var(--secondary) !important;  /* OFF day - blue */
   color: var(--text-light) !important;
 }
 .day-hours {
+  position: relative;
   width: calc(var(--day-sq) * 2 + var(--border-width));
   min-width: calc(var(--day-sq) * 2 + var(--border-width));
   flex-shrink: 0;
@@ -456,14 +481,14 @@ body.overlay-over .header-tab { z-index: 10100; }
   letter-spacing: var(--ls-normal); color: var(--text-dark);
 }
 .day-sq-today {
-  background: var(--primary) !important;  /* today highlight — dark green */
+  background: var(--primary) !important;  /* today highlight - dark green */
   color: var(--text-light) !important;
 }
 
 
-/* ═══════════════════════════════════════════════════════
+/* -------------------------------------------------------
    TOTALS CARD
-═══════════════════════════════════════════════════════ */
+------------------------------------------------------- */
 .totals-card {
   height: var(--card-height);
   display: flex; align-items: stretch;
@@ -487,9 +512,9 @@ body.overlay-over .header-tab { z-index: 10100; }
 }
 
 
-/* ═══════════════════════════════════════════════════════
+/* -------------------------------------------------------
    ACTION CARDS  (delete / clear)
-═══════════════════════════════════════════════════════ */
+------------------------------------------------------- */
 .delete-card {
   height: var(--card-height); flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
@@ -518,9 +543,9 @@ body.overlay-over .header-tab { z-index: 10100; }
 .clear-card-wrap { padding: var(--margin); flex-shrink: 0; }
 
 
-/* ═══════════════════════════════════════════════════════
+/* -------------------------------------------------------
    SCHEDULE MODAL
-═══════════════════════════════════════════════════════ */
+------------------------------------------------------- */
 .sched-modal-overlay {
   display: none; position: fixed;
   inset: 0;
@@ -567,9 +592,9 @@ body.overlay-over .header-tab { z-index: 10100; }
 }
 
 
-/* ═══════════════════════════════════════════════════════
+/* -------------------------------------------------------
    TIME PICKER
-═══════════════════════════════════════════════════════ */
+------------------------------------------------------- */
 .tp-wrap { display: flex; flex-direction: column; gap: var(--margin); padding: var(--margin); }
 
 .tp-display {
@@ -630,9 +655,9 @@ body.overlay-over .header-tab { z-index: 10100; }
 .tp-cancel:active, .tp-set:active { filter: none; }
 
 
-/* ═══════════════════════════════════════════════════════
+/* -------------------------------------------------------
    DOT GRID  (settings icon)
-═══════════════════════════════════════════════════════ */
+------------------------------------------------------- */
 .dot-grid {
   display: grid;
   grid-template-columns: repeat(3, 5px);
@@ -643,9 +668,9 @@ body.overlay-over .header-tab { z-index: 10100; }
 .dot.green { background: var(--primary); }
 
 
-/* ═══════════════════════════════════════════════════════
+/* -------------------------------------------------------
    QUICK SCHEDULE
-═══════════════════════════════════════════════════════ */
+------------------------------------------------------- */
 .qs-wrap {
   width: 100%; max-width: 540px;
   display: flex; flex-direction: column; gap: var(--margin);
@@ -658,7 +683,7 @@ body.overlay-over .header-tab { z-index: 10100; }
   display: flex; flex-direction: column;
 }
 .qs-day-hdr {
-  /* height set inline per day — QS_HDR_PX or QS_ROW_PX for today */
+  /* height set inline per day - QS_HDR_PX or QS_ROW_PX for today */
   display: flex; align-items: center; justify-content: center;
   background: var(--accent);
   border-top: var(--border-width) solid var(--border-color);
@@ -708,6 +733,7 @@ body.overlay-over .header-tab { z-index: 10100; }
 .qs-axis {
   position: relative;
   height: var(--qs-row);
+  background: var(--bg-2);
   border-top: var(--border-width) solid var(--border-color);
   border-radius: 0 0 calc(var(--radius) - var(--border-width)) calc(var(--radius) - var(--border-width));
   overflow: hidden;
@@ -721,9 +747,9 @@ body.overlay-over .header-tab { z-index: 10100; }
 }
 
 
-/* ═══════════════════════════════════════════════════════
+/* -------------------------------------------------------
    SETTINGS TOGGLE CARD
-═══════════════════════════════════════════════════════ */
+------------------------------------------------------- */
 .toggle-card {
   height: var(--card-height);
   display: flex; flex-direction: row; align-items: stretch;
@@ -759,9 +785,9 @@ body.overlay-over .header-tab { z-index: 10100; }
 
 
 
-/* ═══════════════════════════════════════════════════════
+/* -------------------------------------------------------
    THEME OVERLAYS
-═══════════════════════════════════════════════════════ */
+------------------------------------------------------- */
 
 /* CRT scanline overlay */
 body.theme-crt::after {
@@ -794,7 +820,7 @@ body.theme-bw { filter: grayscale(1) contrast(1.1); }
 /* Sepia */
 body.theme-sepia { filter: sepia(0.85) contrast(1.05) brightness(0.95); }
 
-/* Neon — high contrast glow */
+/* Neon - high contrast glow */
 body.theme-neon { filter: brightness(1.1) saturate(2) contrast(1.2); }
 body.theme-neon::after {
   content: '';
@@ -804,7 +830,7 @@ body.theme-neon::after {
   mix-blend-mode: screen;
 }
 
-/* Dusk — warm amber tint */
+/* Dusk - warm amber tint */
 body.theme-dusk::after {
   content: '';
   position: fixed; inset: 0; z-index: 9999;

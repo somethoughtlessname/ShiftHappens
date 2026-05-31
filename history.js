@@ -1,5 +1,5 @@
-/* history.js — History feature
-   Requires: app.js globals — jobs, parseTimeToMins, localDateKey, MONTHS
+/* history.js - History feature
+   Requires: app.js globals - jobs, parseTimeToMins, localDateKey, MONTHS
 */
 
 function buildHistory() {
@@ -16,7 +16,7 @@ function buildHistory() {
   }
 }
 
-/* ── helpers ── */
+/* -- helpers -- */
 function hOrdinal(n) {
   const s = ['th','st','nd','rd'], v = n % 100;
   return n + (s[(v-20)%10] || s[v] || s[0]);
@@ -60,6 +60,12 @@ function hSumHours(store, start, end) {
       let diff2 = e - s;
       if (diff2 <= 0) diff2 += 24 * 60;
       total += diff2;
+      if (Array.isArray(dayData.extra)) dayData.extra.forEach(ex => {
+        if (!ex.start || !ex.end) return;
+        const es = parseTimeToMins(ex.start), ee = parseTimeToMins(ex.end);
+        if (es === null || ee === null) return;
+        let ed = ee - es; if (ed <= 0) ed += 24*60; total += ed;
+      });
     });
     d.setDate(d.getDate() + 1);
   }
@@ -86,11 +92,28 @@ function hProjected(start, end) {
       if (dur <= 0) dur += 24 * 60;
 
       if (isFuture) {
-        // future day — count full shift
         total += dur;
+        if (Array.isArray(dayData.extra)) dayData.extra.forEach(ex => {
+          if (!ex.start || !ex.end) return;
+          const es = parseTimeToMins(ex.start), ee = parseTimeToMins(ex.end);
+          if (es === null || ee === null) return;
+          let ed = ee - es; if (ed <= 0) ed += 24*60; total += ed;
+        });
       } else if (isToday) {
-        // today — only count if shift hasn't started yet
-        if (nowMins < s) total += dur;
+        if (nowMins < s) {
+          total += dur; // shift not started yet - count full
+        } else if (nowMins < s + dur) {
+          total += (s + dur) - nowMins; // shift in progress - count remaining
+        }
+        // also count any extra shifts that haven't started yet
+        if (Array.isArray(dayData.extra)) dayData.extra.forEach(ex => {
+          if (!ex.start || !ex.end) return;
+          const es = parseTimeToMins(ex.start), ee = parseTimeToMins(ex.end);
+          if (es === null || ee === null) return;
+          let ed = ee - es; if (ed <= 0) ed += 24*60;
+          if (nowMins < es) total += ed;
+          else if (nowMins < es + ed) total += (es + ed) - nowMins;
+        });
       }
       // past days and in-progress shifts not counted
     });
@@ -114,7 +137,7 @@ function hProjected(start, end) {
   return total;
 }
 
-/* ── build a week card ── */
+/* -- build a week card -- */
 function hWeekCard(label, offset, anchorDow) {
   const { start, end } = hGetWeekRange(anchorDow, offset);
   const isThisWeek = offset === 0;
@@ -177,7 +200,7 @@ function hWeekCard(label, offset, anchorDow) {
   return card;
 }
 
-/* ── main render ── */
+/* -- main render -- */
 function renderHistory() {
   if (typeof appSettings === 'undefined' || typeof jobs === 'undefined') return;
   let wrap = document.getElementById('historyWrap');
@@ -211,7 +234,7 @@ window.addEventListener('load', function() {
   if (typeof updateSettingsUI === 'function') updateSettingsUI();
 });
 
-/* ── last 10 weeks grid ── */
+/* -- last 10 weeks grid -- */
 function hFmtShortDate(d) {
   return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
 }
@@ -279,7 +302,7 @@ function hLast10Card(anchorDow) {
   return card;
 }
 
-/* ── self-init ── */
+/* -- self-init -- */
 window.addEventListener('load', function() {
   buildHistory();
   renderHistory();
