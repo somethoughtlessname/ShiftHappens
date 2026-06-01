@@ -1,11 +1,11 @@
-/* theme.js — Theme Builder
-   Requires: app.js globals — jobs, appSettings, ls, lsSet, renderJobs,
+/* theme.js - Theme Builder
+   Requires: app.js globals - jobs, appSettings, ls, lsSet, renderJobs,
              updateSettingsUI, openWindow, closeWindow
 */
 
-/* ═══════════════════════════════════════
+/* ---------------------------------------
    CONSTANTS & DEFAULTS
-═══════════════════════════════════════ */
+--------------------------------------- */
 
 const TB_BASE_VAR_MAP = {
   bg1:       '--bg-1',
@@ -38,9 +38,9 @@ const TB_JOB_VAR_MAP = {
 };
 
 const TB_BASE_LABELS = {
-  bg1:       'BG 1 — Page',
-  bg2:       'BG 2 — Cards',
-  bg3:       'BG 3 — Header',
+  bg1:       'BG 1 - Page',
+  bg2:       'BG 2 - Cards',
+  bg3:       'BG 3 - Header',
   primary:   'Primary',
   secondary: 'Secondary',
   accent:    'Accent',
@@ -48,10 +48,10 @@ const TB_BASE_LABELS = {
   muted:     'Muted Text',
   border:    'Border Color',
   color10:   'Legacy White',
-  bg4:       'BG 4 — White',
-  textLight: 'Text — Light',
-  textDark:  'Text — Dark',
-  textMid:   'Text — Mid',
+  bg4:       'BG 4 - White',
+  textLight: 'Text - Light',
+  textDark:  'Text - Dark',
+  textMid:   'Text - Mid',
 };
 
 const TB_JOB_LABELS = {
@@ -75,15 +75,15 @@ const TB_DEFAULTS = {
 };
 
 
-/* ═══════════════════════════════════════
+/* ---------------------------------------
    CSS APPLICATION
-═══════════════════════════════════════ */
+--------------------------------------- */
 
 function tbApplyCssVars(baseColors, jobColors) {
   const root = document.documentElement;
   const cs = getComputedStyle(root);
 
-  // build old swatch hex → new swatch hex mapping before applying
+  // build old swatch hex - new swatch hex mapping before applying
   const swatchMap = {};
   Object.keys(jobColors).forEach(k => {
     const varName = TB_JOB_VAR_MAP[k];
@@ -126,14 +126,14 @@ function tbRerender() {
 }
 
 
-/* ═══════════════════════════════════════
+/* ---------------------------------------
    INJECT STYLES
-═══════════════════════════════════════ */
+--------------------------------------- */
 
 (function injectThemeStyles() {
   const s = document.createElement('style');
   s.textContent = `
-  /* ── Theme Builder Window ── */
+  /* -- Theme Builder Window -- */
   #themeBuilderWindow {
     z-index: 10000;
     --job-half: 21px;
@@ -350,9 +350,9 @@ function tbRerender() {
 })();
 
 
-/* ═══════════════════════════════════════
+/* ---------------------------------------
    THEME SYSTEM
-═══════════════════════════════════════ */
+--------------------------------------- */
 
 window.ThemeSystem = {
 
@@ -367,7 +367,7 @@ window.ThemeSystem = {
   colorHistoryIndices: {},
   isUndoRedo: false,
 
-  /* ── open / close ── */
+  /* -- open / close -- */
   open() {
     if (typeof clearThemeFx === 'function') clearThemeFx();
     // start from defaults, then overlay current CSS var values
@@ -405,7 +405,7 @@ window.ThemeSystem = {
         sw.style.color = isOn ? 'var(--text-light)' : 'var(--text-mid)';
       });
       const nameEl = document.getElementById('tbOverlayName');
-      if (nameEl) nameEl.textContent = activeId === 'none' ? '—' : activeId.toUpperCase();
+      if (nameEl) nameEl.textContent = activeId === 'none' ? '-' : activeId.toUpperCase();
       if (typeof buildOverlaySettings === 'function') buildOverlaySettings(activeId);
       if (typeof tbBuildLayerWrap === 'function') tbBuildLayerWrap(activeId);
       if (typeof applyOverlayToPreview === 'function') applyOverlayToPreview(activeId);
@@ -418,7 +418,7 @@ window.ThemeSystem = {
     if (typeof applyOverlay === 'function') applyOverlay();
   },
 
-  /* ── main render ── */
+  /* -- main render -- */
   render() {
     this.renderBaseSwatches();
     this.renderJobSwatches();
@@ -434,7 +434,7 @@ window.ThemeSystem = {
       : this.jobColors[this.selectedColor.key];
   },
 
-  /* ── base color swatches ── */
+  /* -- base color swatches -- */
   renderBaseSwatches() {
     const row = document.getElementById('tbBaseSwatches');
     if (!row) return;
@@ -484,7 +484,7 @@ window.ThemeSystem = {
     }
   },
 
-  /* ── RGB panel ── */
+  /* -- RGB panel -- */
   updateRgbPanel(hex) {
     const preview = document.getElementById('tbColorPreview');
     const hexInput = document.getElementById('tbHexInput');
@@ -548,7 +548,7 @@ window.ThemeSystem = {
     if (exportField) exportField.value = tbEncodeTheme(this.baseColors, this.jobColors);
   },
 
-  /* ── harmony ── */
+  /* -- harmony -- */
   renderHarmonySwatches() {
     const row = document.getElementById('tbHarmonySwatches');
     if (!row) return;
@@ -567,7 +567,7 @@ window.ThemeSystem = {
     });
   },
 
-  /* ── demo cards ── */
+  /* -- demo cards -- */
   updateDemoCards() {
     // demo cards use CSS vars so just re-applying vars updates them
     const bar = document.getElementById('tbDemoJobBar');
@@ -576,7 +576,7 @@ window.ThemeSystem = {
     if (qsHdr) qsHdr.style.background = this.baseColors.accent;
   },
 
-  /* ── undo / redo ── */
+  /* -- undo / redo -- */
   getHk() { return `${this.selectedColor.type}-${this.selectedColor.key}`; },
 
   saveToHistory() {
@@ -629,7 +629,7 @@ window.ThemeSystem = {
     setTimeout(() => { this.isUndoRedo = false; }, 50);
   },
 
-  /* ── event listeners ── */
+  /* -- event listeners -- */
   setupListeners() {
     // overlay selector
     document.querySelectorAll('#tbOverlaySel .tb-swatch').forEach(sw => {
@@ -640,7 +640,7 @@ window.ThemeSystem = {
         });
         sw.style.background = 'var(--primary)'; sw.style.color = 'var(--text-light)';
         const nameEl = document.getElementById('tbOverlayName');
-        if (nameEl) nameEl.textContent = id === 'none' ? '—' : id.toUpperCase();
+        if (nameEl) nameEl.textContent = id === 'none' ? '-' : id.toUpperCase();
         // save to config so it persists when builder closes
         if (typeof getOverlayCfg === 'function') getOverlayCfg().overlay = id;
         if (typeof lsSet === 'function') lsSet('sch_settings', appSettings);
@@ -814,7 +814,7 @@ window.ThemeSystem = {
     }
   },
 
-  /* ── save / load ── */
+  /* -- save / load -- */
   getSavedThemes() { return JSON.parse(localStorage.getItem('shift_themes') || '[]'); },
 
   saveTheme(name, overwrite = false) {
@@ -858,7 +858,7 @@ window.ThemeSystem = {
         sw.style.color = isOn ? 'var(--text-light)' : 'var(--text-mid)';
       });
       const nameEl = document.getElementById('tbOverlayName');
-      if (nameEl) nameEl.textContent = cfg.overlay && cfg.overlay !== 'none' ? cfg.overlay.toUpperCase() : '—';
+      if (nameEl) nameEl.textContent = cfg.overlay && cfg.overlay !== 'none' ? cfg.overlay.toUpperCase() : '-';
     }
     this.colorHistories = {}; this.colorHistoryIndices = {};
     this.render();
@@ -989,7 +989,7 @@ window.ThemeSystem = {
     });
   },
 
-  /* ── apply to app ── */
+  /* -- apply to app -- */
   applyToApp() {
     tbApplyCssVars(this.baseColors, this.jobColors);
     tbRerender();
@@ -998,7 +998,7 @@ window.ThemeSystem = {
     if (themeSlot) themeSlot.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
   },
 
-  /* ── reset to defaults ── */
+  /* -- reset to defaults -- */
   resetToDefaults() {
     this.baseColors = {...TB_DEFAULTS.baseColors};
     this.jobColors  = {...TB_DEFAULTS.jobColors};
@@ -1008,7 +1008,7 @@ window.ThemeSystem = {
     this.render();
   },
 
-  /* ── color math ── */
+  /* -- color math -- */
   hexToRgb(hex) {
     hex = hex.replace(/[^0-9A-Fa-f]/g,'');
     if (hex.length === 3) hex = hex.split('').map(c=>c+c).join('');
@@ -1070,9 +1070,9 @@ window.ThemeSystem = {
 };
 
 
-/* ═══════════════════════════════════════
+/* ---------------------------------------
    BUILD WINDOW HTML
-═══════════════════════════════════════ */
+--------------------------------------- */
 
 function tbBuildWindow() {
   const win = document.createElement('div');
@@ -1080,7 +1080,7 @@ function tbBuildWindow() {
   win.id = 'themeBuilderWindow';
   win.innerHTML = `
     <div class="data-window-header">
-      <button class="data-window-back" onclick="ThemeSystem.close()">&#9664;</button>
+      <button class="data-window-back" onclick="ThemeSystem.close()" id="themeWindowBack"></button>
       <div class="data-window-title">Theme Builder</div>
     </div>
 
@@ -1116,7 +1116,7 @@ function tbBuildWindow() {
         <div style="height:var(--job-half);background:var(--bg-3);border-bottom:var(--border-width) solid var(--border-color);display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 10px;">
           <span style="font-size:var(--text-xs);font-weight:var(--fw-bold);letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--muted);">Overlay</span>
           <div id="tbLayerWrap" style="display:flex;align-items:center;justify-content:center;gap:4px;"></div>
-          <span id="tbOverlayName" style="font-size:var(--text-xs);font-weight:var(--fw-bold);text-transform:uppercase;color:var(--text-light);text-align:right;">—</span>
+          <span id="tbOverlayName" style="font-size:var(--text-xs);font-weight:var(--fw-bold);text-transform:uppercase;color:var(--text-light);text-align:right;">-</span>
         </div>
         <div class="tb-swatch-row" id="tbOverlaySel" style="height:var(--job-half);">
           <div class="tb-swatch" style="display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:var(--text-light);background:var(--primary);" data-ov="none">NON</div>
@@ -1184,7 +1184,7 @@ function tbBuildWindow() {
         <!-- Hidden hex input -->
         <input class="tb-hex-input" id="tbHexInput" type="text" maxlength="6" value="48A971" style="display:none;">
 
-        <!-- Sliders — fill remaining height evenly -->
+        <!-- Sliders - fill remaining height evenly -->
         <div class="tb-slider-section" style="flex:1;display:flex;flex-direction:column;justify-content:space-evenly;">
           <div class="tb-slider-row">
             <div class="tb-slider-lbl">R</div>
@@ -1229,7 +1229,7 @@ function tbBuildWindow() {
             <div class="label-card" style="flex:1;background:var(--bg-4);color:var(--text-dark);">History</div>
           </div>
 
-          <!-- full width day card — one time, one OFF -->
+          <!-- full width day card - one time, one OFF -->
           <div class="day-card" style="height:var(--job-half);">
             <div class="day-letter" style="font-size:var(--text-xs);">M</div>
             <div class="day-date" style="font-size:var(--text-xs);">27</div>
@@ -1240,7 +1240,7 @@ function tbBuildWindow() {
             <div class="day-hours" style="font-size:var(--text-xs);">08.00</div>
           </div>
 
-          <!-- job / QS / history — all same height side by side -->
+          <!-- job / QS / history - all same height side by side -->
           <div style="display:flex;gap:var(--margin);align-items:stretch;flex-shrink:0;min-height:64px;">
 
             <!-- job card -->
@@ -1259,7 +1259,7 @@ function tbBuildWindow() {
               <div style="height:var(--qs-hdr);box-sizing:border-box;flex-shrink:0;background:var(--accent);border-bottom:var(--border-width) solid var(--border-color);display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:var(--fw-bold);letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--text-light);">Today</div>
               <div style="height:var(--job-half);background:var(--bg-2);position:relative;overflow:hidden;flex-shrink:0;">
                 <div style="position:absolute;inset:0;display:flex;"><div style="flex:1;border-right:1px solid rgba(255,255,255,0.18);"></div><div style="flex:1;border-right:1px solid rgba(255,255,255,0.18);"></div><div style="flex:1;border-right:1px solid rgba(255,255,255,0.18);"></div><div style="flex:1;"></div></div>
-                <div style="position:absolute;top:50%;left:10%;width:60%;transform:translateY(-50%);height:12px;background:var(--bg-4);border:2px solid var(--secondary);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:800;color:var(--text-dark);">9AM–5PM</div>
+                <div style="position:absolute;top:50%;left:10%;width:60%;transform:translateY(-50%);height:12px;background:var(--bg-4);border:2px solid var(--secondary);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:800;color:var(--text-dark);">9AM-5PM</div>
               </div>
               <div style="height:var(--qs-hdr);box-sizing:border-box;flex-shrink:0;background:var(--accent);border-top:var(--border-width) solid var(--border-color);display:flex;align-items:center;justify-content:space-around;padding:0 4px;">
                 <span style="font-size:8px;font-weight:800;color:var(--text-light);">9</span><span style="font-size:8px;font-weight:800;color:var(--text-light);">12</span><span style="font-size:8px;font-weight:800;color:var(--text-light);">3</span><span style="font-size:8px;font-weight:800;color:var(--text-light);">6</span>
@@ -1314,7 +1314,7 @@ function tbBuildWindow() {
       <div style="background:var(--bg-2);border:var(--border-width) solid var(--border-color);border-radius:var(--radius);width:90%;max-width:320px;overflow:hidden;">
         <div class="label-card" style="border-radius:0;border:none;border-bottom:var(--border-width) solid var(--border-color);">Save Theme</div>
         <div style="padding:var(--margin);">
-          <input id="tbThemeNameInput" type="text" placeholder="Theme name…"
+          <input id="tbThemeNameInput" type="text" placeholder="Theme name-"
             style="width:100%;height:var(--card-height);background:var(--bg-3);border:var(--border-width) solid var(--border-color);border-radius:var(--radius);color:var(--text-light);font-size:var(--text-sm);font-weight:var(--fw-bold);padding:0 12px;"
             onkeypress="if(event.key==='Enter')ThemeSystem.confirmSave()">
         </div>
@@ -1338,15 +1338,16 @@ function tbBuildWindow() {
     </div>
   `;
   document.body.appendChild(win);
+  (function(){var ns='http://www.w3.org/2000/svg';var svg=document.createElementNS(ns,'svg');svg.setAttribute('width','22');svg.setAttribute('height','22');svg.setAttribute('viewBox','0 0 50 50');var l1=document.createElementNS(ns,'line');var l2=document.createElementNS(ns,'line');[l1,l2].forEach(function(l){l.style.stroke='var(--text-light)';l.setAttribute('stroke-width','5');l.setAttribute('stroke-linecap','round');});l1.setAttribute('x1','42');l1.setAttribute('y1','10');l1.setAttribute('x2','8');l1.setAttribute('y2','25');l2.setAttribute('x1','42');l2.setAttribute('y1','40');l2.setAttribute('x2','8');l2.setAttribute('y2','25');svg.appendChild(l1);svg.appendChild(l2);var el=document.getElementById('themeWindowBack');if(el)el.appendChild(svg);})();
 }
 
 
-/* ═══════════════════════════════════════
+/* ---------------------------------------
    INIT
-═══════════════════════════════════════ */
+--------------------------------------- */
 
 
-/* ── apply saved theme immediately (before window.load fires) ── */
+/* -- apply saved theme immediately (before window.load fires) -- */
 (function tbEarlyApply() {
   const savedName = localStorage.getItem('shift_current_theme');
   if (!savedName) return;
@@ -1464,9 +1465,9 @@ function tbDoImport() {
 }
 
 
-/* ══════════════════════════════════════
+/* --------------------------------------
    THEME BUILDER FILTER ENGINE
-══════════════════════════════════════ */
+-------------------------------------- */
 let tbFilterIntervals = [], tbFilterRAFs = [];
 let tbCurrentAnimFilter = 'none';
 let tbCurrentStatFilter = 'none';
@@ -1621,7 +1622,7 @@ function tbApplyStatFilter(name) {
   }
 }
 
-/* ── Animated filter engines ── */
+/* -- Animated filter engines -- */
 function tbStartGrain() {
   const fx = tbGetFx();
   const c = document.createElement('canvas');

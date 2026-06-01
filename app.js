@@ -65,7 +65,7 @@ function buildWindows() {
     <!-- NEW JOB WINDOW -->
     <div class="data-window" id="newWindow">
       <div class="data-window-header">
-        <button class="data-window-back" onclick="closeWindow('newWindow')">&#9664;</button>
+        <button class="data-window-back" onclick="closeWindow('newWindow')" id="newWindowBack"></button>
         <div class="data-window-title">New Job</div>
       </div>
       <div class="data-body">
@@ -84,7 +84,7 @@ function buildWindows() {
     <!-- JOB WINDOW -->
     <div class="data-window" id="jobWindow">
       <div class="data-window-header">
-        <button class="data-window-back" onclick="closeWindow('jobWindow')">&#9664;</button>
+        <button class="data-window-back" onclick="closeWindow('jobWindow')" id="jobWindowBack"></button>
         <div class="data-window-title" id="jobWindowTitle"></div>
         <button class="data-window-settings" onclick="spinDotGrid(this);setTimeout(openJobSettings,150)" id="jobSettingsBtn"></button>
       </div>
@@ -113,7 +113,7 @@ function buildWindows() {
     <!-- JOB SETTINGS WINDOW -->
     <div class="data-window" id="jobSettingsWindow">
       <div class="data-window-header">
-        <button class="data-window-back" onclick="closeWindow('jobSettingsWindow')">&#9664;</button>
+        <button class="data-window-back" onclick="closeWindow('jobSettingsWindow')" id="jobSettingsWindowBack"></button>
         <div class="data-window-title">Job Settings</div>
       </div>
       <div class="data-body">
@@ -134,7 +134,7 @@ function buildWindows() {
     <!-- SETTINGS WINDOW -->
     <div class="data-window" id="settingsWindow">
       <div class="data-window-header">
-        <button class="data-window-back" onclick="closeWindow('settingsWindow')">&#9664;</button>
+        <button class="data-window-back" onclick="closeWindow('settingsWindow')" id="settingsWindowBack"></button>
         <div class="data-window-title">Settings</div>
       </div>
       <div class="filter-card" style="flex-shrink:0;border-radius:0;border-left:none;border-right:none;border-top:none;">
@@ -392,8 +392,17 @@ function nowTimeStr() {
   return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ' ' + ap;
 }
 
+function getTimerKey(job) {
+  const today = localDateKey(new Date());
+  if (job.worked && job.worked[today]) return today;
+  // Check yesterday for a running overnight shift
+  const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+  const yKey = localDateKey(yesterday);
+  if (job.worked && job.worked[yKey] && job.worked[yKey].start && !job.worked[yKey].end) return yKey;
+  return today;
+}
 function getTimerState(job) {
-  const key = localDateKey(new Date()); const w = job.worked && job.worked[key];
+  const key = getTimerKey(job); const w = job.worked && job.worked[key];
   if (!w || !w.start) return 'idle'; if (w.start && !w.end) return 'running'; return 'done';
 }
 
@@ -404,7 +413,7 @@ function timerIcon(state, job) {
 }
 
 function getElapsedStr(job) {
-  const key = localDateKey(new Date()); const w = job.worked && job.worked[key];
+  const key = getTimerKey(job); const w = job.worked && job.worked[key];
   if (!w || !w.start) return null;
   const startMins = parseTimeToMins(w.start); if (startMins === null) return null;
   const now = new Date(); const nowMins = now.getHours() * 60 + now.getMinutes();
@@ -414,7 +423,7 @@ function getElapsedStr(job) {
 
 function timerTap(jobId, e) {
   e.stopPropagation(); const job = jobs.find(j => j.id === jobId); if (!job) return;
-  const key = localDateKey(new Date()); if (!job.worked) job.worked = {};
+  const key = getTimerKey(job); if (!job.worked) job.worked = {};
   const state = getTimerState(job);
   if (state === 'idle') { job.worked[key] = { start: nowTimeStr(), end: null }; lsSet('sch_jobs', jobs); renderJobs(); }
   else if (state === 'running') { job.worked[key].end = nowTimeStr(); lsSet('sch_jobs', jobs); renderJobs(); if (typeof renderHistory === 'function') { buildHistory(); renderHistory(); } }
@@ -426,16 +435,34 @@ function showTimerResetModal(job, key) {
   if (!modal) {
     modal = document.createElement('div'); modal.id = 'timerResetModal'; modal.className = 'modal-blur-overlay';
     modal.innerHTML = '<div style="background:var(--bg-2);border:var(--border-width) solid var(--border-color);border-radius:var(--radius);width:100%;max-width:320px;overflow:hidden;">'
-      + '<div style="padding:16px;font-size:var(--text-sm);font-weight:var(--fw-bold);color:var(--text-light);text-align:center;letter-spacing:var(--ls-wider);text-transform:uppercase;">Reset Today\'s Shift?</div>'
-      + '<div style="display:flex;border-top:var(--border-width) solid var(--border-color);">'
+      + '<div style="padding:16px;font-size:var(--text-sm);font-weight:var(--fw-bold);color:var(--text-light);text-align:center;letter-spacing:var(--ls-wider);text-transform:uppercase;">Shift Done</div>'
+      + '<div style="display:flex;flex-direction:column;border-top:var(--border-width) solid var(--border-color);">'
+      + '<div id="timerResetNew" style="flex:1;padding:12px;text-align:center;font-size:var(--text-sm);font-weight:var(--fw-bold);color:var(--text-light);cursor:pointer;border-bottom:var(--border-width) solid var(--border-color);background:var(--secondary);">Start New Shift</div>'
+      + '<div style="display:flex;border-top:none;">'
       + '<div id="timerResetNo" style="flex:1;padding:12px;text-align:center;font-size:var(--text-sm);font-weight:var(--fw-bold);color:var(--text-mid);cursor:pointer;border-right:var(--border-width) solid var(--border-color);">Cancel</div>'
-      + '<div id="timerResetYes" style="flex:1;padding:12px;text-align:center;font-size:var(--text-sm);font-weight:var(--fw-bold);color:var(--text-light);cursor:pointer;">Reset</div>'
-      + '</div></div>';
+      + '<div id="timerResetYes" style="flex:1;padding:12px;text-align:center;font-size:var(--text-sm);font-weight:var(--fw-bold);color:var(--color-1);cursor:pointer;">Reset</div>'
+      + '</div></div></div>';
     document.body.appendChild(modal);
   }
   modal.style.display = 'flex';
   document.getElementById('timerResetNo').onclick = () => { modal.style.display = 'none'; };
+  document.getElementById('timerResetNew').onclick = () => {
+    // Start a new second shift — save current, open new entry on today's key
+    const todayKey = localDateKey(new Date());
+    if (!job.worked) job.worked = {};
+    // Move completed shift to extra if it was yesterday
+    if (key !== todayKey && job.worked[key]) {
+      job.worked[todayKey] = { start: nowTimeStr(), end: null };
+    } else {
+      if (!job.worked[todayKey]) job.worked[todayKey] = {};
+      if (!job.worked[todayKey].extra) job.worked[todayKey].extra = [];
+      job.worked[todayKey].extra.push({ start: nowTimeStr(), end: null });
+    }
+    lsSet('sch_jobs', jobs);
+    modal.style.display = 'none'; renderJobs();
+  };
   document.getElementById('timerResetYes').onclick = () => {
+    const key = getTimerKey(job);
     if (!job.worked) job.worked = {}; delete job.worked[key]; lsSet('sch_jobs', jobs);
     modal.style.display = 'none'; renderJobs();
     if (typeof renderHistory === 'function') { buildHistory(); renderHistory(); }

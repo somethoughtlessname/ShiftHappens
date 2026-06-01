@@ -1,5 +1,5 @@
-/* data.js — Data management (import / export)
-   Requires: app.js globals — jobs, appSettings, ls, lsSet, renderJobs
+/* data.js - Data management (import / export)
+   Requires: app.js globals - jobs, appSettings, ls, lsSet, renderJobs
 */
 
 function buildDataWindow() {
@@ -11,7 +11,7 @@ function buildDataWindow() {
   win.id = 'dataWindow';
   win.innerHTML = `
     <div class="data-window-header">
-      <button class="data-window-back" onclick="closeWindow('dataWindow')">&#9664;</button>
+      <button class="data-window-back" onclick="closeWindow('dataWindow')" id="dataWindowBack"></button>
       <div class="data-window-title">Data</div>
     </div>
     <!-- tab bar -->
@@ -22,14 +22,14 @@ function buildDataWindow() {
 
     <!-- import panel -->
     <div class="data-body" id="dataPanelImport">
-      <div class="label-card" style="background:var(--bg-2);color:var(--muted);">Paste JSON data below</div>
+      <div class="label-card" style="background:var(--bg-2);color:var(--text-mid);">Paste JSON data below</div>
       <textarea id="dataImportField"
         style="flex:1;background:var(--bg-2);border:var(--border-width) solid var(--border-color);border-radius:var(--radius);
-               color:var(--color-10);font-size:var(--text-sm);font-family:monospace;padding:8px;resize:none;
+               color:var(--text-light);font-size:var(--text-sm);font-family:monospace;padding:8px;resize:none;
                outline:none;min-height:200px;"
         placeholder='{"jobs":[...]}'></textarea>
       <div class="clear-card" id="dataImportBtn" onclick="dataImport()" style="background:var(--primary);">Import</div>
-      <div id="dataImportStatus" style="font-size:var(--text-xs);font-weight:var(--fw-bold);text-align:center;color:var(--muted);padding:4px;"></div>
+      <div id="dataImportStatus" style="font-size:var(--text-xs);font-weight:var(--fw-bold);text-align:center;color:var(--text-mid);padding:4px;"></div>
     </div>
 
     <!-- export panel -->
@@ -40,25 +40,26 @@ function buildDataWindow() {
         <button class="filter-btn" id="exportTabHistory" onclick="dataExportTab('history')">Add History</button>
       </div>
       <div id="dataHistoryPanel" style="display:none;flex-direction:column;gap:var(--margin);flex:1;overflow-y:auto;">
-        <div class="label-card" style="background:var(--bg-2);color:var(--muted);">Add worked hours for a past week</div>
+        <div class="label-card" style="background:var(--bg-2);color:var(--text-mid);">Add worked hours for a past week</div>
         <div style="display:flex;flex-direction:column;gap:var(--margin);">
-          <select id="dataHistJob" style="height:var(--card-height);background:var(--bg-2);border:var(--border-width) solid var(--border-color);border-radius:var(--radius);color:var(--color-10);font-size:var(--text-sm);font-weight:var(--fw-bold);padding:0 8px;"></select>
-          <select id="dataHistWeek" style="height:var(--card-height);background:var(--bg-2);border:var(--border-width) solid var(--border-color);border-radius:var(--radius);color:var(--color-10);font-size:var(--text-sm);font-weight:var(--fw-bold);padding:0 8px;"></select>
+          <select id="dataHistJob" style="height:var(--card-height);background:var(--bg-2);border:var(--border-width) solid var(--border-color);border-radius:var(--radius);color:var(--text-light);font-size:var(--text-sm);font-weight:var(--fw-bold);padding:0 8px;"></select>
+          <select id="dataHistWeek" style="height:var(--card-height);background:var(--bg-2);border:var(--border-width) solid var(--border-color);border-radius:var(--radius);color:var(--text-light);font-size:var(--text-sm);font-weight:var(--fw-bold);padding:0 8px;"></select>
           <input id="dataHistHours" type="number" step="0.01" min="0" placeholder="Hours (e.g. 38.50)"
-            style="height:var(--card-height);background:var(--bg-2);border:var(--border-width) solid var(--border-color);border-radius:var(--radius);color:var(--color-10);font-size:var(--text-sm);font-weight:var(--fw-bold);padding:0 8px;">
+            style="height:var(--card-height);background:var(--bg-2);border:var(--border-width) solid var(--border-color);border-radius:var(--radius);color:var(--text-light);font-size:var(--text-sm);font-weight:var(--fw-bold);padding:0 8px;">
         </div>
         <div class="clear-card" onclick="dataAddHistory()" style="background:var(--primary);">Save History</div>
-        <div id="dataHistStatus" style="font-size:var(--text-xs);font-weight:var(--fw-bold);text-align:center;color:var(--muted);padding:4px;"></div>
+        <div id="dataHistStatus" style="font-size:var(--text-xs);font-weight:var(--fw-bold);text-align:center;color:var(--text-mid);padding:4px;"></div>
       </div>
       <textarea id="dataExportField" readonly
         style="flex:1;background:var(--bg-2);border:var(--border-width) solid var(--border-color);border-radius:var(--radius);
-               color:var(--color-10);font-size:var(--text-sm);font-family:monospace;padding:8px;resize:none;
+               color:var(--text-light);font-size:var(--text-sm);font-family:monospace;padding:8px;resize:none;
                outline:none;min-height:200px;"></textarea>
       <div class="clear-card" onclick="dataCopyClipboard()" style="background:var(--primary);">Copy to Clipboard</div>
-      <div id="dataExportStatus" style="font-size:var(--text-xs);font-weight:var(--fw-bold);text-align:center;color:var(--muted);padding:4px;"></div>
+      <div id="dataExportStatus" style="font-size:var(--text-xs);font-weight:var(--fw-bold);text-align:center;color:var(--text-mid);padding:4px;"></div>
     </div>
   `;
   document.body.appendChild(win);
+  (function(){var ns='http://www.w3.org/2000/svg';var svg=document.createElementNS(ns,'svg');svg.setAttribute('width','22');svg.setAttribute('height','22');svg.setAttribute('viewBox','0 0 50 50');var l1=document.createElementNS(ns,'line');var l2=document.createElementNS(ns,'line');[l1,l2].forEach(function(l){l.style.stroke='var(--text-light)';l.setAttribute('stroke-width','5');l.setAttribute('stroke-linecap','round');});l1.setAttribute('x1','42');l1.setAttribute('y1','10');l1.setAttribute('x2','8');l1.setAttribute('y2','25');l2.setAttribute('x1','42');l2.setAttribute('y1','40');l2.setAttribute('x2','8');l2.setAttribute('y2','25');svg.appendChild(l1);svg.appendChild(l2);var el=document.getElementById('dataWindowBack');if(el)el.appendChild(svg);})();
 }
 
 
@@ -162,7 +163,7 @@ function dataPopulateWeeks() {
     start.setDate(now.getDate() - diff - w * 7);
     const end = new Date(start);
     end.setDate(start.getDate() + 6);
-    const label = dFmtDate(start) + ' – ' + dFmtDate(end);
+    const label = dFmtDate(start) + ' - ' + dFmtDate(end);
     const val = localDateKey(start) + '|' + localDateKey(end);
     const opt = document.createElement('option');
     opt.value = val;
@@ -221,7 +222,7 @@ function buildExportText() {
   const yy = String(now.getFullYear()).slice(-2);
   const hh = String(now.getHours()).padStart(2,'0');
   const mi = String(now.getMinutes()).padStart(2,'0');
-  let out = `SHIFT HAPPENS — ${mm}/${dd}/${yy} ${hh}:${mi}\n`;
+  let out = `SHIFT HAPPENS - ${mm}/${dd}/${yy} ${hh}:${mi}\n`;
 
   const anchorDow = (jobs.length > 0 && jobs[0].firstDow !== undefined) ? jobs[0].firstDow : 1;
 
@@ -232,7 +233,7 @@ function buildExportText() {
     [[-1,'Last Week'],[0,'This Week'],[1,'Next Week']].forEach(([offset, label]) => {
       const days = dGetWeekDays(anchorDow, offset);
       const start = days[0], end = days[6];
-      out += `${label}  ${dFmtDate(start)}–${dFmtDate(end)}\n`;
+      out += `${label}  ${dFmtDate(start)}-${dFmtDate(end)}\n`;
 
       days.forEach(d => {
         const key = localDateKey(d);
@@ -247,8 +248,8 @@ function buildExportText() {
           } else {
             const ss = dFmtTime24(sched.start), se = dFmtTime24(sched.end);
             const ws = dFmtTime24(worked && worked.start), we2 = dFmtTime24(worked && worked.end);
-            const schedStr = ss && se ? `${ss}–${se}` : 'OFF';
-            const workStr  = ws && we2 ? `${ws}–${we2}` : '00:00–00:00';
+            const schedStr = ss && se ? `${ss}-${se}` : 'OFF';
+            const workStr  = ws && we2 ? `${ws}-${we2}` : '00:00-00:00';
             out += `${dateStr}  ${schedStr} / ${workStr}\n`;
           }
         } else if (offset === 0) {
@@ -260,8 +261,8 @@ function buildExportText() {
           } else {
             const ss = dFmtTime24(sched.start), se = dFmtTime24(sched.end);
             const ws = dFmtTime24(worked && worked.start), we2 = dFmtTime24(worked && worked.end);
-            const schedStr = ss && se ? `${ss}–${se}` : 'NO SHIFT';
-            const workStr  = ws && we2 ? `${ws}–${we2}` : '00:00–00:00';
+            const schedStr = ss && se ? `${ss}-${se}` : 'NO SHIFT';
+            const workStr  = ws && we2 ? `${ws}-${we2}` : '00:00-00:00';
             out += `${dateStr}  ${schedStr} / ${workStr}\n`;
           }
         } else {
@@ -272,14 +273,14 @@ function buildExportText() {
             out += `${dateStr}  OFF\n`;
           } else {
             const ss = dFmtTime24(sched.start), se = dFmtTime24(sched.end);
-            out += `${dateStr}  ${ss}–${se}\n`;
+            out += `${dateStr}  ${ss}-${se}\n`;
           }
         }
       });
       out += '\n';
     });
 
-    // History — condensed string going back 10 weeks
+    // History - condensed string going back 10 weeks
     let histStr = 'History\n';
     let histLine = '';
     for (let w = 2; w <= 11; w++) {
@@ -327,7 +328,7 @@ function dataImport() {
 
   try {
     const parsed = JSON.parse(raw);
-    if (!parsed.jobs || !Array.isArray(parsed.jobs)) throw new Error('Invalid format — missing jobs array');
+    if (!parsed.jobs || !Array.isArray(parsed.jobs)) throw new Error('Invalid format - missing jobs array');
 
     lsSet('sch_jobs', parsed.jobs);
     if (parsed.settings) lsSet('sch_settings', parsed.settings);
