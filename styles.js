@@ -411,6 +411,10 @@ body.overlay-over .header-tab { z-index: 10100; }
   letter-spacing: var(--ls-wider); text-transform: uppercase;
   color: var(--text-light);
 }
+@keyframes crt-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
 .day-card {
   height: var(--card-height);
   display: flex; align-items: stretch;

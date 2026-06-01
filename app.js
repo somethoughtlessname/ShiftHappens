@@ -31,11 +31,34 @@ function buildDowBtns(onclickFn) {
   ).join('');
 }
 
-const DOT_GRID = `<div class="dot-grid">
-  <span class="dot"></span><span class="dot green"></span><span class="dot"></span>
-  <span class="dot"></span><span class="dot green"></span><span class="dot"></span>
-  <span class="dot"></span><span class="dot green"></span><span class="dot"></span>
-</div>`;
+function buildDotGrid() {
+  const ns='http://www.w3.org/2000/svg';
+  const svg=document.createElementNS(ns,'svg');
+  svg.setAttribute('width','34');svg.setAttribute('height','34');svg.setAttribute('viewBox','0 0 34 34');
+  const cx=17,cy=17,outerR=14,innerR=7,dotR=2.2,n7=12,n5=6;
+  for(let i=0;i<n7;i++){const a=(2*Math.PI*i/n7)-Math.PI/2;const c=document.createElementNS(ns,'circle');c.setAttribute('cx',(cx+outerR*Math.cos(a)).toFixed(2));c.setAttribute('cy',(cy+outerR*Math.sin(a)).toFixed(2));c.setAttribute('r',dotR);c.style.fill=i%2===0?'var(--primary)':'var(--secondary)';svg.appendChild(c);}
+  for(let i=0;i<n5;i++){const a=(2*Math.PI*i/n5)-Math.PI/2;const c=document.createElementNS(ns,'circle');c.setAttribute('cx',(cx+innerR*Math.cos(a)).toFixed(2));c.setAttribute('cy',(cy+innerR*Math.sin(a)).toFixed(2));c.setAttribute('r',dotR);c.style.fill='var(--accent)';svg.appendChild(c);}
+  return svg;
+}
+function spinDotGrid(btn, cb) {
+  if(btn._spinning) return;
+  btn._spinning = true;
+  const svg = btn.querySelector('svg'); if(!svg) return;
+  const circles = Array.from(svg.querySelectorAll('circle'));
+  const outer = circles.slice(0,12), inner = circles.slice(12);
+  const cx=17,cy=17,outerR=14,innerR=7,n7=12,n5=6;
+  const dur=1000; let start=null;
+  function ease(t){return 1-Math.pow(1-t,3);}
+  function step(ts){
+    if(!start)start=ts;
+    const t=Math.min((ts-start)/dur,1),e=ease(t);
+    outer.forEach(function(c,i){const a=(2*Math.PI*i/n7-Math.PI/2)+e*Math.PI*2;c.setAttribute('cx',(cx+outerR*Math.cos(a)).toFixed(2));c.setAttribute('cy',(cy+outerR*Math.sin(a)).toFixed(2));});
+    inner.forEach(function(c,i){const a=(2*Math.PI*i/n5-Math.PI/2)-e*Math.PI*2;c.setAttribute('cx',(cx+innerR*Math.cos(a)).toFixed(2));c.setAttribute('cy',(cy+innerR*Math.sin(a)).toFixed(2));});
+    if(t<1)requestAnimationFrame(step);else{btn._spinning=false;if(cb)cb();}
+  }
+  requestAnimationFrame(step);
+}
+const DOT_GRID = '';
 
 function buildWindows() {
   const html = `
@@ -63,7 +86,7 @@ function buildWindows() {
       <div class="data-window-header">
         <button class="data-window-back" onclick="closeWindow('jobWindow')">&#9664;</button>
         <div class="data-window-title" id="jobWindowTitle"></div>
-        <button class="data-window-settings" onclick="openJobSettings()">${DOT_GRID}</button>
+        <button class="data-window-settings" onclick="spinDotGrid(this);setTimeout(openJobSettings,150)" id="jobSettingsBtn"></button>
       </div>
       <div class="data-body" id="jobWindowBody">
         <div class="filter-card">
@@ -272,7 +295,7 @@ function openWindow(id) {
     if (getOverlayCfg().overlay === 'pxl') _pxlDoInject();
   }
   requestAnimationFrame(() => {
-    win.style.transition = 'opacity 0.15s';
+    win.style.transition = 'opacity 0.6s';
     win.style.opacity = '1';
     setTimeout(() => { win.style.transition = ''; }, 200);
   });
@@ -419,28 +442,65 @@ function showTimerResetModal(job, key) {
   };
 }
 
+let _graphAnimDone = false;
+
 function buildMiniGraph(job, container) {
   const cs=getComputedStyle(document.documentElement);
-  const green=cs.getPropertyValue('--primary').trim(); const blue=cs.getPropertyValue('--secondary').trim(); const white=cs.getPropertyValue('--text-light').trim(); const acc=cs.getPropertyValue('--accent').trim();
-  const n=appSettings.miniGraphDays||3; const total=n*2+1; const today=new Date(); today.setHours(0,0,0,0); const days=[];
+  const green=cs.getPropertyValue('--primary').trim();
+  const blue=cs.getPropertyValue('--secondary').trim();
+  const acc=cs.getPropertyValue('--accent').trim();
+  const n=appSettings.miniGraphDays||3; const today=new Date(); today.setHours(0,0,0,0); const days=[];
   for(let i=-n;i<=n;i++){
     const d=new Date(today); d.setDate(today.getDate()+i); const key=localDateKey(d);
     const when=i<0?'past':i===0?'today':'future'; const src=when==='past'?job.worked:job.schedule; const entry=src&&src[key];
     let hours=0,hasShift=false;
     if(entry&&entry.start&&entry.start!=='OFF'&&entry.start!=='NONE'&&entry.end){const s=parseTimeToMins(entry.start),e=parseTimeToMins(entry.end);if(s!==null&&e!==null){let diff=e-s;if(diff<=0)diff+=1440;hours=diff/60;hasShift=true;}}
-    else if(entry&&entry.start==='OFF'){hasShift=false;}
     days.push({when,hasShift,hours});
   }
   container.style.gap='1px';
   const maxH=Math.max(...days.map(d=>d.hours),1);
+  const barEls=[];
   days.forEach(d=>{
     const col=document.createElement('div');
     col.style.cssText='display:flex;flex-direction:column;align-items:center;justify-content:flex-end;flex:1;min-width:0;';
-    const barColor=d.when==='past'?green:d.when==='today'?acc:blue;
-    if(!d.hasShift){const dot=document.createElement('div');dot.style.cssText='width:100%;aspect-ratio:1;border-radius:50%;background:'+barColor+';flex-shrink:0;';col.appendChild(dot);}
-    else{const bar=document.createElement('div');bar.style.cssText='width:100%;border-radius:2px 2px 0 0;min-height:2px;background:'+barColor+';height:'+Math.round((d.hours/maxH)*30)+'px;';col.appendChild(bar);}
+    const barColor=d.when==='past'?blue:d.when==='today'?green:acc;
+    const el=document.createElement('div');
+    el.style.width='100%';
+    el.style.background=barColor;
+    el.style.height='3px';
+    el.style.borderRadius='2px';
+    if(d.when==='today' && getOverlayCfg().overlay==='crt') {
+      el.style.animation='crt-blink 1.8s ease-in-out infinite';
+    }
+    col.appendChild(el);
     container.appendChild(col);
+    barEls.push({el,d,targetH:d.hasShift?Math.max(3,Math.round((d.hours/maxH)*30)):3,grows:d.hasShift});
   });
+  if(!_graphAnimDone) {
+    function easeInOut(t){return t<0.5?2*t*t:-1+(4-2*t)*t;}
+    const configs=barEls.map(b=>({dur:1000+Math.random()*800,delay:Math.random()*250}));
+    setTimeout(function(){
+      barEls.forEach(function(b,i){if(b.grows)b.el.style.borderRadius='2px 2px 0 0';});
+      const t0=performance.now();
+      function step(ts){
+        const el=ts-t0; let done=true;
+        barEls.forEach(function(b,i){
+          if(!b.grows)return;
+          const t=Math.max(0,Math.min((el-configs[i].delay)/configs[i].dur,1));
+          b.el.style.height=Math.max(3,Math.round(b.targetH*easeInOut(t)))+'px';
+          if(t<1)done=false;
+        });
+        if(!done)requestAnimationFrame(step);
+        else barEls.forEach(function(b){b.el.style.height=b.targetH+'px';});
+      }
+      requestAnimationFrame(step);
+    },400);
+  } else {
+    barEls.forEach(function(b){
+      b.el.style.height=b.targetH+'px';
+      if(b.grows)b.el.style.borderRadius='2px 2px 0 0';
+    });
+  }
 }
 
 function renderJobs() {
@@ -488,7 +548,7 @@ function openJobWindow(job) {
   injectWindowFx('jobWindow');
   if (getOverlayCfg().overlay === 'pxl') _pxlDoInject();
   requestAnimationFrame(() => {
-    jw.style.transition = 'opacity 0.15s';
+    jw.style.transition = 'opacity 0.6s';
     jw.style.opacity = '1';
     setTimeout(() => { jw.style.transition = ''; }, 200);
   });

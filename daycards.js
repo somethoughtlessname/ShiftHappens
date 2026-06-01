@@ -343,6 +343,7 @@ function closeSchedModal(){document.getElementById('schedModal').classList.remov
 let _appInitDone = false;
 document.getElementById('mainApp').style.opacity = '0';
 buildWindows();
+document.getElementById('jobSettingsBtn').appendChild(buildDotGrid());
 updateSettingsUI();
 renderJobs();
 applyTheme();
@@ -351,5 +352,6 @@ requestAnimationFrame(() => {
   document.getElementById('mainApp').style.transition = 'opacity 0.15s';
   document.getElementById('mainApp').style.opacity = '1';
   _appInitDone = true;
+  setTimeout(function(){ _graphAnimDone = true; }, 2000);
 });
 setInterval(() => { renderJobs(); }, 60000);
