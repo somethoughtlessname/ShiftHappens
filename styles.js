@@ -329,7 +329,7 @@ body.overlay-over .header-tab { z-index: 10100; }
   position: absolute; top: 50%; left: 50%;
   transform: translate(-50%, -50%) scale(0);
   width: 14px; height: 14px; border-radius: 50%;
-  background: var(--color-10);
+  background: var(--text-mid);
   transition: transform 0.12s;
 }
 .nw-swatch.selected::after { transform: translate(-50%, -50%) scale(1); }
@@ -668,7 +668,7 @@ body.overlay-over .header-tab { z-index: 10100; }
   grid-template-rows: repeat(3, 5px);
   gap: 3px;
 }
-.dot { width: 5px; height: 5px; border-radius: 50%; background: var(--color-10); }
+.dot { width: 5px; height: 5px; border-radius: 50%; background: var(--text-mid); }
 .dot.green { background: var(--primary); }
 
 

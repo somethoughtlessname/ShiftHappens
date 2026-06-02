@@ -203,7 +203,7 @@ function renderQuickSchedule() {
       emptyRow.style.height = QS_ROW_PX + 'px';
       if (allOff) {
         emptyRow.textContent = 'YOU HAVE THE DAY OFF!';
-        emptyRow.style.color = 'var(--color-10)';
+        emptyRow.style.color = 'var(--text-mid)';
       } else {
         emptyRow.textContent = 'NO SHIFTS SCHEDULED YET';
       }

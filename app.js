@@ -157,7 +157,14 @@ function buildWindows() {
         <div id="timeDotToggleSlot"></div>
       </div>
       <div class="data-body" id="spanel-theme" style="display:none;">
-        <div class="label-card">Pick a Theme</div>
+        <div style="border:var(--border-width) solid var(--border-color);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column">
+          <div onclick="ThemeSystem.open()" style="height:calc(var(--job-half) + var(--border-width)*2);display:flex;align-items:center;justify-content:center;background:var(--primary);color:var(--text-light);font-size:var(--text-xs);font-weight:var(--fw-heavy);letter-spacing:var(--ls-wider);text-transform:uppercase;cursor:pointer;border-bottom:var(--border-width) solid var(--border-color)">Open Theme Builder</div>
+          <div style="display:flex">
+            <div onclick="tbRandFromSettings()" style="flex:1;height:calc(var(--job-half) + var(--border-width)*2);display:flex;align-items:center;justify-content:center;background:var(--secondary);color:var(--text-light);font-size:var(--text-xs);font-weight:var(--fw-heavy);letter-spacing:var(--ls-wider);text-transform:uppercase;cursor:pointer;border-right:var(--border-width) solid var(--border-color);text-align:center;padding:0 4px">Tap to Create Random Themes</div>
+            <div onclick="tbRandReset()" id="tbRandResetBtn" style="flex:1;height:calc(var(--job-half) + var(--border-width)*2);display:flex;align-items:center;justify-content:center;background:var(--accent);color:var(--text-light);font-size:var(--text-xs);font-weight:var(--fw-heavy);letter-spacing:var(--ls-wider);text-transform:uppercase;cursor:pointer;pointer-events:none">Reset</div>
+          </div>
+        </div>
+        <div class="label-card" style="margin-top:var(--margin);text-align:center">Pick a Theme</div>
         <div id="settingsSavedThemesList"></div>
       </div>
       <div class="data-body" id="spanel-other" style="display:none;">
@@ -250,27 +257,82 @@ function updateSettingsUI() {
     if (themes.length === 0) {
       stList.innerHTML = '<div style="font-size:var(--text-xs);color:var(--text-mid);padding:4px 8px;">No saved themes yet - use the Theme Builder to create one</div>';
     } else {
-      stList.style.cssText = 'display:flex;flex-direction:column;gap:var(--margin);';
+      stList.style.cssText = 'display:flex;flex-direction:column;gap:4px;margin-top:4px';
       stList.innerHTML = '';
-      themes.forEach((theme, i) => {
-        if (!theme?.baseColors) return;
-        const pri = theme.baseColors.primary   || '#48a971';
-        const sec = theme.baseColors.secondary || '#5A8DB8';
-        const acc = theme.baseColors.accent    || '#8a7ca8';
-        const bdr = theme.baseColors.border    || '#000000';
-        const bw  = '3px';
-        const card = document.createElement('div');
-        card.style.cssText = `border:var(--border-width) solid var(--border-color);border-radius:var(--radius);overflow:hidden;cursor:pointer;display:flex;flex-direction:column;`;
-        card.onclick = () => { ThemeSystem.loadTheme(i); if (typeof updateSettingsUI === 'function') updateSettingsUI(); };
-        card.innerHTML =
-          `<div style="display:flex;height:var(--qs-hdr);">
-            <div style="flex:1;background:${pri};border-right:${bw} solid ${bdr};"></div>
-            <div style="flex:1;background:${sec};border-right:${bw} solid ${bdr};"></div>
-            <div style="flex:1;background:${acc};"></div>
-          </div>` +
-          `<div style="height:var(--job-half);background:var(--bg-2);border-top:${bw} solid ${bdr};display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:var(--fw-bold);letter-spacing:var(--ls-wide);text-transform:uppercase;color:var(--text-mid);">${theme.name}</div>`;
-        stList.appendChild(card);
-      });
+      const BK = '#000000';
+      const bw = '3px';
+      const _stDelTimers = {};
+      function _stRenderCard(stList, themes) {
+        stList.innerHTML = '';
+        for (let i = 0; i < themes.length; i += 2) {
+          const row = document.createElement('div');
+          row.style.cssText = 'display:flex;gap:4px';
+          [themes[i], themes[i+1]].forEach((theme, slot) => {
+            const idx = i + slot;
+            if (!theme?.baseColors) {
+              const ph = document.createElement('div'); ph.style.flex = '1'; row.appendChild(ph); return;
+            }
+            const bg1 = theme.baseColors.bg1       || '#233040';
+            const pri = theme.baseColors.primary   || '#48a971';
+            const sec = theme.baseColors.secondary || '#5A8DB8';
+            const acc = theme.baseColors.accent    || '#8a7ca8';
+            const tl  = theme.baseColors.textLight || '#ffffff';
+            const isDelConf = !!ThemeSystem.deleteConfirm[idx];
+            const card = document.createElement('div');
+            card.style.cssText = `flex:1;border:${bw} solid ${BK};border-radius:var(--radius);overflow:hidden;background:${bg1}`;
+            if (isDelConf) {
+              card.innerHTML =
+                `<div style="height:var(--qs-hdr);background:${sec};border-bottom:${bw} solid ${BK};display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:900;letter-spacing:0.06em;text-transform:uppercase;color:${tl}">Are You Sure?</div>` +
+                `<div style="padding:4px"><div style="display:flex;gap:4px;height:var(--qs-hdr)">` +
+                  `<div class="_st-yes" style="flex:1;border:${bw} solid ${BK};border-radius:var(--radius);background:${pri};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:900;letter-spacing:0.08em;text-transform:uppercase;color:${tl};cursor:pointer">Yes</div>` +
+                  `<div class="_st-sure" style="flex:1;border:${bw} solid ${BK};border-radius:var(--radius);background:${sec};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:900;letter-spacing:0.08em;text-transform:uppercase;color:${tl}">Delete?</div>` +
+                  `<div class="_st-no" style="flex:1;border:${bw} solid ${BK};border-radius:var(--radius);background:${acc};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:900;letter-spacing:0.08em;text-transform:uppercase;color:${tl};cursor:pointer">No</div>` +
+                `</div></div>`;
+              card.querySelector('._st-yes').onclick = () => {
+                clearTimeout(_stDelTimers[idx]);
+                Object.keys(_stDelTimers).forEach(k => clearTimeout(_stDelTimers[k]));
+                ThemeSystem.deleteConfirm = {};
+                ThemeSystem.deleteTheme(idx);
+                _stRenderCard(stList, ThemeSystem.getSavedThemes());
+                if (typeof updateSettingsUI === 'function') updateSettingsUI();
+              };
+              card.querySelector('._st-no').onclick = () => {
+                clearTimeout(_stDelTimers[idx]);
+                ThemeSystem.deleteConfirm[idx] = false;
+                _stRenderCard(stList, ThemeSystem.getSavedThemes());
+              };
+            } else {
+              card.innerHTML =
+                `<div style="height:var(--qs-hdr);background:${sec};border-bottom:${bw} solid ${BK};display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:900;letter-spacing:0.06em;text-transform:uppercase;color:${tl};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 8px">${theme.name}</div>` +
+                `<div style="padding:4px"><div style="display:flex;gap:4px;height:var(--qs-hdr)">` +
+                  `<div class="_st-edit" style="flex:1;border:${bw} solid ${BK};border-radius:var(--radius);background:${pri};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:900;letter-spacing:0.08em;text-transform:uppercase;color:${tl};cursor:pointer">Edit</div>` +
+                  `<div class="_st-load" style="flex:2;border:${bw} solid ${BK};border-radius:var(--radius);background:${sec};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:900;letter-spacing:0.08em;text-transform:uppercase;color:${tl};cursor:pointer">Load</div>` +
+                  `<div class="_st-del" style="flex:1;border:${bw} solid ${BK};border-radius:var(--radius);background:${acc};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:900;letter-spacing:0.08em;text-transform:uppercase;color:${tl};cursor:pointer">Delete</div>` +
+                `</div></div>`;
+              card.querySelector('._st-edit').onclick = () => {
+                ThemeSystem.loadTheme(idx);
+                ThemeSystem.open();
+              };
+              card.querySelector('._st-load').onclick = () => {
+                ThemeSystem.loadTheme(idx);
+                if (typeof updateSettingsUI === 'function') updateSettingsUI();
+              };
+              card.querySelector('._st-del').onclick = () => {
+                ThemeSystem.deleteConfirm[idx] = true;
+                _stRenderCard(stList, ThemeSystem.getSavedThemes());
+                // Auto-revert after 2 seconds
+                _stDelTimers[idx] = setTimeout(() => {
+                  ThemeSystem.deleteConfirm[idx] = false;
+                  _stRenderCard(stList, ThemeSystem.getSavedThemes());
+                }, 2000);
+              };
+            }
+            row.appendChild(card);
+          });
+          stList.appendChild(row);
+        }
+      }
+      _stRenderCard(stList, themes);
     }
   }
   const toggleMap = {
@@ -314,7 +376,7 @@ function nwPickColor(el) {
   el.classList.add('selected');
   nwSelectedColor = el.dataset.color;
   const activeDow = document.querySelector('#nwDowCard .dow-btn.active');
-  if (activeDow && nwSelectedColor) { activeDow.style.background = nwSelectedColor; activeDow.style.color = 'var(--color-10)'; }
+  if (activeDow && nwSelectedColor) { activeDow.style.background = nwSelectedColor; activeDow.style.color = 'var(--text-mid)'; }
   const titleCard = document.querySelector('.nw-title-card');
   if (titleCard && nwSelectedColor) { titleCard.style.background = nwSelectedColor; requestAnimationFrame(() => pxlInjectSingle(titleCard)); }
   nwCheckReady();
@@ -322,7 +384,7 @@ function nwPickColor(el) {
 function nwPickDow(el) {
   document.querySelectorAll('#nwDowCard .dow-btn').forEach(b => { b.classList.remove('active'); b.style.background = ''; b.style.color = ''; });
   el.classList.add('active');
-  if (nwSelectedColor) { el.style.background = nwSelectedColor; el.style.color = 'var(--color-10)'; }
+  if (nwSelectedColor) { el.style.background = nwSelectedColor; el.style.color = 'var(--text-mid)'; }
   nwSelectedDow = parseInt(el.dataset.dow);
 }
 function nwCheckReady() {
@@ -611,7 +673,7 @@ function openJobSettings() {
   const savedDow = job.firstDow !== undefined ? job.firstDow : 1;
   document.querySelectorAll('#dowCard .dow-btn').forEach(b => {
     const isActive = parseInt(b.dataset.dow) === savedDow;
-    b.classList.toggle('active', isActive); b.style.background = isActive ? job.color : ''; b.style.color = isActive ? 'var(--color-10)' : '';
+    b.classList.toggle('active', isActive); b.style.background = isActive ? job.color : ''; b.style.color = isActive ? 'var(--text-mid)' : '';
   });
   document.getElementById('deleteCard').classList.remove('confirm'); document.getElementById('deleteCard').textContent = 'Delete Job';
   openWindow('jobSettingsWindow');
@@ -636,7 +698,7 @@ function jsPickColor(el) {
 function jsPickDow(el) {
   const job = jobs.find(j => j.id === activeJobId);
   document.querySelectorAll('#dowCard .dow-btn').forEach(b => { b.classList.remove('active'); b.style.background = ''; b.style.color = ''; });
-  el.classList.add('active'); if (job) { el.style.background = job.color; el.style.color = 'var(--color-10)'; }
+  el.classList.add('active'); if (job) { el.style.background = job.color; el.style.color = 'var(--text-mid)'; }
   activeFirstDow = parseInt(el.dataset.dow); if (job) { job.firstDow = activeFirstDow; lsSet('sch_jobs', jobs); } updateDateRange();
 }
 let deleteConfirmPending = false;

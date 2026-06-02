@@ -345,6 +345,26 @@ function tbRerender() {
   }
   .tb-saved-swatch { flex: 1; border-right: var(--border-width) solid var(--border-color); }
   .tb-saved-swatch:last-child { border-right: none; }
+
+  .tb-rand-chip {
+    flex:1; min-width:0; cursor:pointer; position:relative;
+    border-right:var(--border-width) solid var(--border-color);
+    display:flex; align-items:center; justify-content:center;
+    height:var(--job-half); font-size:8px; font-weight:900;
+    color:var(--text-mid); background:var(--bg-2);
+    letter-spacing:0.06em; text-transform:uppercase;
+  }
+  .tb-rand-chip:last-child { border-right:none; }
+  .tb-rc-hdr{display:flex;align-items:center;justify-content:space-between;background:var(--bg-3);border-bottom:var(--border-width) solid var(--border-color);height:var(--job-half);padding:0 8px}
+  .tb-rc-lbl{font-size:var(--text-xs);font-weight:900;letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--text-mid)}
+  .tb-rc-val{font-size:var(--text-xs);font-weight:700;text-transform:uppercase;color:var(--text-mid)}
+  .tb-rc-card{border:var(--border-width) solid var(--border-color);border-radius:var(--radius);overflow:hidden}
+  .tb-rc-chips{display:flex;flex-wrap:wrap}
+  .tb-rslider{flex:1;min-width:0;height:100%;appearance:none;-webkit-appearance:none;outline:none;border:none;cursor:pointer;padding:0 6px}
+  .tb-rc-primary{height:var(--job-half);display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:900;letter-spacing:var(--ls-wider);text-transform:uppercase}
+  .tb-rc-btns{display:flex;border:var(--border-width) solid var(--border-color);border-radius:var(--radius);overflow:hidden}
+  .tb-rc-btn{flex:1;height:calc(var(--job-half) + var(--border-width)*2);display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:900;letter-spacing:var(--ls-wider);text-transform:uppercase;cursor:pointer}
+  .tb-rc-slider-wrap{border:var(--border-width) solid var(--border-color);border-radius:var(--radius);overflow:hidden;display:flex;height:calc(var(--job-half) + var(--border-width)*2)}
   `;
   document.head.appendChild(s);
 })();
@@ -928,65 +948,57 @@ window.ThemeSystem = {
       list.innerHTML = `<div style="padding:16px;text-align:center;font-size:var(--text-xs);color:var(--text-mid);">No saved themes yet</div>`;
       return;
     }
+
     list.innerHTML = '';
-    themes.forEach((theme, i) => {
-      const item = document.createElement('div');
-      item.className = 'tb-saved-item';
-      item.style.background = theme.baseColors.bg3 || '#1e2d3f';
+    const bw = '3px';
+    const BK = '#000000'; // all borders black
 
-      const isDelConf = !!this.deleteConfirm[i];
-      const showSw    = !!this.showSwatches[i];
+    // Render pairs of themes in rows
+    for (let i = 0; i < themes.length; i += 2) {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;gap:var(--margin)';
 
-      // pull theme colors with fallbacks
-      const pri = theme.baseColors.primary   || '#48a971';
-      const sec = theme.baseColors.secondary || '#5A8DB8';
-      const acc = theme.baseColors.accent    || '#8a7ca8';
-      const bg4 = theme.baseColors.bg4       || '#ffffff';
-      const bdr = theme.baseColors.border    || '#000000';
-      const tl  = theme.baseColors.textLight || '#ffffff';
-      const bw  = '3px';
+      [themes[i], themes[i+1]].forEach((theme, slot) => {
+        const idx = i + slot;
+        if (!theme) {
+          // Empty slot — placeholder to keep grid
+          const ph = document.createElement('div');
+          ph.style.cssText = 'flex:1';
+          row.appendChild(ph);
+          return;
+        }
 
-      // helper: build a card with themed border
-      const card = (hdrBg, label, onclick, extra='') =>
-        `<div class="tb-saved-card" onclick="${onclick}" style="border:${bw} solid ${bdr};${extra}">
-          <div class="tb-saved-card-top" style="background:${hdrBg};border-bottom:${bw} solid ${bdr};"></div>
-          <div class="tb-saved-card-bot" style="background:${bg4};color:${tl};">${label}</div>
-        </div>`;
+        const isDelConf = !!this.deleteConfirm[idx];
+        const showSw    = !!this.showSwatches[idx];
 
-      let leftCard, centerCard, rightCard;
+        const bg1 = theme.baseColors.bg1       || '#233040';
+        const bg4 = theme.baseColors.bg4       || '#ffffff';
+        const pri = theme.baseColors.primary   || '#48a971';
+        const sec = theme.baseColors.secondary || '#5A8DB8';
+        const acc = theme.baseColors.accent    || '#8a7ca8';
+        const tl  = theme.baseColors.textLight || '#ffffff';
+        const tm  = theme.baseColors.textMid   || '#b4bcc8';
+        const td  = theme.baseColors.textDark  || '#000000';
 
-      if (isDelConf) {
-        // left=primary NO, center=secondary DELETE?, right=accent YES
-        leftCard   = card(pri, 'NO',      `ThemeSystem.deleteConfirm[${i}]=false;ThemeSystem.renderSavedList()`);
-        centerCard = `<div class="tb-saved-card" style="flex:2;border:${bw} solid ${bdr};">
-          <div class="tb-saved-card-top" style="background:${sec};border-bottom:${bw} solid ${bdr};"></div>
-          <div class="tb-saved-card-bot" style="background:${bg4};color:${tl};">DELETE?</div>
-        </div>`;
-        rightCard  = card(acc, 'YES',     `ThemeSystem.deleteTheme(${i})`);
-      } else if (showSw) {
-        // swatches visible in center
-        leftCard   = card(pri, 'DEL', `ThemeSystem.deleteConfirm[${i}]=true;ThemeSystem.renderSavedList()`, 'opacity:0.5;');
-        centerCard = `<div class="tb-saved-card" style="flex:2;border:${bw} solid ${bdr};cursor:pointer;" onclick="ThemeSystem.showSwatches[${i}]=false;ThemeSystem.renderSavedList();">
-          <div class="tb-saved-swatches">
-            ${Object.keys(theme.jobColors||{}).map((k,idx,arr) =>
-              `<div class="tb-saved-swatch" style="background:${(theme.jobColors||{})[k]};${idx===arr.length-1?'border-right:none':`border-right:${bw} solid ${bdr}`}"></div>`
-            ).join('')}
-          </div>
-        </div>`;
-        rightCard  = card(acc, 'LOAD', `ThemeSystem.loadTheme(${i})`);
-      } else {
-        // normal: left=primary DEL, center=secondary name, right=accent LOAD
-        leftCard   = card(pri, 'DEL', `ThemeSystem.deleteConfirm[${i}]=true;ThemeSystem.renderSavedList()`, 'opacity:0.5;');
-        centerCard = `<div class="tb-saved-card" style="flex:2;border:${bw} solid ${bdr};cursor:pointer;" onclick="ThemeSystem.showSwatches[${i}]=true;ThemeSystem.renderSavedList();">
-          <div class="tb-saved-card-top" style="background:${sec};border-bottom:${bw} solid ${bdr};"></div>
-          <div class="tb-saved-card-bot" style="background:${bg4};color:${tl};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${theme.name}</div>
-        </div>`;
-        rightCard  = card(acc, 'LOAD', `ThemeSystem.loadTheme(${i})`);
-      }
+        const card = document.createElement('div');
+        card.style.cssText = `flex:1;border:${bw} solid ${BK};border-radius:var(--radius);overflow:hidden;background:${bg1}`;
 
-      item.innerHTML = `<div style="display:flex;gap:4px;width:100%;">${leftCard}${centerCard}${rightCard}</div>`;
-      list.appendChild(item);
-    });
+        let inner = '';
+
+        if (isDelConf) {
+          inner = `<div style="display:flex;border-bottom:${bw} solid ${BK}"><div style="flex:1;height:var(--qs-hdr);background:${pri};border-right:${bw} solid ${BK};display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:900;letter-spacing:0.1em;text-transform:uppercase;color:${tl};cursor:pointer" onclick="ThemeSystem.deleteConfirm[${idx}]=false;ThemeSystem.renderSavedList()">NO</div><div style="flex:1;height:var(--qs-hdr);background:${sec};display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:900;letter-spacing:0.1em;text-transform:uppercase;color:${tl}">DEL?</div></div><div style="display:flex"><div style="flex:1;height:var(--qs-hdr);background:${acc};display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:900;letter-spacing:0.1em;text-transform:uppercase;color:${tl};cursor:pointer" onclick="ThemeSystem.deleteTheme(${idx})">YES</div></div>`;
+        } else if (showSw) {
+          inner = `<div style="display:flex;height:var(--qs-hdr);border-bottom:${bw} solid ${BK}">${Object.values(theme.jobColors||{}).map((c,k,arr) =>`<div style="flex:1;background:${c}${k<arr.length-1?`;border-right:${bw} solid ${BK}`:''}"></div>`).join('')}</div><div style="display:flex;border-top:none"><div style="flex:1;height:var(--qs-hdr);background:${pri};border-right:${bw} solid ${BK};display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:900;letter-spacing:0.1em;text-transform:uppercase;color:${tl};cursor:pointer" onclick="ThemeSystem.showSwatches[${idx}]=false;ThemeSystem.renderSavedList()">BACK</div><div style="flex:1;height:var(--qs-hdr);background:${acc};display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:900;letter-spacing:0.1em;text-transform:uppercase;color:${tl};cursor:pointer" onclick="ThemeSystem.loadTheme(${idx})">LOAD</div></div>`;
+        } else {
+          inner = `<div style="height:var(--qs-hdr);background:${sec};border-bottom:${bw} solid ${BK};display:flex;align-items:center;padding:0 8px;font-size:var(--text-xs);font-weight:900;letter-spacing:0.06em;text-transform:uppercase;color:${tl};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${theme.name}</div><div style="padding:var(--margin);display:flex;flex-direction:column;gap:var(--margin)"><div style="display:flex;gap:var(--margin);height:var(--qs-hdr)"><div style="flex:1;border:${bw} solid ${BK};border-radius:var(--radius);overflow:hidden;display:flex"><div style="width:var(--job-half);background:${pri};border-right:${bw} solid ${BK}"></div><div style="flex:1;background:${bg4}"></div></div><div style="flex:1;border:${bw} solid ${BK};border-radius:var(--radius);overflow:hidden;display:flex"><div style="width:var(--job-half);background:${acc};border-right:${bw} solid ${BK}"></div><div style="flex:1;background:${bg4}"></div></div></div><div style="display:flex;gap:var(--margin)"><div style="flex:1;border:${bw} solid ${BK};border-radius:var(--radius);overflow:hidden;height:var(--qs-hdr);background:${bg1};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:900;letter-spacing:0.08em;text-transform:uppercase;color:${tm};cursor:pointer" onclick="ThemeSystem.showSwatches[${idx}]=true;ThemeSystem.renderSavedList()">Colors</div><div style="flex:1;border:${bw} solid ${BK};border-radius:var(--radius);overflow:hidden;height:var(--qs-hdr);background:${acc};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:900;letter-spacing:0.08em;text-transform:uppercase;color:${tl};cursor:pointer" onclick="ThemeSystem.loadTheme(${idx})">Load</div><div style="flex:1;border:${bw} solid ${BK};border-radius:var(--radius);overflow:hidden;height:var(--qs-hdr);background:${bg1};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:900;letter-spacing:0.08em;text-transform:uppercase;color:${tm};opacity:0.5;cursor:pointer" onclick="ThemeSystem.deleteConfirm[${idx}]=true;ThemeSystem.renderSavedList()">Del</div></div></div>`;
+        }
+
+        card.innerHTML = inner;
+        row.appendChild(card);
+      });
+
+      list.appendChild(row);
+    }
   },
 
   /* -- apply to app -- */
@@ -1070,6 +1082,7 @@ window.ThemeSystem = {
 };
 
 
+
 /* ---------------------------------------
    BUILD WINDOW HTML
 --------------------------------------- */
@@ -1088,6 +1101,7 @@ function tbBuildWindow() {
       <div class="tb-tab active" data-tab="editor">Editor</div>
       <div class="tb-tab" data-tab="saved">Saved</div>
       <div class="tb-tab" data-tab="io">Import / Export</div>
+      <div class="tb-tab" data-tab="randomize">Randomize</div>
     </div>
 
     <!-- EDITOR PANEL -->
@@ -1325,7 +1339,9 @@ function tbBuildWindow() {
       </div>
     </div>
 
-    <!-- OVERWRITE MODAL -->
+    <div id="tbRandPanelSlot"></div>
+
+        <!-- OVERWRITE MODAL -->
     <div id="tbOverwriteModal" style="display:none;position:fixed;inset:0;z-index:9100;align-items:center;justify-content:center;backdrop-filter:blur(6px);background:rgba(0,0,0,0.3);">
       <div style="background:var(--bg-2);border:var(--border-width) solid var(--border-color);border-radius:var(--radius);width:90%;max-width:320px;overflow:hidden;">
         <div class="label-card" style="border-radius:0;border:none;border-bottom:var(--border-width) solid var(--border-color);">Overwrite Theme?</div>
@@ -1362,6 +1378,123 @@ function tbBuildWindow() {
   Object.keys(jc).forEach(k => { const v = TB_JOB_VAR_MAP[k]; if (v) root.style.setProperty(v, jc[k]); });
 })();
 
+
+// -- RANDOMIZE TAB --
+(function(){
+function _H(h,s,l){h=((h%360)+360)%360;s/=100;l/=100;const c=(1-Math.abs(2*l-1))*s,x=c*(1-Math.abs((h/60)%2-1)),m=l-c/2;let r,g,b;if(h<60){r=c;g=x;b=0}else if(h<120){r=x;g=c;b=0}else if(h<180){r=0;g=c;b=x}else if(h<240){r=0;g=x;b=c}else if(h<300){r=x;g=0;b=c}else{r=c;g=0;b=x}return'#'+[r,g,b].map(v=>Math.round((v+m)*255).toString(16).padStart(2,'0')).join('');}
+function _hexHsl(hex){let r=parseInt(hex.slice(1,3),16)/255,g=parseInt(hex.slice(3,5),16)/255,b=parseInt(hex.slice(5,7),16)/255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2;if(mx===mn)return[0,0,Math.round(l*100)];const d=mx-mn,s=l>.5?d/(2-mx-mn):d/(mx+mn);let hh=mx===r?(g-b)/d+(g<b?6:0):mx===g?(b-r)/d+2:(r-g)/d+4;return[Math.round(hh/6*360),Math.round(s*100),Math.round(l*100)];}
+function _lum(hex){const[r,g,b]=[parseInt(hex.slice(1,3),16)/255,parseInt(hex.slice(3,5),16)/255,parseInt(hex.slice(5,7),16)/255].map(v=>v<=0.04045?v/12.92:Math.pow((v+0.055)/1.055,2.4));return 0.2126*r+0.7152*g+0.0722*b;}
+function _ratio(a,b){const la=_lum(a),lb=_lum(b);return(Math.max(la,lb)+0.05)/(Math.min(la,lb)+0.05);}
+function _rnd(a,b){return a+Math.random()*(b-a);}
+function _pick(arr){return arr[Math.floor(Math.random()*arr.length)];}
+
+let _tbBgRel='random', _tbHarm='random', _tbSurf='random', _tbTone='mix';
+
+function _setBgChip(id,val){document.querySelectorAll('#'+id+' .tb-swatch').forEach(c=>{c.style.background='';c.style.color='';});}
+
+window.tbRandSetBg=function(v,el){_tbBgRel=v;document.querySelectorAll('#tbRandBgChips .tb-rand-chip').forEach(c=>{c.style.background='';c.style.color='';});el.style.background='var(--primary)';el.style.color='var(--text-light)';document.getElementById('tbRandBgLabel').textContent=el.dataset.val;};
+window.tbRandSetHarm=function(v,el){_tbHarm=v;document.querySelectorAll('#tbRandHarmChips .tb-rand-chip').forEach(c=>{c.style.background='';c.style.color='';});el.style.background='var(--primary)';el.style.color='var(--text-light)';document.getElementById('tbRandHarmLabel').textContent=el.dataset.val;};
+window.tbRandSetSurf=function(v,el){_tbSurf=v;document.querySelectorAll('#tbRandSurfChips .tb-rand-chip').forEach(c=>{c.style.background='';c.style.color='';});el.style.background='var(--primary)';el.style.color='var(--text-light)';document.getElementById('tbRandSurfLabel').textContent=el.dataset.val;};
+window.tbRandSetTone=function(v,el){_tbTone=v;document.querySelectorAll('#tbRandToneChips .tb-rand-chip').forEach(c=>{c.style.background='';c.style.color='';});el.style.background='var(--primary)';el.style.color='var(--text-light)';document.getElementById('tbRandToneLabel').textContent=el.dataset.val;};
+
+function _tbGetPrimary(fixed){
+  const hue=+(document.getElementById('tbHueS')||{value:140}).value;
+  const bri=+(document.getElementById('tbBriS')||{value:48}).value;
+  const sat=+(document.getElementById('tbSatS')||{value:65}).value;
+  return _H(hue,sat||1,bri||1);
+}
+
+function _tbUpdatePrimaryCard(){
+  const hex=_tbGetPrimary();
+  const el=document.getElementById('tbRandPrimary');
+  if(!el)return;
+  el.style.background=hex;
+  el.style.color=_lum(hex)>0.25?'#111':'#f2f2f2';
+  el.textContent=hex.toUpperCase();
+}
+
+['tbHueS','tbBriS','tbSatS'].forEach(function(id){
+  setTimeout(function(){
+    const el=document.getElementById(id);
+    if(el)el.addEventListener('input',_tbUpdatePrimaryCard);
+  },500);
+});
+
+function _tbMakeTheme(primaryHex,fixed){
+  const [h,s,l]=_hexHsl(primaryHex);
+  const bri=fixed?+(document.getElementById('tbBriS')||{value:48}).value:Math.round(_rnd(8,60));
+  const sat=fixed?+(document.getElementById('tbSatS')||{value:65}).value:Math.round(_rnd(12,88));
+  const m=_tbTone==='mix'?_pick(['dark','mid','light']):_tbTone;
+  const harmSchemes={complementary:[180,150],analogous:[30,-30],triadic:[120,240],tetradic:[90,270],split:[150,210],accented:[20,150],fibonacci:[137.508,275.016],monochromatic:[0,0],'double-comp':[180,90],'near-comp':[160,200],rectangle:[60,180]};
+  const harmKeys=Object.keys(harmSchemes);
+  const schemeName=_tbHarm==='random'?_pick(harmKeys):_tbHarm;
+  const offsets=harmSchemes[schemeName]||harmSchemes.complementary;
+  const secH=(h+offsets[0]+_rnd(-8,8)+360)%360;
+  const accH=schemeName==='monochromatic'?h:(h+offsets[1]+_rnd(-8,8)+360)%360;
+  const priS=Math.min(sat,95);
+  const priSatMod=fixed?sat:(Math.random()<0.15?Math.min(sat*0.2,15):sat);
+  const clampL=v=>Math.max(5,Math.min(95,v));
+  const pri=fixed?primaryHex:_H(h,priSatMod,clampL(bri));
+  const sec=_H(secH,schemeName==='monochromatic'?priS*0.8:Math.min(priS*0.9,88),clampL(schemeName==='monochromatic'?bri+14:bri));
+  const acc=_H(accH,schemeName==='monochromatic'?priS*0.6:Math.min(priS*0.8,80),clampL(schemeName==='monochromatic'?bri-12:bri));
+  const c1=_H(355,_tbTone==='dark'?70:_tbTone==='mid'?65:60,_tbTone==='dark'?52:_tbTone==='mid'?48:44);
+  const bgStrats={'primary-dark':()=>({bgH:h+_rnd(-8,8),bgS:_rnd(16,30),isPrimaryDark:true}),'complement':()=>({bgH:(h+180+_rnd(-10,10))%360,bgS:_rnd(7,16)}),'analogous':()=>({bgH:(h+_pick([30,-30,45,-45])+_rnd(-8,8)+360)%360,bgS:_rnd(7,16)}),'contrast90':()=>({bgH:(h+_pick([90,270])+_rnd(-8,8)+360)%360,bgS:_rnd(5,14)}),'warm-neutral':()=>({bgH:_pick([25,30,35,20])+_rnd(-5,5),bgS:_rnd(7,16)}),'cool-neutral':()=>({bgH:_pick([200,210,220,195])+_rnd(-5,5),bgS:_rnd(7,16)}),'true-grey':()=>({bgH:_rnd(0,30),bgS:_rnd(0,3)}),'earthy':()=>({bgH:_pick([22,28,35,18,40])+_rnd(-5,5),bgS:_rnd(10,22)}),'triadic-bg':()=>({bgH:(h+120+_rnd(-8,8))%360,bgS:_rnd(8,16)}),'split-bg':()=>({bgH:(h+150+_rnd(-8,8))%360,bgS:_rnd(8,16)}),'secondary-bg':()=>({bgH:(h+35+_rnd(-6,6))%360,bgS:_rnd(10,18)})};
+  const bgKey=_tbBgRel==='random'?_pick(Object.keys(bgStrats)):_tbBgRel;
+  const bgPick=(bgStrats[bgKey]||bgStrats.complement)();
+  const {bgH,bgS,isPrimaryDark}=bgPick;
+  const bg1Strat=_pick([()=>({h:isPrimaryDark?h:bgH,s:bgS+2}),()=>({h:h,s:Math.min(priS*0.5,40)}),()=>({h:secH,s:Math.min(priS*0.45,40)}),()=>({h:0,s:0})]);
+  const b1=bg1Strat();const b1H=b1.h,b1S=b1.s;
+  const w=()=>_rnd(-2,2);
+  let bg1,bg2,bg3;
+  if(m==='dark'){bg1=_H(b1H,b1S,12+w());bg2=_H(b1H,b1S-2+w(),20+w());bg3=_H(b1H,b1S+1+w(),7+w());}
+  else if(m==='mid'){bg1=_H(b1H,b1S,26+w());bg2=_H(b1H,b1S-2+w(),34+w());bg3=_H(b1H,b1S+1+w(),18+w());}
+  else{bg1=_H(b1H,b1S,93+w());bg2=_H(b1H,b1S-2+w(),85+w());bg3=_H(b1H,b1S+1+w(),77+w());}
+  const WHITE='#f2f2f2',BLACK='#111111';
+  const actions=[pri,sec,acc];
+  const worstW=Math.min(...actions.map(c=>_ratio(WHITE,c)));
+  const worstB=Math.min(...actions.map(c=>_ratio(BLACK,c)));
+  const tl=worstW>=worstB?WHITE:BLACK;
+  const tm=_lum(bg2)>0.3?_H(b1H,20,35):_H(b1H,12,65);
+  let border;
+  if(m==='light'){border=_pick(['#000000',_H(b1H,15,20),_H(b1H,12,28)]);}
+  else{border=_pick([_H(b1H,Math.max(b1S,5),4),'#000000',_H(h,Math.min(priS*0.3,20),5)]);}
+  const surfNames=['white','off-white','light primary','dark primary','light secondary','dark secondary','light accent','tinted neutral','light complement','pure grey','4th harmony','dark accent'];
+  const surfFns=[()=>({bg4:'#ffffff',td:_H(b1H,bgS+4,5)}),()=>({bg4:_H(b1H,bgS+4,_rnd(94,98)),td:_H(b1H,bgS+4,5)}),()=>({bg4:_H(h,Math.min(priS*0.5,40),_rnd(88,94)),td:_H(h,priS*0.6,8)}),()=>({bg4:_H(h,Math.min(priS*0.7,60),_rnd(20,32)),td:_H(b1H,6,92)}),()=>({bg4:_H(secH,Math.min(priS*0.5,40),_rnd(86,93)),td:_H(secH,priS*0.5,8)}),()=>({bg4:_H(secH,Math.min(priS*0.7,60),_rnd(20,32)),td:_H(b1H,6,92)}),()=>({bg4:_H(accH,Math.min(priS*0.4,35),_rnd(88,94)),td:_H(accH,priS*0.5,8)}),()=>({bg4:_H(b1H,bgS+_rnd(2,6),_rnd(78,86)),td:_H(b1H,bgS+4,8)}),()=>({bg4:_H((h+180)%360,Math.min(priS*0.4,35),_rnd(86,93)),td:_H((h+180)%360,priS*0.5,8)}),()=>({bg4:_H(b1H,0,_rnd(90,96)),td:_H(b1H,0,8)}),()=>{const q=(h+offsets[1]*1.5+360)%360;return{bg4:_H(q,Math.min(priS*0.55,50),48),td:_lum(_H(q,Math.min(priS*0.55,50),48))>0.35?_H(q,20,8):_H(q,8,94)};},()=>({bg4:_H(accH,Math.min(priS*0.7,60),_rnd(20,32)),td:_H(b1H,6,92)})];
+  const surfIdx=_tbSurf==='random'?Math.floor(Math.random()*surfFns.length):Math.max(0,surfNames.indexOf(_tbSurf));
+  let{bg4,td}=surfFns[surfIdx]();
+  if(_ratio(td,bg4)<4)td=_lum(bg4)>0.5?_H(b1H,bgS+4,4):_H(b1H,6,92);
+  const swHues=[0,...offsets,60,90,120,150,180,210,270].slice(0,10).map(o=>_H((h+o+360)%360,Math.min(sat*0.9,82),bri));
+  return{bg1,bg2,bg3,bg4,pri,sec,acc,c1,border,tl,tm,td,sw:swHues};
+}
+
+window.tbRandRandom=function(){
+  const randHue=Math.floor(Math.random()*360);
+  const randBri=Math.round(_rnd(8,60));
+  const randSat=Math.round(_rnd(12,88));
+  const hu=document.getElementById('tbHueS');const br=document.getElementById('tbBriS');const sa=document.getElementById('tbSatS');
+  if(hu)hu.value=randHue;if(br)br.value=randBri;if(sa)sa.value=randSat;
+  _tbUpdatePrimaryCard();
+  const t=_tbMakeTheme(_H(randHue,randSat,randBri),true);
+  _tbApplyRandTheme(t);
+};
+
+window.tbRandApply=function(){
+  const t=_tbMakeTheme(_tbGetPrimary(),true);
+  _tbApplyRandTheme(t);
+};
+
+function _tbApplyRandTheme(t){
+  const bc={bg1:t.bg1,bg2:t.bg2,bg3:t.bg3,bg4:t.bg4,primary:t.pri,secondary:t.sec,accent:t.acc,color1:t.c1,muted:t.tm,border:t.border,textLight:t.tl,textMid:t.tm,textDark:t.td};
+  const jc=Object.fromEntries(t.sw.map((c,i)=>['swatch'+(i+1),c]));
+  ThemeSystem.baseColors={...ThemeSystem.baseColors,...bc};
+  ThemeSystem.jobColors={...ThemeSystem.jobColors,...jc};
+  tbApplyCssVars(ThemeSystem.baseColors,ThemeSystem.jobColors);
+  ThemeSystem.renderBaseSwatches();
+  ThemeSystem.renderJobSwatches();
+}
+
+setTimeout(_tbUpdatePrimaryCard,600);
+})();
 
 function tbEncodeTheme(baseColors, jobColors) {
   const parts = [];
@@ -1792,17 +1925,6 @@ window.addEventListener('load', function () {
   }
   // Re-render after load so QS and history pick up theme vars
   tbRerender();
-
-  // Add Theme Builder button to the Theme settings tab
-  const themePanel = document.getElementById('spanel-theme');
-  if (themePanel) {
-    const btn = document.createElement('div');
-    btn.className = 'label-card';
-    btn.style.cssText = 'cursor:pointer;background:var(--bg-2);color:var(--color-10);margin-top:var(--margin);';
-    btn.textContent = 'Open Theme Builder';
-    btn.onclick = () => ThemeSystem.open();
-    themePanel.appendChild(btn);
-  }
 
   if (typeof updateSettingsUI === 'function') updateSettingsUI();
 });
