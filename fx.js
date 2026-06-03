@@ -4,33 +4,24 @@ let fxGen = 0;
 
 const OVERLAY_CFG_DEFAULTS = {
   overlay:'none',
-  grn:{layer:'over',intensity:'med',size:'med'},
-  crt:{layer:'under',color:'green',lines:'med'},
-  stt:{layer:'over',intensity:'med',speed:'med'},
-  glc:{speed:'med',intensity:'med'},
-  prx:{layer:'mixed',speed:'med',density:'med'},
-  dtr:{layer:'over',intensity:'med',size:'med'},
-  pxl:{layer:'over',size:'med',intensity:'med'},
-  vgn:{layer:'over',strength:'med',spread:'med'},
-  gls:{layer:'under',size:'med',opacity:'med'},
-  crs:{layer:'under',spacing:'med',opacity:'med'},
+  grn:{layer:'over',intensity:'high',size:'coarse'},
+  crt:{layer:'under',color:'green',lines:'light'},
+  stt:{layer:'over',intensity:'high',speed:'fast'},
+  glc:{speed:'slow',intensity:'high'},
+  prx:{layer:'mixed',speed:'fast',density:'dense'},
+  dtr:{layer:'over',intensity:'heavy',size:'coarse'},
+  vgn:{layer:'over',strength:'med',spread:'tight'},
+  crs:{layer:'under',spacing:'med',opacity:'heavy'},
+  tlt:{},
+  plm:{layer:'under'},
+  hlg:{layer:'over'},
 };
 
-const LAYER_FILTERS_APP=['grn','crt','stt','dtr','pxl','vgn','gls','crs'];
+const LAYER_FILTERS_APP=['grn','crt','stt','dtr','vgn','crs','plm','hlg'];
 const LAYER_MIXED_APP=['prx'];
 
 const OVERLAY_SETTINGS_DEF = {
-  non: [],
-  grn: [{key:'intensity',lbl:'Intensity',opts:[{v:'low',l:'Low'},{v:'med',l:'Med'},{v:'high',l:'High'}]},{key:'size',lbl:'Grain',opts:[{v:'fine',l:'Fine'},{v:'med',l:'Med'},{v:'coarse',l:'Coarse'}]}],
-  crt: [{key:'color',lbl:'Color',opts:[{v:'green',col:'#12ff15'},{v:'green2',col:'#1aff80'},{v:'blue',col:'#2ecfff'},{v:'amber',col:'#ffbf00'},{v:'white',col:'#ffffff'},{v:'red',col:'#ff2000'}],isColor:true},{key:'lines',lbl:'Lines',opts:[{v:'light',l:'Light'},{v:'med',l:'Med'},{v:'heavy',l:'Heavy'}]}],
-  stt: [{key:'intensity',lbl:'Intensity',opts:[{v:'low',l:'Low'},{v:'med',l:'Med'},{v:'high',l:'High'}]},{key:'speed',lbl:'Speed',opts:[{v:'slow',l:'Slow'},{v:'med',l:'Med'},{v:'fast',l:'Fast'}]}],
-  glc: [{key:'speed',lbl:'Speed',opts:[{v:'slow',l:'Slow'},{v:'med',l:'Med'},{v:'fast',l:'Fast'}]},{key:'intensity',lbl:'Intensity',opts:[{v:'low',l:'Low'},{v:'med',l:'Med'},{v:'high',l:'High'}]}],
-  prx: [{key:'speed',lbl:'Speed',opts:[{v:'slow',l:'Slow'},{v:'med',l:'Med'},{v:'fast',l:'Fast'}]},{key:'density',lbl:'Density',opts:[{v:'sparse',l:'Sparse'},{v:'med',l:'Med'},{v:'dense',l:'Dense'}]}],
-  dtr: [{key:'intensity',lbl:'Intensity',opts:[{v:'light',l:'Light'},{v:'med',l:'Med'},{v:'heavy',l:'Heavy'}]},{key:'size',lbl:'Pattern',opts:[{v:'fine',l:'Fine'},{v:'med',l:'Med'},{v:'coarse',l:'Coarse'}]}],
-  pxl: [{key:'size',lbl:'Size',opts:[{v:'small',l:'Small'},{v:'med',l:'Med'},{v:'large',l:'Large'}]},{key:'intensity',lbl:'Intensity',opts:[{v:'light',l:'Light'},{v:'med',l:'Med'},{v:'heavy',l:'Heavy'}]}],
-  vgn: [{key:'strength',lbl:'Strength',opts:[{v:'light',l:'Light'},{v:'med',l:'Med'},{v:'heavy',l:'Heavy'}]},{key:'spread',lbl:'Spread',opts:[{v:'tight',l:'Tight'},{v:'med',l:'Med'},{v:'wide',l:'Wide'}]}],
-  gls: [{key:'size',lbl:'Cells',opts:[{v:'small',l:'Small'},{v:'med',l:'Med'},{v:'large',l:'Large'}]},{key:'opacity',lbl:'Opacity',opts:[{v:'light',l:'Light'},{v:'med',l:'Med'},{v:'heavy',l:'Heavy'}]}],
-  crs: [{key:'spacing',lbl:'Spacing',opts:[{v:'tight',l:'Tight'},{v:'med',l:'Med'},{v:'wide',l:'Wide'}]},{key:'opacity',lbl:'Opacity',opts:[{v:'light',l:'Light'},{v:'med',l:'Med'},{v:'heavy',l:'Heavy'}]}],
+  non:[],grn:[],crt:[],stt:[],glc:[],prx:[],dtr:[],vgn:[],crs:[],tlt:[],plm:[],hlg:[],
 };
 
 function getOverlayCfg() {
@@ -54,13 +45,10 @@ function clearThemeFx() {
   const pfore = document.getElementById('tbPreviewFxFore'); if (pfore) pfore.innerHTML = '';
   if (!(document.getElementById('themeBuilderWindow')&&document.getElementById('themeBuilderWindow').classList.contains('open'))) document.body.style.filter = '';
   const demoEl = document.querySelector('.tb-demo-section'); if (demoEl) demoEl.style.filter = '';
-  document.querySelectorAll('[data-pxl-done]').forEach(el => delete el.dataset.pxlDone);
-  document.querySelectorAll('.pxl-inner').forEach(el => {
-    const parent = el.parentElement;
-    if (parent) delete parent.dataset.pxlDone;
-    el.remove();
-    if (parent) { parent.style.position = ''; parent.style.zIndex = ''; }
-  });
+  document.querySelectorAll('[data-tlt]').forEach(el=>{el.style.transform='';el.style.zIndex='';delete el.dataset.tlt;});
+  const _ma=document.getElementById('mainApp'); if(_ma&&_ma._tltFn){_ma.removeEventListener('click',_ma._tltFn);delete _ma._tltFn;}
+  if(demoEl&&demoEl._tltFn){demoEl.removeEventListener('click',demoEl._tltFn);delete demoEl._tltFn;}
+  document.querySelectorAll('.data-body').forEach(b=>{if(b._tltOvf!==undefined){b.style.overflow=b._tltOvf;delete b._tltOvf;}});
 }
 
 function setOverlay(id) {
@@ -224,27 +212,12 @@ function applyOverlayInWindow(id, c, backEl, foreEl) {
     const img=ctx.createImageData(cv.width,cv.height);
     for(let y=0;y<cv.height;y++)for(let x=0;x<cv.width;x++){const t=Msel[y%Msz][x%Msz]/(Msz*Msz);const v=t>.5?255:0;const i=(y*cv.width+x)*4;img.data[i]=img.data[i+1]=img.data[i+2]=v;img.data[i+3]=80;}
     ctx.putImageData(img,0,0);
-  } else if (id === 'pxl') {
-    const ps={small:3,med:5,large:8}[c.size||'med']; const op={light:.15,med:.3,heavy:.55}[c.intensity||'med'];
-    const cv=mkWinC(target,op,null); const ctx=cv.getContext('2d');
-    cv.style.mixBlendMode='overlay';
-    if(!cv.width||!cv.height)return;
-    for(let y=0;y<cv.height;y+=ps)for(let x=0;x<cv.width;x+=ps){const v=Math.floor(Math.random()*256);ctx.fillStyle=`rgb(${v},${v},${v})`;ctx.fillRect(x,y,ps,ps);}
   } else if (id === 'vgn') {
     const str={light:.5,med:.72,heavy:.9}[c.strength||'med']; const sp2={tight:.12,med:.22,wide:.35}[c.spread||'med'];
     const cv=mkWinC(foreEl,1,null); const ctx=cv.getContext('2d');
     const g=ctx.createRadialGradient(cv.width/2,cv.height/2,cv.height*sp2,cv.width/2,cv.height/2,cv.height*.92);
     g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,`rgba(0,0,0,${str})`);
     ctx.fillStyle=g; ctx.fillRect(0,0,cv.width,cv.height);
-  } else if (id === 'gls') {
-    const cellSize={small:25,med:45,large:80}[c.size||'med']; const op={light:.3,med:.5,heavy:.72}[c.opacity||'med'];
-    const cv=mkWinC(target,op,'screen'); const ctx=cv.getContext('2d');
-    const cs2=getComputedStyle(document.documentElement);
-    const baseHues=['--primary','--secondary','--accent'].map(v=>{const hex=cs2.getPropertyValue(v).trim().replace('#','');const r=parseInt(hex.slice(0,2),16)/255,g2=parseInt(hex.slice(2,4),16)/255,b=parseInt(hex.slice(4,6),16)/255;const mx=Math.max(r,g2,b),mn=Math.min(r,g2,b),d=mx-mn;if(d===0)return 120;let hh=0;if(mx===r)hh=((g2-b)/d+(g2<b?6:0))/6;else if(mx===g2)hh=((b-r)/d+2)/6;else hh=((r-g2)/d+4)/6;return Math.round(hh*360);});
-    const cols=Math.ceil(cv.width/cellSize)+1; const rows=Math.ceil(cv.height/cellSize)+1;
-    const cw=cv.width/cols; const ch=cv.height/rows; const jit=0.42;
-    const pts=[]; for(let row=0;row<=rows;row++) for(let col=0;col<=cols;col++) pts.push({x:col*cw+(Math.random()-.5)*cw*jit*2,y:row*ch+(Math.random()-.5)*ch*jit*2});
-    for(let row=0;row<rows;row++) for(let col=0;col<cols;col++){const i=row*(cols+1)+col;const tl=pts[i],tr=pts[i+1],bl=pts[i+(cols+1)],br=pts[i+(cols+2)];if(!tl||!tr||!bl||!br)continue;const hue=(baseHues[Math.floor(Math.random()*baseHues.length)]+(Math.random()-.5)*90+360)%360;const sat=35+Math.random()*50,lit=25+Math.random()*42,alpha=.5+Math.random()*.2;ctx.fillStyle=`hsla(${hue},${sat}%,${lit}%,${alpha.toFixed(2)})`;ctx.beginPath();ctx.moveTo(tl.x,tl.y);ctx.lineTo(tr.x,tr.y);ctx.lineTo(br.x,br.y);ctx.lineTo(bl.x,bl.y);ctx.closePath();ctx.fill();}
   } else if (id === 'crs') {
     const sp3={tight:4,med:7,wide:13}[c.spacing||'med']; const op2={light:.12,med:.22,heavy:.4}[c.opacity||'med'];
     const cv=mkWinC(target,op2,null); const ctx=cv.getContext('2d'); const ang=Math.PI/4;
@@ -252,6 +225,15 @@ function applyOverlayInWindow(id, c, backEl, foreEl) {
     for(let d=-cv.height*2;d<cv.width*2;d+=sp3){ctx.save();ctx.translate(cv.width/2,cv.height/2);ctx.rotate(ang);ctx.beginPath();ctx.moveTo(d,-cv.height*2);ctx.lineTo(d,cv.height*2);ctx.stroke();ctx.restore();}
     ctx.strokeStyle='rgba(0,0,0,0.5)';
     for(let d=-cv.height*2;d<cv.width*2;d+=sp3){ctx.save();ctx.translate(cv.width/2,cv.height/2);ctx.rotate(-ang);ctx.beginPath();ctx.moveTo(d,-cv.height*2);ctx.lineTo(d,cv.height*2);ctx.stroke();ctx.restore();}
+  } else if (id === 'plm') {
+    function _hslRgbW(h,s,l){const a=s*Math.min(l,1-l);const f=n=>{const k=(n+h/30)%12;return Math.round(255*(l-a*Math.max(Math.min(k-3,9-k,1),-1)));};return[f(0),f(8),f(4)];}
+    const cv=mkWinC(target,.6,null);const ctx=cv.getContext('2d');let t=0;
+    function dP(){if(win._winFxGen!==myGen)return;const W=cv.width,H=cv.height;const img=ctx.createImageData(W,H);const px=img.data;for(let y=0;y<H;y+=2)for(let x=0;x<W;x+=2){const v=Math.sin(x*.06+t)+Math.sin(y*.05)+Math.sin((x+y)*.04+t*.8)+Math.sin(Math.sqrt((x-W/2)**2+(y-H/2)**2)*.05);const[r,g,b]=_hslRgbW((v+4)/8*360,.7,.4);const i=(y*W+x)*4;px[i]=r;px[i+1]=g;px[i+2]=b;px[i+3]=255;if(x+1<W){px[i+4]=r;px[i+5]=g;px[i+6]=b;px[i+7]=255;}if(y+1<H){const j=((y+1)*W+x)*4;px[j]=r;px[j+1]=g;px[j+2]=b;px[j+3]=255;}}ctx.putImageData(img,0,0);t+=.04;requestAnimationFrame(dP);}
+    dP();
+  } else if (id === 'hlg') {
+    const cv=mkWinC(foreEl,.5,'overlay');const ctx=cv.getContext('2d');let t=0;
+    function dH(){if(win._winFxGen!==myGen)return;ctx.clearRect(0,0,cv.width,cv.height);for(let y=0;y<cv.height;y+=3){const ph=y*.08+t;const a=(.5+Math.sin(ph)*.5)*.35;const hue=(y*3+t*2865)%360;ctx.fillStyle=`hsla(${hue},90%,65%,${a})`;ctx.fillRect(0,y,cv.width,2);}t+=.03;requestAnimationFrame(dH);}
+    dH();
   } else if (id === 'prx') {
     const spd={slow:.12,med:.35,fast:.85}[c.speed||'med']; const n={sparse:30,med:70,dense:140}[c.density||'med'];
     [{el:backEl,n,minSz:.5,maxSz:2,sp:spd*.2,op:.18},{el:foreEl,n:Math.round(n*.15),minSz:4,maxSz:9,sp:spd*1.3,op:.4}].forEach(({el,n:cn,minSz,maxSz,sp,op})=>{
@@ -259,6 +241,15 @@ function applyOverlayInWindow(id, c, backEl, foreEl) {
       const pts=Array.from({length:cn},()=>({x:Math.random()*cv2.width,y:Math.random()*cv2.height,spd:sp*(0.8+Math.random()*.4),sz:minSz+Math.random()*(maxSz-minSz)}));
       function d(){if(win._winFxGen!==myGen)return;ctx2.clearRect(0,0,cv2.width,cv2.height);ctx2.fillStyle='#fff';pts.forEach(p=>{p.y+=p.spd;if(p.y>cv2.height)p.y=-p.sz;ctx2.beginPath();ctx2.arc(p.x,p.y,p.sz,0,Math.PI*2);ctx2.fill();});requestAnimationFrame(d);}
       d();});
+  } else if (id === 'tlt') {
+    const WIN_SEL='.label-card,.filter-card,.date-range-card,.totals-card,.clear-card,.day-card,.day-card-plus,.nw-title-card,.nw-color-card,.dow-card';
+    // overflow:visible lets rotated card corners render freely; scroll in the window while tilt is active is a non-issue
+    const body=win.querySelector('.data-body');
+    if(body){body._tltOvf=body.style.overflow;body.style.overflow='visible';}
+    function _tiltWin(){Array.from(win.querySelectorAll(WIN_SEL)).forEach((el,i)=>{const hw=Math.max(el.offsetWidth/2,10);const md=Math.max(Math.asin(Math.min(0.8/hw,.9))*180/Math.PI,0.4);const deg=(0.35+Math.random()*.65)*md*(Math.random()<.5?1:-1);el.dataset.tlt=deg.toFixed(2);el.style.transform=`rotate(${deg.toFixed(2)}deg)`;el.style.position='relative';el.style.zIndex=String(i%2===0?3:1);});}
+    setTimeout(_tiltWin,350);
+    if(win._tltFn)win.removeEventListener('click',win._tltFn);
+    win._tltFn=_tiltWin; win.addEventListener('click',win._tltFn);
   }
 }
 
@@ -339,27 +330,12 @@ function applyOverlayToPreview(id) {
     const img=ctx.createImageData(cv.width,cv.height);
     for(let y=0;y<cv.height;y++)for(let x=0;x<cv.width;x++){const t=Msel[y%Msz][x%Msz]/(Msz*Msz);const v=t>.5?255:0;const i=(y*cv.width+x)*4;img.data[i]=img.data[i+1]=img.data[i+2]=v;img.data[i+3]=80;}
     ctx.putImageData(img,0,0);
-  } else if (id === 'pxl') {
-    const ps={small:3,med:5,large:8}[c.size||'med']; const op={light:.15,med:.3,heavy:.55}[c.intensity||'med'];
-    const target=layer==='over'?'fx-fore':'fx-back'; const cv=mkPreviewC(target,op,null);
-    cv.style.mixBlendMode='overlay'; const ctx=cv.getContext('2d');
-    if(!cv.width||!cv.height)return;
-    for(let y=0;y<cv.height;y+=ps)for(let x=0;x<cv.width;x+=ps){const v=Math.floor(Math.random()*256);ctx.fillStyle=`rgb(${v},${v},${v})`;ctx.fillRect(x,y,ps,ps);}
   } else if (id === 'vgn') {
     const str={light:.5,med:.72,heavy:.9}[c.strength||'med']; const sp2={tight:.12,med:.22,wide:.35}[c.spread||'med'];
     const cv=mkPreviewC(layer==='under'?'fx-back':'fx-fore',1,null); const ctx=cv.getContext('2d');
     const g=ctx.createRadialGradient(cv.width/2,cv.height/2,cv.height*sp2,cv.width/2,cv.height/2,cv.height*.92);
     g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,`rgba(0,0,0,${str})`);
     ctx.fillStyle=g; ctx.fillRect(0,0,cv.width,cv.height);
-  } else if (id === 'gls') {
-    const cellSize={small:25,med:45,large:80}[c.size||'med']; const op={light:.3,med:.5,heavy:.72}[c.opacity||'med'];
-    const cv=mkPreviewC('fx-back',op,'screen'); const ctx=cv.getContext('2d');
-    const cs2=getComputedStyle(document.documentElement);
-    const baseHues=['--primary','--secondary','--accent'].map(v=>{const hex=cs2.getPropertyValue(v).trim().replace('#','');const r=parseInt(hex.slice(0,2),16)/255,g2=parseInt(hex.slice(2,4),16)/255,b=parseInt(hex.slice(4,6),16)/255;const mx=Math.max(r,g2,b),mn=Math.min(r,g2,b),d=mx-mn;if(d===0)return 120;let h=0;if(mx===r)h=((g2-b)/d+(g2<b?6:0))/6;else if(mx===g2)h=((b-r)/d+2)/6;else h=((r-g2)/d+4)/6;return Math.round(h*360);});
-    const cols=Math.ceil(cv.width/cellSize)+1; const rows=Math.ceil(cv.height/cellSize)+1;
-    const cw=cv.width/cols; const ch=cv.height/rows; const jit=0.42;
-    const pts=[]; for(let row=0;row<=rows;row++) for(let col=0;col<=cols;col++) pts.push({x:col*cw+(Math.random()-.5)*cw*jit*2,y:row*ch+(Math.random()-.5)*ch*jit*2});
-    for(let row=0;row<rows;row++) for(let col=0;col<cols;col++){const i=row*(cols+1)+col;const tl=pts[i],tr=pts[i+1],bl=pts[i+(cols+1)],br=pts[i+(cols+2)];if(!tl||!tr||!bl||!br)continue;const hue=(baseHues[Math.floor(Math.random()*baseHues.length)]+(Math.random()-.5)*90+360)%360;const sat=35+Math.random()*50,lit=25+Math.random()*42,alpha=.5+Math.random()*.2;ctx.fillStyle=`hsla(${hue},${sat}%,${lit}%,${alpha.toFixed(2)})`;ctx.beginPath();ctx.moveTo(tl.x,tl.y);ctx.lineTo(tr.x,tr.y);ctx.lineTo(br.x,br.y);ctx.lineTo(bl.x,bl.y);ctx.closePath();ctx.fill();}
   } else if (id === 'crs') {
     const sp3={tight:4,med:7,wide:13}[c.spacing||'med']; const op2={light:.12,med:.22,heavy:.4}[c.opacity||'med'];
     const cv=mkPreviewC('fx-back',op2,null); const ctx=cv.getContext('2d'); const ang=Math.PI/4;
@@ -367,6 +343,25 @@ function applyOverlayToPreview(id) {
     for(let d=-cv.height*2;d<cv.width*2;d+=sp3){ctx.save();ctx.translate(cv.width/2,cv.height/2);ctx.rotate(ang);ctx.beginPath();ctx.moveTo(d,-cv.height*2);ctx.lineTo(d,cv.height*2);ctx.stroke();ctx.restore();}
     ctx.strokeStyle='rgba(0,0,0,0.5)';
     for(let d=-cv.height*2;d<cv.width*2;d+=sp3){ctx.save();ctx.translate(cv.width/2,cv.height/2);ctx.rotate(-ang);ctx.beginPath();ctx.moveTo(d,-cv.height*2);ctx.lineTo(d,cv.height*2);ctx.stroke();ctx.restore();}
+  } else if (id==='tlt') {
+    const root=demoEl||document.getElementById('mainApp'); if(!root)return;
+    const SEL2='.day-card,.label-card,.qs-card,.hist-card,.job-card,.day-card-plus,.day-sq';
+    function _tiltEl2(el){const hw=Math.max(el.offsetWidth/2,10);const md=Math.max(Math.asin(Math.min(1.2/hw,.9))*180/Math.PI,0.6);const deg=(0.35+Math.random()*.65)*md*(Math.random()<.5?1:-1);el.dataset.tlt=deg.toFixed(2);el.style.transform=`rotate(${deg.toFixed(2)}deg)`;el.style.zIndex=String(Math.floor(Math.random()*5));}
+    function _applyTlt(){Array.from(root.querySelectorAll(SEL2)).forEach(_tiltEl2);}
+    requestAnimationFrame(_applyTlt);
+    if(root._tltFn)root.removeEventListener('click',root._tltFn);
+    root._tltFn=_applyTlt; root.addEventListener('click',root._tltFn);
+  } else if (id==='plm') {
+    function _hslRgb(h,s,l){const a=s*Math.min(l,1-l);const f=n=>{const k=(n+h/30)%12;return Math.round(255*(l-a*Math.max(Math.min(k-3,9-k,1),-1)));};return[f(0),f(8),f(4)];}
+    const cv=mkPreviewC((c.layer||'under')==='over'?'fx-fore':'fx-back',.6,null);const ctx=cv.getContext('2d');let t=0;
+    function drawPlm(){if(window._previewGen!==myPreviewGen)return;const W=cv.width,H=cv.height;const img=ctx.createImageData(W,H);const px=img.data;
+      for(let y=0;y<H;y+=2)for(let x=0;x<W;x+=2){const v=Math.sin(x*.08+t)+Math.sin(y*.07)+Math.sin((x+y)*.05+t*.8)+Math.sin(Math.sqrt((x-W/2)**2+(y-H/2)**2)*.07);const[r,g,b]=_hslRgb((v+4)/8*360,.7,.4);const i=(y*W+x)*4;px[i]=r;px[i+1]=g;px[i+2]=b;px[i+3]=255;if(x+1<W){px[i+4]=r;px[i+5]=g;px[i+6]=b;px[i+7]=255;}if(y+1<H){const j=((y+1)*W+x)*4;px[j]=r;px[j+1]=g;px[j+2]=b;px[j+3]=255;}}
+      ctx.putImageData(img,0,0);t+=.04;requestAnimationFrame(drawPlm);}
+    drawPlm();
+  } else if (id==='hlg') {
+    const cv=mkPreviewC((c.layer||'over')==='under'?'fx-back':'fx-fore',.5,'overlay');const ctx=cv.getContext('2d');let t=0;
+    function drawHlg(){if(window._previewGen!==myPreviewGen)return;ctx.clearRect(0,0,cv.width,cv.height);for(let y=0;y<cv.height;y+=3){const ph=y*.08+t;const a=(.5+Math.sin(ph)*.5)*.35;const hue=(y*3+t*2865)%360;ctx.fillStyle=`hsla(${hue},90%,65%,${a})`;ctx.fillRect(0,y,cv.width,2);}t+=.03;requestAnimationFrame(drawHlg);}
+    drawHlg();
   }
 }
 
@@ -433,101 +428,7 @@ function getThemeRGBs() {
   }).filter(([r]) => !isNaN(r));
 }
 
-function pxlInjectSingle(el) {
-  if (getOverlayCfg().overlay !== 'pxl') return;
-  if (getComputedStyle(el).position === 'static') el.style.position = 'relative';
-  const old = el.querySelector('.pxl-inner'); if (old) { delete el.dataset.pxlDone; old.remove(); }
-  const fxb = document.getElementById('fx-back'); const BIG = fxb && fxb.querySelector('canvas'); if (!BIG) return;
-  const r = el.getBoundingClientRect(); if (!r.width || !r.height) return;
-  const op = {light:.15,med:.3,heavy:.55}[(getOverlayCfg().pxl||{}).intensity||'med'];
-  const bg = el.style.background || el.style.backgroundColor || getComputedStyle(el).backgroundColor;
-  const m = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-  const lum = m ? (parseInt(m[1])*0.299+parseInt(m[2])*0.587+parseInt(m[3])*0.114) : 128;
-  const blend = lum > 180 ? 'multiply' : 'overlay';
-  el.dataset.pxlDone = '1';
-  const cv = document.createElement('canvas'); cv.className = 'pxl-inner';
-  cv.width = Math.round(r.width); cv.height = Math.round(r.height);
-  cv.style.cssText = `position:absolute;top:0;left:0;opacity:${op};mix-blend-mode:${blend};pointer-events:none;z-index:1;`;
-  try { cv.getContext('2d').drawImage(BIG,r.left,r.top,r.width,r.height,0,0,cv.width,cv.height); el.appendChild(cv); } catch(e) {}
-}
 
-let _pxlPending = false;
-function pxlReInject() {
-  if (getOverlayCfg().overlay !== 'pxl') return;
-  if (_pxlPending) return; // already queued
-  _pxlPending = true;
-  requestAnimationFrame(() => {
-    _pxlPending = false;
-    _pxlDoInject();
-  });
-}
-function _pxlDoInject() {
-  if (getOverlayCfg().overlay !== 'pxl') return;
-  const cfg = getOverlayCfg();
-  const c = cfg.pxl || {};
-  if ((c.layer || 'under') !== 'over') return; // under mode has no per-element canvases
-  const fxb = document.getElementById('fx-back');
-  const existingBig = fxb && fxb.querySelector('canvas');
-  if (!existingBig) { applyOverlay(); return; }
-  const ps = {small:3,med:5,large:8}[c.size||'med'];
-  const op = {light:.15,med:.3,heavy:.55}[c.intensity||'med'];
-  document.querySelectorAll('.pxl-inner').forEach(el => {
-    const parent = el.parentElement;
-    if (parent) delete parent.dataset.pxlDone;
-    el.remove();
-  });
-  const roots = [document.getElementById('mainApp')];
-  document.querySelectorAll('.data-window.open').forEach(w => roots.push(w));
-  const headerTab = document.querySelector('.header-tab');
-  if (headerTab) roots.push(headerTab);
-  roots.forEach(root => { if (root) pxlInjectRoot(root, existingBig, ps, op); });
-}
-
-function pxlInjectRoot(root, BIG, ps, op) {
-  const SKIP_TAGS = new Set(['input','select','textarea','img','svg','canvas','script','style','a']);
-  const CONTAINER_EXCEPTIONS = new Set([
-    'day-body','filter-card','label-card','header-tab',
-    'nw-title-card','nw-color-card','dow-card','nw-footer',
-    'totals-card','toggle-card','date-range-card','clear-card',
-    'delete-card','clear-card-wrap','data-window-header'
-  ]);
-  Array.from(root.querySelectorAll('*')).forEach(el => {
-    if (el.classList.contains('pxl-inner')) return;
-    if (SKIP_TAGS.has(el.tagName.toLowerCase())) return;
-    if (el.classList.contains('day-body-half')) return;
-    if (el.classList.contains('filter-btn')) return;
-    if (el.classList.contains('toggle-check')) return;
-    if (el.dataset.dcRow) return;
-    if (el.dataset.pxlDone) return;
-    const cs = getComputedStyle(el);
-    const bg = cs.backgroundColor;
-    if (!bg || bg === 'rgba(0, 0, 0, 0)' || bg === 'transparent') return;
-    const r = el.getBoundingClientRect();
-    if (!r.width || !r.height || r.width < 4 || r.height < 4) return;
-    const isException = Array.from(el.classList).some(c => CONTAINER_EXCEPTIONS.has(c));
-    if (!isException) {
-      const hasChildBg = Array.from(el.children).some(child => {
-        if (child.classList.contains('pxl-inner')) return false;
-        if (child.classList.contains('day-body-half')) return false;
-        const cbg = getComputedStyle(child).backgroundColor;
-        return cbg && cbg !== 'rgba(0, 0, 0, 0)' && cbg !== 'transparent';
-      });
-      if (hasChildBg) return;
-    }
-    if (cs.position === 'static') el.style.position = 'relative';
-    el.dataset.pxlDone = '1';
-    const m = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-    const lum = m ? (parseInt(m[1])*0.299 + parseInt(m[2])*0.587 + parseInt(m[3])*0.114) : 128;
-    const blend = lum > 180 ? 'multiply' : 'overlay';
-    const cv = document.createElement('canvas');
-    cv.className = 'pxl-inner';
-    cv.width  = Math.max(1, Math.round(r.width));
-    cv.height = Math.max(1, Math.round(r.height));
-    cv.style.cssText = `position:absolute;top:0;left:0;opacity:${op};mix-blend-mode:${blend};pointer-events:none;z-index:1;`;
-    try { cv.getContext('2d').drawImage(BIG, r.left, r.top, r.width, r.height, 0, 0, cv.width, cv.height); } catch(e) { return; }
-    el.appendChild(cv);
-  });
-}
 
 const _crtColMap={green:'brightness(0.65) contrast(1.3) saturate(0) sepia(1) hue-rotate(76deg) saturate(8) brightness(1.0)',green2:'brightness(0.65) contrast(1.3) saturate(0) sepia(1) hue-rotate(106deg) saturate(6) brightness(1.0)',blue:'brightness(0.65) contrast(1.3) saturate(0) sepia(1) hue-rotate(146deg) saturate(6) brightness(1.0)',amber:'brightness(0.65) contrast(1.3) saturate(0) sepia(1) hue-rotate(11deg) saturate(5) brightness(1.0)',white:'brightness(0.65) contrast(1.2) saturate(0) brightness(1.0)',red:'brightness(0.65) contrast(1.3) saturate(0) sepia(1) hue-rotate(319deg) saturate(6) brightness(1.0)'};
 const _crtTintMap={green:'rgba(18,255,21,0.08)',green2:'rgba(26,255,128,0.08)',blue:'rgba(46,207,255,0.08)',amber:'rgba(255,191,0,0.08)',white:'rgba(255,255,255,0.06)',red:'rgba(255,32,0,0.08)'};
@@ -593,11 +494,25 @@ function getOverlayFns() { return {
   prx: (c) => {
     const spd={slow:.12,med:.35,fast:.85}[c.speed||'med']; const n={sparse:30,med:70,dense:140}[c.density||'med'];
     const layer=c.layer||'mixed'; const t1=layer==='over'?'fx-fore':'fx-back'; const t3=layer==='under'?'fx-back':'fx-fore';
-    [{t:t1,n,minSz:.5,maxSz:2,sp:spd*.2,op:.18},{t:t1,n:Math.round(n*.45),minSz:2,maxSz:4,sp:spd*.5,op:.28},{t:t3,n:Math.round(n*.15),minSz:4,maxSz:9,sp:spd*1.3,op:.4}].forEach(({t,n:cn,minSz,maxSz,sp,op})=>{
-      const cv=mkFxC(t,op,null); const ctx=cv.getContext('2d');
-      const pts=Array.from({length:cn},()=>({x:Math.random()*cv.width,y:Math.random()*cv.height,spd:sp*(0.8+Math.random()*.4),sz:minSz+Math.random()*(maxSz-minSz)}));
+    function spdForSz(sz){return spd*(0.07+(sz-0.3)/8.7*1.25);}
+    function alphaForSz(sz){return 0.10+(sz-0.3)/8.7*0.55;}
+    // Two canvases at opacity:1 -- alpha set per particle so size=brightness
+    // Overlapping size ranges blur the back/front boundary
+    [{t:t1,nFrac:.70,minSz:.3,maxSz:6.0},{t:t3,nFrac:.30,minSz:3.0,maxSz:9.0}].forEach(({t,nFrac,minSz,maxSz})=>{
+      const cn=Math.round(n*nFrac);
+      const cv=mkFxC(t,1,null); const ctx=cv.getContext('2d');
+      // Jittered grid: divide canvas into cells, one particle per cell -- even spread
+      const cols=Math.max(1,Math.round(Math.sqrt(cn*cv.width/cv.height)));
+      const rows=Math.max(1,Math.ceil(cn/cols));
+      const cw=cv.width/cols; const ch=cv.height/rows;
+      const pts=[];
+      for(let r=0;r<rows&&pts.length<cn;r++) for(let col=0;col<cols&&pts.length<cn;col++){
+        const sz=minSz+Math.random()*(maxSz-minSz);
+        pts.push({x:(col+Math.random())*cw,y:(r+Math.random())*ch,spd:spdForSz(sz)*(0.8+Math.random()*.4),sz,a:alphaForSz(sz)});
+      }
       const myGen=fxGen;
-      function d(){if(fxGen!==myGen)return;ctx.clearRect(0,0,cv.width,cv.height);ctx.fillStyle='#fff';pts.forEach(p=>{p.y+=p.spd;if(p.y>cv.height)p.y=-p.sz;ctx.beginPath();ctx.arc(p.x,p.y,p.sz,0,Math.PI*2);ctx.fill();});requestAnimationFrame(d);}
+      ctx.fillStyle='#fff';
+      function d(){if(fxGen!==myGen)return;ctx.clearRect(0,0,cv.width,cv.height);pts.forEach(p=>{p.y+=p.spd;if(p.y>cv.height)p.y=-p.sz;ctx.globalAlpha=p.a;ctx.beginPath();ctx.arc(p.x,p.y,p.sz,0,Math.PI*2);ctx.fill();});ctx.globalAlpha=1;requestAnimationFrame(d);}
       d();
     });
   },
@@ -611,23 +526,7 @@ function getOverlayFns() { return {
     for(let y=0;y<cv.height;y++)for(let x=0;x<cv.width;x++){const t=Msel[y%Msz][x%Msz]/(Msz*Msz);const v=t>.5?255:0;const i=(y*cv.width+x)*4;img.data[i]=img.data[i+1]=img.data[i+2]=v;img.data[i+3]=80;}
     ctx.putImageData(img,0,0);
   },
-  pxl: (c) => {
-    const ps={small:3,med:5,large:8}[c.size||'med']; const op={light:.15,med:.3,heavy:.55}[c.intensity||'med'];
-    const layer = c.layer || 'under';
-    const BIG=document.createElement('canvas'); BIG.width=window.screen.width; BIG.height=window.screen.height;
-    const bctx=BIG.getContext('2d');
-    for(let y=0;y<BIG.height;y+=ps)for(let x=0;x<BIG.width;x+=ps){const v=Math.floor(Math.random()*256);bctx.fillStyle=`rgb(${v},${v},${v})`;bctx.fillRect(x,y,ps,ps);}
 
-    if (layer === 'over') {
-      const roots=[document.getElementById('mainApp')];
-      document.querySelectorAll('.data-window.open').forEach(w=>roots.push(w));
-      const headerTab=document.querySelector('.header-tab'); if(headerTab)roots.push(headerTab);
-      roots.forEach(root=>{if(!root)return;pxlInjectRoot(root,BIG,ps,op);});
-    } else {
-      const fxb=document.getElementById('fx-back');
-      if(fxb){const bgCv=document.createElement('canvas');bgCv.width=BIG.width;bgCv.height=BIG.height;bgCv.style.cssText=`position:absolute;top:0;left:0;opacity:${op};mix-blend-mode:overlay;`;bgCv.getContext('2d').drawImage(BIG,0,0);fxb.appendChild(bgCv);}
-    }
-  },
   vgn: (c) => {
     const str={light:.5,med:.72,heavy:.9}[c.strength||'med']; const sp={tight:.12,med:.22,wide:.35}[c.spread||'med'];
     const cv=mkFxC(overlayTarget(c.layer||'over'),1,null); const ctx=cv.getContext('2d');
@@ -635,15 +534,28 @@ function getOverlayFns() { return {
     g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,`rgba(0,0,0,${str})`);
     ctx.fillStyle=g; ctx.fillRect(0,0,cv.width,cv.height);
   },
-  gls: (c) => {
-    const cellSize={small:25,med:45,large:80}[c.size||'med']; const op={light:.3,med:.5,heavy:.72}[c.opacity||'med'];
-    const cv=mkFxC(overlayTarget(c.layer||'under'),op,'screen'); const ctx=cv.getContext('2d');
-    const cs2=getComputedStyle(document.documentElement);
-    const baseHues=['--primary','--secondary','--accent'].map(v=>{const hex=cs2.getPropertyValue(v).trim().replace('#','');const r=parseInt(hex.slice(0,2),16)/255,g=parseInt(hex.slice(2,4),16)/255,b=parseInt(hex.slice(4,6),16)/255;const max=Math.max(r,g,b),min=Math.min(r,g,b),d=max-min;if(d===0)return 120;let h=0;if(max===r)h=((g-b)/d+(g<b?6:0))/6;else if(max===g)h=((b-r)/d+2)/6;else h=((r-g)/d+4)/6;return Math.round(h*360);});
-    const cols=Math.ceil(cv.width/cellSize)+1; const rows=Math.ceil(cv.height/cellSize)+1;
-    const cw=cv.width/cols; const ch=cv.height/rows; const jit=0.42;
-    const pts=[]; for(let row=0;row<=rows;row++) for(let col=0;col<=cols;col++) pts.push({x:col*cw+(Math.random()-.5)*cw*jit*2,y:row*ch+(Math.random()-.5)*ch*jit*2});
-    for(let row=0;row<rows;row++) for(let col=0;col<cols;col++){const i=row*(cols+1)+col;const tl=pts[i],tr=pts[i+1],bl=pts[i+(cols+1)],br=pts[i+(cols+2)];if(!tl||!tr||!bl||!br)continue;const hue=(baseHues[Math.floor(Math.random()*baseHues.length)]+(Math.random()-.5)*90+360)%360;const sat=35+Math.random()*50,lit=25+Math.random()*42,alpha=.5+Math.random()*.2;ctx.fillStyle=`hsla(${hue},${sat}%,${lit}%,${alpha.toFixed(2)})`;ctx.beginPath();ctx.moveTo(tl.x,tl.y);ctx.lineTo(tr.x,tr.y);ctx.lineTo(br.x,br.y);ctx.lineTo(bl.x,bl.y);ctx.closePath();ctx.fill();}
+  tlt: (c) => {
+    const tbOpen=document.getElementById('themeBuilderWindow')&&document.getElementById('themeBuilderWindow').classList.contains('open');
+    const root=tbOpen?document.querySelector('.tb-demo-section'):document.getElementById('mainApp');
+    if(!root)return;
+    const SEL='.day-card,.label-card,.qs-card,.hist-card,.job-card,.day-card-plus,.day-sq';
+    function _tiltEl(el){const hw=Math.max(el.offsetWidth/2,10);const md=Math.max(Math.asin(Math.min(1.2/hw,.9))*180/Math.PI,0.6);const deg=(0.35+Math.random()*.65)*md*(Math.random()<.5?1:-1);el.dataset.tlt=deg.toFixed(2);el.style.transform=`rotate(${deg.toFixed(2)}deg)`;el.style.zIndex=String(Math.floor(Math.random()*5));}
+    function _tlt(){Array.from(root.querySelectorAll(SEL)).forEach(_tiltEl);}
+    setTimeout(_tlt,350);
+    if(root._tltFn)root.removeEventListener('click',root._tltFn);
+    root._tltFn=()=>Array.from(root.querySelectorAll(SEL)).forEach(_tiltEl);
+    root.addEventListener('click',root._tltFn);
+  },
+  plm: (c) => {
+    function _hslRgb(h,s,l){const a=s*Math.min(l,1-l);const f=n=>{const k=(n+h/30)%12;return Math.round(255*(l-a*Math.max(Math.min(k-3,9-k,1),-1)));};return[f(0),f(8),f(4)];}
+    const cv=mkFxC(overlayTarget(c.layer||'under'),.6,null);const ctx=cv.getContext('2d');const myGen=fxGen;let t=0;
+    function d(){if(fxGen!==myGen)return;const W=cv.width,H=cv.height;const img=ctx.createImageData(W,H);const px=img.data;for(let y=0;y<H;y+=2)for(let x=0;x<W;x+=2){const v=Math.sin(x*.06+t)+Math.sin(y*.05)+Math.sin((x+y)*.04+t*.8)+Math.sin(Math.sqrt((x-W/2)**2+(y-H/2)**2)*.05);const[r,g,b]=_hslRgb((v+4)/8*360,.7,.4);const i=(y*W+x)*4;px[i]=r;px[i+1]=g;px[i+2]=b;px[i+3]=255;if(x+1<W){px[i+4]=r;px[i+5]=g;px[i+6]=b;px[i+7]=255;}if(y+1<H){const j=((y+1)*W+x)*4;px[j]=r;px[j+1]=g;px[j+2]=b;px[j+3]=255;}}ctx.putImageData(img,0,0);t+=.04;requestAnimationFrame(d);}
+    d();
+  },
+  hlg: (c) => {
+    const cv=mkFxC(overlayTarget(c.layer||'over'),.5,'overlay');const ctx=cv.getContext('2d');const myGen=fxGen;let t=0;
+    function d(){if(fxGen!==myGen)return;ctx.clearRect(0,0,cv.width,cv.height);for(let y=0;y<cv.height;y+=3){const ph=y*.08+t;const a=(.5+Math.sin(ph)*.5)*.35;const hue=(y*3+t*2865)%360;ctx.fillStyle=`hsla(${hue},90%,65%,${a})`;ctx.fillRect(0,y,cv.width,2);}t+=.03;requestAnimationFrame(d);}
+    d();
   },
   crs: (c) => {
     const sp={tight:4,med:7,wide:13}[c.spacing||'med']; const op={light:.12,med:.22,heavy:.4}[c.opacity||'med'];

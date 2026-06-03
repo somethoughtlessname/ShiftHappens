@@ -197,7 +197,7 @@ function buildWindows() {
   document.body.insertAdjacentHTML('beforeend', html);
 }
 
-const _settingsDefaults = { showJobCards: true, showQuickSchedule: true, showTimeDot: true, showHistory: true, showTimerSections: true, showMiniGraph: true, miniGraphDays: 3, theme: 'none', showSecondShift: true };
+const _settingsDefaults = { showJobCards: true, showQuickSchedule: true, showTimeDot: true, showHistory: true, showTimerSections: true, showMiniGraph: true, miniGraphDays: 3, theme: 'none', showSecondShift: true, customFont: 'def' };
 let appSettings = Object.assign({}, _settingsDefaults, ls('sch_settings', {}));
 
 function updateDaySqVar() {
@@ -354,7 +354,6 @@ function openWindow(id) {
   win.classList.add('open');
   if (id !== 'themeBuilderWindow') {
     injectWindowFx(id);
-    if (getOverlayCfg().overlay === 'pxl') _pxlDoInject();
   }
   requestAnimationFrame(() => {
     win.style.transition = 'opacity 0.6s';
@@ -378,7 +377,7 @@ function nwPickColor(el) {
   const activeDow = document.querySelector('#nwDowCard .dow-btn.active');
   if (activeDow && nwSelectedColor) { activeDow.style.background = nwSelectedColor; activeDow.style.color = 'var(--text-mid)'; }
   const titleCard = document.querySelector('.nw-title-card');
-  if (titleCard && nwSelectedColor) { titleCard.style.background = nwSelectedColor; requestAnimationFrame(() => pxlInjectSingle(titleCard)); }
+  if (titleCard && nwSelectedColor) { titleCard.style.background = nwSelectedColor;; }
   nwCheckReady();
 }
 function nwPickDow(el) {
@@ -435,13 +434,6 @@ function settingsTab(tab) {
     document.getElementById('spanel-' + t).style.display = t === tab ? 'flex' : 'none';
     document.getElementById('stab-'   + t).classList.toggle('active', t === tab);
   });
-  if (getOverlayCfg().overlay === 'pxl') {
-    const sw = document.getElementById('settingsWindow');
-    if (sw) sw.querySelectorAll('.pxl-inner').forEach(el => {
-      const p = el.parentElement; if (p) delete p.dataset.pxlDone; el.remove();
-    });
-    _pxlDoInject();
-  }
 }
 
 function setMiniGraphDays(n) {
@@ -509,7 +501,7 @@ function showTimerResetModal(job, key) {
   modal.style.display = 'flex';
   document.getElementById('timerResetNo').onclick = () => { modal.style.display = 'none'; };
   document.getElementById('timerResetNew').onclick = () => {
-    // Start a new second shift — save current, open new entry on today's key
+    // Start a new second shift -- save current, open new entry on today's key
     const todayKey = localDateKey(new Date());
     if (!job.worked) job.worked = {};
     // Move completed shift to extra if it was yesterday
@@ -592,6 +584,27 @@ function buildMiniGraph(job, container) {
   }
 }
 
+const CUSTOM_FONTS = {
+  def:   {label:'DEF',   family:'system-ui,-apple-system,BlinkMacSystemFont,sans-serif'},
+  mono:  {label:'MONO',  family:"'Courier New',Courier,monospace"},
+  round: {label:'RND',   family:"'Trebuchet MS',Tahoma,'Gill Sans',sans-serif"},
+  serif: {label:'SERIF', family:"Georgia,'Times New Roman',serif"},
+  slab:  {label:'SLAB',  family:"'Rockwell','Courier New',serif"},
+  cond:  {label:'COND',  family:"'Arial Narrow',Arial,sans-serif"},
+  ovsr:  {label:'OVSR',  family:"'Overseer',system-ui,sans-serif"},
+  nuni:  {label:'NUN',   family:"'Nunito',system-ui,sans-serif"},
+  pxlf:  {label:'PXL',   family:"'Pixelify',system-ui,sans-serif"},
+  orbt:  {label:'ORB',   family:"'Orbitron',system-ui,sans-serif"},
+  somp:  {label:'SMP',   family:"'Sompsons',system-ui,sans-serif"},
+  lime:  {label:'LIM',   family:"'Limelight',system-ui,sans-serif"},
+};
+function applyCustomFont(id) {
+  let s = document.getElementById('_customFontStyle');
+  if (!s) { s = document.createElement('style'); s.id = '_customFontStyle'; document.head.appendChild(s); }
+  const f = CUSTOM_FONTS[id || 'def'];
+  s.textContent = (id && id !== 'def') ? `*{font-family:${f.family}!important;}` : '';
+}
+
 function renderJobs() {
   const app = document.getElementById('mainApp'); app.innerHTML = '';
   if (appSettings.showJobCards) {
@@ -618,7 +631,6 @@ function renderJobs() {
   });
   if (typeof renderQuickSchedule === 'function' && appSettings.showQuickSchedule) { buildQuickSchedule(); renderQuickSchedule(); }
   if (typeof renderHistory === 'function') { buildHistory(); renderHistory(); }
-  if (_appInitDone && getOverlayCfg().overlay === 'pxl') pxlReInject();
 }
 
 function refreshSwatchCards() {
@@ -635,34 +647,12 @@ function openJobWindow(job) {
   jw.style.opacity = '0';
   jw.classList.add('open');
   injectWindowFx('jobWindow');
-  if (getOverlayCfg().overlay === 'pxl') _pxlDoInject();
   requestAnimationFrame(() => {
     jw.style.transition = 'opacity 0.6s';
     jw.style.opacity = '1';
     setTimeout(() => { jw.style.transition = ''; }, 200);
   });
   const hoursCard = document.getElementById('hoursCard');
-  if (hoursCard && !hoursCard._pxlObserver) {
-    hoursCard._pxlObserver = new ResizeObserver(() => {
-      if (getOverlayCfg().overlay !== 'pxl') return;
-      const old = hoursCard.querySelector('.pxl-inner');
-      if (old) { delete hoursCard.dataset.pxlDone; old.remove(); }
-      const fxb = document.getElementById('fx-back');
-      const BIG = fxb && fxb.querySelector('canvas');
-      if (!BIG) return;
-      const c = getOverlayCfg().pxl || {};
-      const op = {light:.15,med:.3,heavy:.55}[c.intensity||'med'];
-      const r = hoursCard.getBoundingClientRect();
-      if (!r.width || !r.height) return;
-      hoursCard.dataset.pxlDone = '1';
-      const cv = document.createElement('canvas');
-      cv.className = 'pxl-inner';
-      cv.width = Math.round(r.width) - 6; cv.height = Math.round(r.height) - 6;
-      cv.style.cssText = `position:absolute;top:3px;left:3px;opacity:${op};mix-blend-mode:overlay;pointer-events:none;z-index:1;`;
-      try { cv.getContext('2d').drawImage(BIG, r.left+3, r.top+3, cv.width, cv.height, 0, 0, cv.width, cv.height); hoursCard.appendChild(cv); } catch(e) {}
-    });
-    hoursCard._pxlObserver.observe(hoursCard);
-  }
 }
 
 function openJobSettings() {
@@ -679,7 +669,7 @@ function openJobSettings() {
   openWindow('jobSettingsWindow');
   requestAnimationFrame(() => {
     const titleCard = document.getElementById('jobSettingsWindow') && document.getElementById('jobSettingsWindow').querySelector('.nw-title-card');
-    if (titleCard && job) { titleCard.style.background = job.color; pxlInjectSingle(titleCard); }  // already in RAF
+    if (titleCard && job) { titleCard.style.background = job.color; }  // already in RAF
   });
 }
 function jsUpdateTitle() {
@@ -693,7 +683,7 @@ function jsPickColor(el) {
   const job = jobs.find(j => j.id === activeJobId);
   if (job) { job.color = jsSelectedColor; lsSet('sch_jobs', jobs); renderJobs(); const titleEl = document.getElementById('jobWindowTitle'); if (titleEl) titleEl.style.background = jsSelectedColor; }
   const titleCard = document.getElementById('jobSettingsWindow') && document.getElementById('jobSettingsWindow').querySelector('.nw-title-card');
-  if (titleCard && jsSelectedColor) { titleCard.style.background = jsSelectedColor; requestAnimationFrame(() => pxlInjectSingle(titleCard)); }
+  if (titleCard && jsSelectedColor) { titleCard.style.background = jsSelectedColor;; }
 }
 function jsPickDow(el) {
   const job = jobs.find(j => j.id === activeJobId);
@@ -743,25 +733,6 @@ function updateDateRange() {
   const { mon, sun } = getWeekRange(offset);
   document.getElementById('dateRangeCard').textContent = `${fmtDate(mon)}  -  ${fmtDate(sun)}`;
   renderDayCards();
-  requestAnimationFrame(() => {
-    if (getOverlayCfg().overlay !== 'pxl') return;
-    const el = document.getElementById('dateRangeCard');
-    if (!el) return;
-    el.querySelectorAll('.pxl-inner').forEach(c => { delete el.dataset.pxlDone; c.remove(); });
-    const fxb = document.getElementById('fx-back');
-    const BIG = fxb && fxb.querySelector('canvas');
-    if (!BIG) return;
-    const r = el.getBoundingClientRect();
-    if (!r.width || !r.height) return;
-    const cfg = getOverlayCfg(); const op = {light:.15,med:.3,heavy:.55}[(cfg.pxl||{}).intensity||'med'];
-    el.dataset.pxlDone = '1';
-    if (el.style.position === '' || el.style.position === 'static') el.style.position = 'relative';
-    const cv = document.createElement('canvas');
-    cv.className = 'pxl-inner';
-    cv.width = Math.round(r.width); cv.height = Math.round(r.height);
-    cv.style.cssText = `position:absolute;top:0;left:0;opacity:${op};mix-blend-mode:overlay;pointer-events:none;z-index:1;`;
-    try { cv.getContext('2d').drawImage(BIG, r.left, r.top, r.width, r.height, 0, 0, cv.width, cv.height); el.appendChild(cv); } catch(e) {}
-  });
 }
 
 function parseTimeToMins(t) {

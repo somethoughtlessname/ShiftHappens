@@ -235,7 +235,6 @@ function renderDayCards() {
   }
   const totEl = document.getElementById('totalsValue');
   if (totEl) totEl.textContent = `${String(Math.floor(totalMins/60)).padStart(2,'0')} Hours  ${String(totalMins%60).padStart(2,'0')} Minutes`;
-  if (_appInitDone && getOverlayCfg().overlay === 'pxl') pxlReInject();
 }
 
 const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -364,8 +363,8 @@ document.getElementById('jobSettingsBtn').appendChild(buildDotGrid());
 updateSettingsUI();
 renderJobs();
 applyTheme();
+if (typeof applyCustomFont === 'function') applyCustomFont(appSettings.customFont);
 requestAnimationFrame(() => {
-  if (getOverlayCfg().overlay === 'pxl') _pxlDoInject();
   document.getElementById('mainApp').style.transition = 'opacity 0.15s';
   document.getElementById('mainApp').style.opacity = '1';
   _appInitDone = true;

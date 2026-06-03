@@ -156,6 +156,7 @@ function hWeekCard(label, offset, anchorDow) {
   const radius  = 'var(--radius)';
 
   const card = document.createElement('div');
+  card.className = 'hist-card';
   card.style.cssText = `flex:1;border:${bdrW} solid ${bdrC};border-radius:${radius};overflow:hidden;display:flex;flex-direction:column;min-width:0;`;
 
   // header row
@@ -249,6 +250,7 @@ function hLast10Card(anchorDow) {
   const radius  = 'var(--radius)';
 
   const card = document.createElement('div');
+  card.className = 'hist-card';
   card.style.cssText = `border:${bdrW} solid ${bdrC};border-radius:${radius};overflow:hidden;`;
 
   // header

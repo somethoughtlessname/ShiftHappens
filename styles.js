@@ -2,6 +2,41 @@
   const style = document.createElement('style');
   style.textContent = `
 
+@font-face {
+  font-family: 'Overseer';
+  src: url('./fonts/overseer.ttf') format('truetype');
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Nunito';
+  src: url('./fonts/Nunito-Variable.ttf') format('truetype');
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Pixelify';
+  src: url('./fonts/Pixelify-Variable.ttf') format('truetype');
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Orbitron';
+  src: url('./fonts/Orbitron-Variable.ttf') format('truetype');
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Simpsons';
+  src: url('./fonts/Simpsons.ttf');
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Limelight';
+  src: url('./fonts/Limelight.ttf') format('truetype');
+  font-weight: 100 900;
+  font-display: swap;
+}
+
 /* -------------------------------------------------------
    RESET
 ------------------------------------------------------- */
