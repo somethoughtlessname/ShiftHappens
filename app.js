@@ -448,11 +448,11 @@ function nowTimeStr() {
 
 function getTimerKey(job) {
   const today = localDateKey(new Date());
-  if (job.worked && job.worked[today]) return today;
-  // Check yesterday for a running overnight shift
   const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
   const yKey = localDateKey(yesterday);
+  // Running overnight shift takes priority -- must resolve before declaring today active
   if (job.worked && job.worked[yKey] && job.worked[yKey].start && !job.worked[yKey].end) return yKey;
+  if (job.worked && job.worked[today]) return today;
   return today;
 }
 function getTimerState(job) {
@@ -463,7 +463,7 @@ function getTimerState(job) {
 function timerIcon(state, job) {
   if (state === 'running') return '<div class="job-card-pause"><div class="job-card-pause-bar"></div><div class="job-card-pause-bar"></div></div>';
   else if (state === 'done') return '<div class="job-card-check"></div>';
-  return '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 2 Q2 1 3 1.5 L13.5 7.5 Q15 8 13.5 8.5 L3 14.5 Q2 15 2 14 Z" fill="currentColor" style="color:var(--text-mid)" stroke="var(--muted)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+  return '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 2 Q2 1 3 1.5 L13.5 7.5 Q15 8 13.5 8.5 L3 14.5 Q2 15 2 14 Z" fill="currentColor" style="color:var(--text-mid)" stroke="var(--text-mid)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>';
 }
 
 function getElapsedStr(job) {
@@ -471,7 +471,12 @@ function getElapsedStr(job) {
   if (!w || !w.start) return null;
   const startMins = parseTimeToMins(w.start); if (startMins === null) return null;
   const now = new Date(); const nowMins = now.getHours() * 60 + now.getMinutes();
-  let diff = nowMins - startMins; if (diff < 0) diff += 24 * 60;
+  const todayKey = localDateKey(new Date());
+  // For overnight shifts stored under yesterday's key, calculate across the midnight boundary
+  let diff = (key !== todayKey)
+    ? (nowMins + 1440 - startMins) % 1440 || 1440  // handles >24h shifts too
+    : nowMins - startMins;
+  if (diff < 0) diff += 1440;
   return String(Math.floor(diff/60)).padStart(2,'0') + 'h ' + String(diff%60).padStart(2,'0') + 'm';
 }
 
@@ -479,9 +484,20 @@ function timerTap(jobId, e) {
   e.stopPropagation(); const job = jobs.find(j => j.id === jobId); if (!job) return;
   const key = getTimerKey(job); if (!job.worked) job.worked = {};
   const state = getTimerState(job);
-  if (state === 'idle') { job.worked[key] = { start: nowTimeStr(), end: null }; lsSet('sch_jobs', jobs); renderJobs(); }
-  else if (state === 'running') { job.worked[key].end = nowTimeStr(); lsSet('sch_jobs', jobs); renderJobs(); if (typeof renderHistory === 'function') { buildHistory(); renderHistory(); } }
-  else { showTimerResetModal(job, key); }
+  const todayKey = localDateKey(new Date());
+  if (state === 'idle') {
+    job.worked[todayKey] = { start: nowTimeStr(), end: null }; lsSet('sch_jobs', jobs); renderJobs();
+  } else if (state === 'running') {
+    job.worked[key].end = nowTimeStr(); lsSet('sch_jobs', jobs); renderJobs();
+    if (typeof renderHistory === 'function') { buildHistory(); renderHistory(); }
+  } else {
+    // done - if the completed shift was yesterday's (overnight ended today), start fresh without modal
+    if (key !== todayKey) {
+      job.worked[todayKey] = { start: nowTimeStr(), end: null }; lsSet('sch_jobs', jobs); renderJobs();
+    } else {
+      showTimerResetModal(job, key);
+    }
+  }
 }
 
 function showTimerResetModal(job, key) {
@@ -595,7 +611,7 @@ const CUSTOM_FONTS = {
   nuni:  {label:'NUN',   family:"'Nunito',system-ui,sans-serif"},
   pxlf:  {label:'PXL',   family:"'Pixelify',system-ui,sans-serif"},
   orbt:  {label:'ORB',   family:"'Orbitron',system-ui,sans-serif"},
-  somp:  {label:'SMP',   family:"'Sompsons',system-ui,sans-serif"},
+  somp:  {label:'SMP',   family:"'Simpsons',system-ui,sans-serif"},
   lime:  {label:'LIM',   family:"'Limelight',system-ui,sans-serif"},
 };
 function applyCustomFont(id) {
@@ -657,6 +673,7 @@ function openJobWindow(job) {
 
 function openJobSettings() {
   const job = jobs.find(j => j.id === activeJobId); if (!job) return;
+  refreshSwatchCards();
   document.getElementById('jsTitleInput').value = job.title;
   document.querySelectorAll('#jsColorCard .nw-swatch').forEach(s => { s.classList.toggle('selected', s.dataset.color === job.color); });
   jsSelectedColor = job.color;

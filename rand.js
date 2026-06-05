@@ -425,17 +425,18 @@ function _rMakeTheme(primaryHex, fixedPrimary) {
   const WHITE = '#f2f2f2', BLACK = '#111111';
   const actions = [pri, sec, acc];
   const surfaces = [bg1, bg2, bg3];
+  // textLight is rendered ON action colors (headers) -- score against actions only
   const worstW_actions = Math.min(...actions.map(c => _rRatio(WHITE, c)));
   const worstB_actions = Math.min(...actions.map(c => _rRatio(BLACK, c)));
-  const worstW_bg      = Math.min(...surfaces.map(c => _rRatio(WHITE, c)));
-  const worstB_bg      = Math.min(...surfaces.map(c => _rRatio(BLACK, c)));
-  // Score = min(action_contrast, bg_contrast)  - pick whichever has higher floor
-  const scoreW = Math.min(worstW_actions, worstW_bg);
-  const scoreB = Math.min(worstB_actions, worstB_bg);
-  let tl = scoreW >= scoreB ? WHITE : BLACK;
-  // bg3 is used directly as header/tab background with text-light  - must contrast
-  if (_rRatio(tl, bg3) < 3) {
-    tl = _rLum(bg3) > 0.3 ? BLACK : WHITE;
+  let tl = worstW_actions >= worstB_actions ? WHITE : BLACK;
+  // bg3 also gets text-light (header tab) -- flip only if it won't break action contrast
+  if (_rRatio(tl, bg3) < 3.5) {
+    const flipped = tl === WHITE ? BLACK : WHITE;
+    if (Math.min(...actions.map(c => _rRatio(flipped, c))) >= 3.5) tl = flipped;
+  }
+  // Hard floor -- if tl still fails action contrast, force it
+  if (Math.min(...actions.map(c => _rRatio(tl, c))) < 3) {
+    tl = _rLum(pri) > 0.15 ? BLACK : WHITE;
   }
   const tm = _rLum(bg2) > 0.3 ? _rHsl(bH, 20, 35) : _rHsl(bH, 12, 65);
 
@@ -571,6 +572,7 @@ function _rApplyTheme(t) {
   ThemeSystem.baseColors = Object.assign({}, ThemeSystem.baseColors, bc);
   ThemeSystem.jobColors  = Object.assign({}, ThemeSystem.jobColors, jc);
   tbApplyCssVars(ThemeSystem.baseColors, ThemeSystem.jobColors);
+  if (typeof tbRerender === 'function') tbRerender();
   ThemeSystem.renderBaseSwatches();
   ThemeSystem.renderJobSwatches();
 
@@ -647,7 +649,7 @@ var _rPreRandColors = null; // snapshot of theme before first random
 window.tbRandFromSettings = function () {
   // Enable reset button on first call
   if (!_rPreRandColors) {
-    _rPreRandColors = true; // just a flag — reset reads from localStorage
+    _rPreRandColors = true; // just a flag -- reset reads from localStorage
     const btn = document.getElementById('tbRandResetBtn');
     if (btn) {
       btn.style.pointerEvents = 'auto';
@@ -772,7 +774,7 @@ window.addEventListener('load', function () {
         <div style="display:flex;gap:var(--margin)">
           <div class="label-card" style="flex:1;background:var(--bg-4);color:var(--text-dark)">Quick Schedule</div>
           <div style="flex:1;display:flex;border:var(--border-width) solid var(--border-color);border-radius:var(--radius);overflow:hidden">
-            <div style="flex:1;display:flex;align-items:center;justify-content:center;background:var(--bg-3);border-right:var(--border-width) solid var(--border-color);font-size:var(--text-xs);font-weight:var(--fw-heavy);letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--text-light)">Tab 1</div>
+            <div style="flex:1;display:flex;align-items:center;justify-content:center;background:var(--primary);border-right:var(--border-width) solid var(--border-color);font-size:var(--text-xs);font-weight:var(--fw-heavy);letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--text-light)">Tab 1</div>
             <div style="flex:1;display:flex;align-items:center;justify-content:center;background:var(--bg-3);font-size:var(--text-xs);font-weight:var(--fw-heavy);letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--text-mid)">Tab A</div>
           </div>
         </div>
@@ -792,7 +794,7 @@ window.addEventListener('load', function () {
             <div style="height:var(--qs-hdr);flex-shrink:0;background:var(--primary);border-bottom:${BD};display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:900;letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--text-light)">JOB</div>
             <div style="flex:1;background:var(--bg-2);display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:900;color:var(--text-mid)">19H 55M</div>
             <div style="height:var(--qs-hdr);flex-shrink:0;background:var(--bg-2);border-top:${BD};display:flex;align-items:center;justify-content:center;gap:8px">
-              <svg width="9" height="10" viewBox="0 0 16 16" fill="none"><path d="M2 2 Q2 1 3 1.5 L13.5 7.5 Q15 8 13.5 8.5 L3 14.5 Q2 15 2 14 Z" fill="var(--text-mid)" stroke="var(--muted)" stroke-width="1.5" stroke-linejoin="round"/></svg>
+              <svg width="9" height="10" viewBox="0 0 16 16" fill="none"><path d="M2 2 Q2 1 3 1.5 L13.5 7.5 Q15 8 13.5 8.5 L3 14.5 Q2 15 2 14 Z" fill="var(--text-mid)" stroke="var(--text-light)" stroke-width="1.5" stroke-linejoin="round"/></svg>
               <div style="display:flex;gap:3px;align-items:center"><div style="width:3px;height:10px;background:var(--color-1);border-radius:2px"></div><div style="width:3px;height:10px;background:var(--color-1);border-radius:2px"></div></div>
               <div style="width:9px;height:7px;border-left:2.5px solid var(--primary);border-bottom:2.5px solid var(--primary);border-radius:1px;transform:rotate(-45deg) translate(1px,-1px)"></div>
             </div>

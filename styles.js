@@ -73,8 +73,8 @@ button, input { outline: none; -webkit-tap-highlight-color: transparent; }
   --text-light: #ffffff;   /* light text - on dark backgrounds */
   --text-dark:  #000000;   /* dark text - on light/bg-4 backgrounds */
   --text-mid:   #b4bcc8;   /* mid text - inactive, secondary labels */
-  --color-10:   #ffffff;   /* alias - --text-light (keep for non-text uses) */
-  --muted:     #b4bcc8;  /* muted - secondary / placeholder text */
+  --color-10:   var(--text-light);   /* alias - kept for legacy themes */
+  --muted:     var(--text-light);  /* alias - kept for backwards compat */  /* alias - kept for backwards compat */
   --modal-btn: #738494;  /* number pad button background */
 
   /* -- Semantic Colors -- */
