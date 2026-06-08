@@ -235,7 +235,23 @@ function renderDayCards() {
     } // end showSecondShift
   }
   const totEl = document.getElementById('totalsValue');
-  if (totEl) totEl.textContent = `${String(Math.floor(totalMins/60)).padStart(2,'0')} Hours  ${String(totalMins%60).padStart(2,'0')} Minutes`;
+  if (totEl) totEl.innerHTML = `<span class="totals-h">${String(Math.floor(totalMins/60)).padStart(2,'0')} Hours</span><span class="totals-m">${String(totalMins%60).padStart(2,'0')} Minutes</span>`;
+  // If grid view is currently active, rebuild it too
+  var gv=document.getElementById('gridView');
+  if(gv&&gv.style.display==='flex'){
+    buildGridView(window._currentJob);
+    // Restore 21-day span on dateRangeCard (renderDayCards may have overwritten it)
+    var _dr2=document.getElementById('dateRangeCard');
+    if(_dr2&&window._currentJob){
+      var _j=window._currentJob;var _fdow=(_j.firstDow!==undefined)?_j.firstDow:1;
+      var _td=new Date();_td.setHours(0,0,0,0);
+      var _db=(_td.getDay()-_fdow+7)%7+7;
+      var _st=new Date(_td.getTime()-_db*86400000);
+      var _en=new Date(_st.getTime()+20*86400000);
+      var _mo=typeof MONTHS!=='undefined'?MONTHS:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      _dr2.textContent=_mo[_st.getMonth()]+' '+_st.getDate()+' - '+_mo[_en.getMonth()]+' '+_en.getDate();
+    }
+  }
   if(typeof appSettings!=='undefined'&&appSettings.drawnBorders&&typeof DrawnBorders!=='undefined')
     requestAnimationFrame(function(){DrawnBorders.applyJobWindow();});
 }
@@ -383,6 +399,9 @@ function switchJobView(view) {
   var wf=document.getElementById('weekFilterCard');
   var hf=document.getElementById('hoursCard');
   var dr=document.getElementById('dateRangeCard');
+  var tc=document.getElementById('totalsCard');
+  // Save preference to job
+  if(window._currentJob){window._currentJob.defaultView=view;lsSet('sch_jobs',jobs);}
   if(view==='grid'){
     if(dc)dc.style.display='none';
     if(gv){gv.style.display='flex';buildGridView(window._currentJob);}
@@ -390,7 +409,18 @@ function switchJobView(view) {
     if(b2)b2.classList.add('active');
     if(wf)wf.style.display='none';
     if(hf)hf.style.display='none';
-    if(dr)dr.style.display='none';
+    if(dr){
+      dr.style.display='';
+      // Update to show full 21-day span
+      var _today=new Date();_today.setHours(0,0,0,0);
+      var _fdow=(window._currentJob&&window._currentJob.firstDow!==undefined)?window._currentJob.firstDow:1;
+      var _daysBack=(_today.getDay()-_fdow+7)%7+7;
+      var _start=new Date(_today.getTime()-_daysBack*86400000);
+      var _end=new Date(_start.getTime()+20*86400000);
+      var _mo=typeof MONTHS!=='undefined'?MONTHS:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      dr.textContent=_mo[_start.getMonth()]+' '+_start.getDate()+' - '+_mo[_end.getMonth()]+' '+_end.getDate();
+    }
+    if(tc)tc.style.display='none';
   } else {
     if(dc)dc.style.display='flex';
     if(gv)gv.style.display='none';
@@ -398,7 +428,9 @@ function switchJobView(view) {
     if(b2)b2.classList.remove('active');
     if(wf)wf.style.display='';
     if(hf)hf.style.display='';
-    if(dr)dr.style.display='';
+    if(dr){dr.style.display='';}
+    if(tc)tc.style.display='';
+    if(typeof updateDateRange==='function') updateDateRange(); else renderDayCards();
   }
 }
 
@@ -408,9 +440,18 @@ function buildGridView(job) {
   gv.innerHTML='';
   var DAY=86400000,DOW=['S','M','T','W','T','F','S'];
   var today=new Date();today.setHours(0,0,0,0);
-  var mon=new Date(today);mon.setDate(mon.getDate()-((mon.getDay()+6)%7)-7);
+  var firstDow=(job.firstDow!==undefined)?job.firstDow:1;
+  var daysSinceFirst=(today.getDay()-firstDow+7)%7;
+  var weekStart=new Date(today.getTime()-daysSinceFirst*DAY);
+  var mon=new Date(weekStart.getTime()-7*DAY); // last week start
   var cs=getComputedStyle(document.documentElement);
   var COL={past:cs.getPropertyValue('--secondary').trim(),today:cs.getPropertyValue('--primary').trim(),future:cs.getPropertyValue('--accent').trim()};
+  var _bg2gv=cs.getPropertyValue('--bg-2').trim();
+  var _rg=parseInt(_bg2gv.slice(1,3),16)||0,_gg=parseInt(_bg2gv.slice(3,5),16)||0,_bg=parseInt(_bg2gv.slice(5,7),16)||0;
+  var _lumgv=(0.299*_rg+0.587*_gg+0.114*_bg)/255;
+  var _adjgv=_lumgv<0.5?30:-30;
+  function _cg(v){return Math.max(0,Math.min(255,v));}
+  var GV_GRID_COL='rgb('+_cg(_rg+_adjgv)+','+_cg(_gg+_adjgv)+','+_cg(_bg+_adjgv)+')';
   var NIGHT='rgba(0,0,0,0.35)';
   var days=[];
   for(var i=0;i<21;i++){
@@ -419,6 +460,7 @@ function buildGridView(job) {
     var w=rel<0?'past':rel===0?'today':'future';
     var src=w==='past'?job.worked:job.schedule;
     var entry=src&&src[key],startH=null,endH=null;
+    var isOff=entry&&entry.start&&(entry.start==='OFF'||entry.start==='NONE');
     if(entry&&entry.start&&entry.start!=='OFF'&&entry.start!=='NONE'&&entry.end){
       var sm=parseTimeToMins(entry.start),em=parseTimeToMins(entry.end);
       if(sm!==null&&em!==null){if(em<=sm)em+=1440;startH=sm/60;endH=em/60;}
@@ -429,77 +471,112 @@ function buildGridView(job) {
       var sm2=parseTimeToMins(ex.start),em2=parseTimeToMins(ex.end);
       if(sm2!==null&&em2!==null){if(em2<=sm2)em2+=1440;extra2S=sm2/60;extra2E=em2/60;}
     }
-    days.push({d:d,rel:rel,w:w,startH:startH,endH:endH,extra2S:extra2S,extra2E:extra2E});
+    days.push({d:d,rel:rel,w:w,startH:startH,endH:endH,extra2S:extra2S,extra2E:extra2E,isOff:!!isOff});
   }
   var allS=days.filter(function(x){return x.startH!==null;}).map(function(x){return x.startH;});
   var allE=days.filter(function(x){return x.endH!==null;}).map(function(x){return x.endH;});
   days.forEach(function(x){if(x.extra2S!==null){allS.push(x.extra2S);allE.push(x.extra2E);}});
-  if(!allS.length){gv.innerHTML='<div style="padding:16px;text-align:center;color:var(--text-mid);font-size:var(--text-xs);">No shifts scheduled</div>';return;}
+  if(!allS.length){gv.innerHTML='<div style="padding:16px;text-align:center;font-size:var(--text-xs);font-weight:var(--fw-bold);letter-spacing:var(--ls-widest);text-transform:uppercase;color:var(--text-mid);">Nothing Scheduled</div>';return;}
   var TSTART=Math.floor(Math.min.apply(null,allS)),TEND=Math.ceil(Math.max.apply(null,allE));
   var DSTART=TSTART-1,DEND=TEND+1,DSPAN=DEND-DSTART;
   function pct(h){return((h-DSTART)/DSPAN*100).toFixed(2)+'%';}
   function isNight(h){return h<6||h>=18;}
   function jit(s,r){var x=Math.sin(s*9301+49297)*233280;return(x-Math.floor(x)-0.5)*r;}
-  var card=document.createElement('div');card.className='tw-card';
-  days.forEach(function(day,i){
-    var row=document.createElement('div');row.className='tw-row'+(day.rel===0?' tw-today':'');
-    var dl=document.createElement('div');dl.className='tw-day-lbl';dl.textContent=DOW[day.d.getDay()];row.appendChild(dl);
-    var dn=document.createElement('div');dn.className='tw-date-lbl';dn.textContent=day.d.getDate();row.appendChild(dn);
-    var tl=document.createElement('div');tl.className='tw-timeline';
-    var dur=0;
-    if(day.startH!==null){
-      for(var h=TSTART;h<=TEND;h++){var gl=document.createElement('div');gl.className='tw-gl';gl.style.left=pct(h);tl.appendChild(gl);}
-      var js=day.rel<0?jit(i*3+1,0.6):0,je=day.rel<0?jit(i*3+2,0.6):0;
-      var s=day.startH+js,e=day.endH+je;dur=e-s;
-      var blk=document.createElement('div');blk.className='tw-shift';
-      blk.style.left=pct(s);blk.style.width='calc('+pct(e)+' - '+pct(s)+')';
-      blk.style.background=COL[day.w];tl.appendChild(blk);
-    } else {
-      var off=document.createElement('div');off.className='tw-off';off.textContent='Off';tl.appendChild(off);
-    }
-    row.appendChild(tl);
-    var hrs=document.createElement('div');hrs.className='tw-hours';hrs.textContent=dur>0?dur.toFixed(2):'0.00';row.appendChild(hrs);
-    card.appendChild(row);
-
-    // Second shift row
-    if(day.startH!==null&&day.extra2S!==null){
-      var js2=day.rel<0?jit(i*3+3,0.6):0,je2=day.rel<0?jit(i*3+4,0.6):0;
-      var s2=day.extra2S+js2,e2=day.extra2E+je2,dur2=e2-s2;
-      var overlaps=Math.max(s,s2)<Math.min(e,e2);
-      var blk2=document.createElement('div');blk2.className='tw-shift';
-      blk2.style.left=pct(s2);blk2.style.width='calc('+pct(e2)+' - '+pct(s2)+')';
-      blk2.style.background=COL[day.w];
-      if(!overlaps){
-        // Same row -- add bar to existing timeline, update hours total
-        tl.appendChild(blk2);
-        hrs.textContent=(dur+dur2).toFixed(2);
-      } else {
-        // New row for overlapping second shift
-        var row2=document.createElement('div');row2.className='tw-row'+(day.rel===0?' tw-today':'');
-        var dl2=document.createElement('div');dl2.className='tw-day-lbl';row2.appendChild(dl2);
-        var dn2=document.createElement('div');dn2.className='tw-date-lbl';row2.appendChild(dn2);
-        var tl2=document.createElement('div');tl2.className='tw-timeline';
-        for(var h2=TSTART;h2<=TEND;h2++){var gl2=document.createElement('div');gl2.className='tw-gl';gl2.style.left=pct(h2);tl2.appendChild(gl2);}
-        tl2.appendChild(blk2);row2.appendChild(tl2);
-        var hrs2=document.createElement('div');hrs2.className='tw-hours';hrs2.textContent=dur2.toFixed(2);row2.appendChild(hrs2);
-        card.appendChild(row2);
-      }
-    }
-  });
+  var WEEK_LABELS=['Last Week','This Week','Next Week'];
   var ns='http://www.w3.org/2000/svg';
   var labW='calc(var(--day-sq)*2)',hrsW='calc(var(--day-sq)*2 + var(--border-width))';
-  var axis=document.createElement('div');axis.className='tw-axis';
-  var sp=document.createElement('div');sp.className='tw-axis-spacer';
-  sp.style.cssText='width:'+labW+';background:'+(isNight(TSTART)?NIGHT:'')+'';
-  var tk=document.createElement('div');tk.className='tw-axis-ticks';
-  for(var h=TSTART;h<=TEND;h++){
-    var t=document.createElement('div');t.className='tw-tick';t.style.left=pct(h);
-    t.textContent=h>12?String(h-12):String(h);tk.appendChild(t);
+
+  function buildAxis(){
+    var axis=document.createElement('div');axis.className='tw-axis';
+    var sp=document.createElement('div');sp.className='tw-axis-spacer';
+    sp.style.cssText='width:'+labW+';background:'+(isNight(TSTART)?NIGHT:'')+'';
+    var tk=document.createElement('div');tk.className='tw-axis-ticks';
+    for(var h=TSTART;h<=TEND;h++){
+      var t=document.createElement('div');t.className='tw-tick';t.style.left=pct(h);
+      t.textContent=h>12?String(h-12):String(h);tk.appendChild(t);
+    }
+    if(TSTART<6){var o=document.createElement('div');o.style.cssText='position:absolute;top:0;left:0;width:'+pct(6)+';height:100%;background:'+NIGHT+';pointer-events:none;';tk.appendChild(o);}
+    if(TEND>18){var o2=document.createElement('div');o2.style.cssText='position:absolute;top:0;left:'+pct(18)+';right:0;height:100%;background:'+NIGHT+';pointer-events:none;';tk.appendChild(o2);}
+    var ar=document.createElement('div');ar.style.cssText='width:'+hrsW+';flex-shrink:0;background:'+(isNight(TEND)?NIGHT:'var(--secondary)')+';';
+    axis.appendChild(sp);axis.appendChild(tk);axis.appendChild(ar);
+    return axis;
   }
-  if(TSTART<6){var o=document.createElement('div');o.style.cssText='position:absolute;top:0;left:0;width:'+pct(6)+';height:100%;background:'+NIGHT+';pointer-events:none;';tk.appendChild(o);}
-  if(TEND>18){var o2=document.createElement('div');o2.style.cssText='position:absolute;top:0;left:'+pct(18)+';right:0;height:100%;background:'+NIGHT+';pointer-events:none;';tk.appendChild(o2);}
-  var ar=document.createElement('div');ar.style.cssText='width:'+hrsW+';flex-shrink:0;background:'+(isNight(TEND)?NIGHT:'var(--secondary)')+';';
-  axis.appendChild(sp);axis.appendChild(tk);axis.appendChild(ar);
-  card.appendChild(axis);
-  gv.appendChild(card);
+
+  for(var w=0;w<3;w++){
+    var card=document.createElement('div');card.className='tw-card';
+    for(var di=0;di<7;di++){
+      var i=w*7+di;
+      var day=days[i];
+      var row=document.createElement('div');row.className='tw-row'+(day.rel===0?' tw-today':'');
+      var dl=document.createElement('div');dl.className='tw-day-lbl';dl.textContent=DOW[day.d.getDay()];row.appendChild(dl);
+      var dn=document.createElement('div');dn.className='tw-date-lbl';dn.textContent=String(day.d.getDate()).padStart(2,'0');row.appendChild(dn);
+      var tl=document.createElement('div');tl.className='tw-timeline';
+      var dur=0;
+      if(day.startH!==null){
+        for(var h=TSTART;h<=TEND;h++){var gl=document.createElement('div');gl.className='tw-gl';gl.style.left=pct(h);gl.style.background=GV_GRID_COL;tl.appendChild(gl);}
+        var js=day.rel<0?jit(i*3+1,0.6):0,je=day.rel<0?jit(i*3+2,0.6):0;
+        var s=day.startH+js,e=day.endH+je;dur=e-s;
+        var blk=document.createElement('div');blk.className='tw-shift';
+        blk.style.left=pct(s);blk.style.width='calc('+pct(e)+' - '+pct(s)+')';
+        blk.style.background=COL[day.w];tl.appendChild(blk);
+      } else {
+        var offEl=document.createElement('div');offEl.className='tw-off';
+        offEl.textContent=day.isOff?'Off':'Not Scheduled';
+        tl.appendChild(offEl);
+      }
+      row.appendChild(tl);
+      var hrs=document.createElement('div');hrs.className='tw-hours';hrs.textContent=(dur>0?(dur<10?'0':'')+dur.toFixed(2):'00.00');row.appendChild(hrs);
+      card.appendChild(row);
+
+      if(day.startH!==null&&day.extra2S!==null){
+        var js2=day.rel<0?jit(i*3+3,0.6):0,je2=day.rel<0?jit(i*3+4,0.6):0;
+        var s2=day.extra2S+js2,e2=day.extra2E+je2,dur2=e2-s2;
+        var overlaps=Math.max(s,s2)<Math.min(e,e2);
+        var blk2=document.createElement('div');blk2.className='tw-shift';
+        blk2.style.left=pct(s2);blk2.style.width='calc('+pct(e2)+' - '+pct(s2)+')';
+        blk2.style.background=COL[day.w];
+        if(!overlaps){
+          tl.appendChild(blk2);
+          var _t=dur+dur2;hrs.textContent=(_t<10?'0':'')+_t.toFixed(2);
+        } else {
+          var row2=document.createElement('div');row2.className='tw-row'+(day.rel===0?' tw-today':'');
+          var dl2=document.createElement('div');dl2.className='tw-day-lbl';row2.appendChild(dl2);
+          var dn2=document.createElement('div');dn2.className='tw-date-lbl';row2.appendChild(dn2);
+          var tl2=document.createElement('div');tl2.className='tw-timeline';
+          for(var h2=TSTART;h2<=TEND;h2++){var gl2=document.createElement('div');gl2.className='tw-gl';gl2.style.left=pct(h2);gl2.style.background=GV_GRID_COL;tl2.appendChild(gl2);}
+          tl2.appendChild(blk2);row2.appendChild(tl2);
+          var hrs2=document.createElement('div');hrs2.className='tw-hours';hrs2.textContent=(dur2<10?'0':'')+dur2.toFixed(2);row2.appendChild(hrs2);
+          card.appendChild(row2);
+        }
+      }
+    }
+    if(w===0) card.insertBefore(buildAxis(), card.firstChild);
+    if(w===2) card.appendChild(buildAxis());
+    gv.appendChild(card);
+  }
+
+  // Legend card
+  if(typeof appSettings==='undefined'||appSettings.showGridLegend!==false){
+    var legend=document.createElement('div');
+    legend.style.cssText='height:var(--card-height);border:var(--bw) solid var(--bc);border-radius:var(--radius);overflow:hidden;display:flex;align-items:stretch;flex-shrink:0;'
+      .replace('var(--bw)','var(--border-width)').replace('var(--bc)','var(--border-color)').replace('var(--radius)','var(--radius)');
+    legend.style.height='var(--card-height)';
+    legend.style.border='var(--border-width) solid var(--border-color)';
+    legend.style.borderRadius='var(--radius)';
+    legend.style.overflow='hidden';
+    legend.style.display='flex';
+    legend.style.alignItems='stretch';
+    legend.style.flexShrink='0';
+    [['Past',COL.past],['Today',COL.today],['Future',COL.future]].forEach(function(item,i){
+      var sec=document.createElement('div');
+      sec.style.cssText='flex:1;display:flex;align-items:center;justify-content:center;background:'+item[1]+';;'+(i<2?'border-right:var(--border-width) solid var(--border-color);':'');
+      sec.style.flex='1';sec.style.display='flex';sec.style.alignItems='center';sec.style.justifyContent='center';
+      sec.style.background=item[1];
+      if(i<2)sec.style.borderRight='var(--border-width) solid var(--border-color)';
+      var lbl=document.createElement('span');
+      lbl.style.cssText='font-size:var(--text-sm);font-weight:var(--fw-heavy);letter-spacing:var(--ls-widest);text-transform:uppercase;color:var(--text-light);';
+      lbl.textContent=item[0];sec.appendChild(lbl);legend.appendChild(sec);
+    });
+    gv.appendChild(legend);
+  }
 }

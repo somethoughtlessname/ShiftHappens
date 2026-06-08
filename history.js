@@ -147,10 +147,17 @@ function hWeekCard(label, offset, anchorDow) {
   const workedMins = isLastWeek || isThisWeek ? hSumHours('worked', start, end) : 0;
   const projMins   = isThisWeek ? hProjected(start, end) : 0;
 
-  const green   = 'var(--secondary)';
+  const _csH = getComputedStyle(document.documentElement);
+  const _histRaw = (typeof appSettings !== 'undefined' && appSettings.histColor) || '--swatch-6';
+  const green = _histRaw.startsWith('--') ? _csH.getPropertyValue(_histRaw).trim() : (_histRaw || 'var(--secondary)');
   const darkBg  = 'var(--bg-2)';
   const textCol = 'var(--text-mid)';
-  const mutedCol= 'var(--muted)';
+  const _bg2h=getComputedStyle(document.documentElement).getPropertyValue('--bg-2').trim();
+  const _rh=parseInt(_bg2h.slice(1,3),16)||0,_gh=parseInt(_bg2h.slice(3,5),16)||0,_bh=parseInt(_bg2h.slice(5,7),16)||0;
+  const _lumh=(0.299*_rh+0.587*_gh+0.114*_bh)/255;
+  const _adjh=_lumh<0.5?40:-40;
+  const _ch=v=>Math.max(0,Math.min(255,v));
+  const mutedCol=`rgb(${_ch(_rh+_adjh)},${_ch(_gh+_adjh)},${_ch(_bh+_adjh)})`;
   const bdrW    = 'var(--border-width)';
   const bdrC    = 'var(--border-color)';
   const radius  = 'var(--radius)';
@@ -171,7 +178,7 @@ function hWeekCard(label, offset, anchorDow) {
   startEl.textContent = hFmtDate(start);
   card.appendChild(startEl);
 
-  // divider line — CSS pill
+  // divider line -- CSS pill
   const divWrap = document.createElement('div');
   divWrap.style.cssText = `background:${darkBg};padding:3px 0;`;
   const divPill = document.createElement('div');
@@ -215,18 +222,38 @@ function renderHistory() {
   title.textContent = 'History';
   wrap.appendChild(title);
 
-  // use first job's firstDow as anchor
+  const numWeeks = (typeof appSettings !== 'undefined' && appSettings.histWeeks !== undefined ? appSettings.histWeeks : 10);
   const anchorDow = (jobs.length > 0 && jobs[0].firstDow !== undefined) ? jobs[0].firstDow : 1;
 
-  // this week + next week row
-  const row = document.createElement('div');
-  row.style.cssText = 'display:flex;gap:var(--margin);';
-  row.appendChild(hWeekCard('This Week',  0, anchorDow));
-  row.appendChild(hWeekCard('Next Week',  1, anchorDow));
-  wrap.appendChild(row);
+  if (numWeeks === 0) {
+    // Just this week + next week, evenly flexed
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:var(--margin);';
+    const curr = hWeekCard('This Week', 0, anchorDow);
+    const next = hWeekCard('Next Week', 1, anchorDow);
+    curr.style.flex = '1'; next.style.flex = '1';
+    row.appendChild(curr); row.appendChild(next);
+    wrap.appendChild(row);
+  } else if (numWeeks === 1) {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:var(--margin);';
+    const last = hWeekCard('Last Week', -1, anchorDow);
+    const curr = hWeekCard('This Week',  0, anchorDow);
+    const next = hWeekCard('Next Week',  1, anchorDow);
+    last.style.flex = '1'; curr.style.flex = '1.4'; next.style.flex = '1';
+    row.appendChild(last); row.appendChild(curr); row.appendChild(next);
+    wrap.appendChild(row);
+  } else {
+    // This week + next week row
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:var(--margin);';
+    row.appendChild(hWeekCard('This Week',  0, anchorDow));
+    row.appendChild(hWeekCard('Next Week',  1, anchorDow));
+    wrap.appendChild(row);
 
-  // last 10 weeks grid
-  wrap.appendChild(hLast10Card(anchorDow));
+    // last N weeks grid
+    wrap.appendChild(hLast10Card(anchorDow));
+  }
 }
 
 window.addEventListener('load', function() {
@@ -241,10 +268,17 @@ function hFmtShortDate(d) {
 }
 
 function hLast10Card(anchorDow) {
-  const green   = 'var(--secondary)';
+  const _csH = getComputedStyle(document.documentElement);
+  const _histRaw = (typeof appSettings !== 'undefined' && appSettings.histColor) || '--swatch-6';
+  const green = _histRaw.startsWith('--') ? _csH.getPropertyValue(_histRaw).trim() : (_histRaw || 'var(--secondary)');
   const darkBg  = 'var(--bg-2)';
   const textCol = 'var(--text-mid)';
-  const mutedCol= 'var(--muted)';
+  const _bg2h=getComputedStyle(document.documentElement).getPropertyValue('--bg-2').trim();
+  const _rh=parseInt(_bg2h.slice(1,3),16)||0,_gh=parseInt(_bg2h.slice(3,5),16)||0,_bh=parseInt(_bg2h.slice(5,7),16)||0;
+  const _lumh=(0.299*_rh+0.587*_gh+0.114*_bh)/255;
+  const _adjh=_lumh<0.5?40:-40;
+  const _ch=v=>Math.max(0,Math.min(255,v));
+  const mutedCol=`rgb(${_ch(_rh+_adjh)},${_ch(_gh+_adjh)},${_ch(_bh+_adjh)})`;
   const bdrW    = 'var(--border-width)';
   const bdrC    = 'var(--border-color)';
   const radius  = 'var(--radius)';
@@ -256,20 +290,21 @@ function hLast10Card(anchorDow) {
   // header
   const hdr = document.createElement('div');
   hdr.style.cssText = `background:${green};height:var(--qs-hdr);box-sizing:border-box;display:flex;align-items:center;justify-content:center;text-align:center;font-size:var(--text-xs);font-weight:var(--fw-bold);letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--text-light);`;
-  hdr.textContent = 'Last 10 Weeks';
+  const numWeeks = (typeof appSettings !== 'undefined' && appSettings.histWeeks) || 10;
+  hdr.textContent = numWeeks === 1 ? 'Last Week' : 'Last ' + numWeeks + ' Weeks';
   card.appendChild(hdr);
 
   // grid row
   const grid = document.createElement('div');
   grid.style.cssText = `display:flex;border-top:${bdrW} solid ${bdrC};`;
 
-  for (let i = 1; i <= 10; i++) {
+  for (let i = 1; i <= numWeeks; i++) {
     const { start, end } = hGetWeekRange(anchorDow, -i);
     const workedMins = hSumHours('worked', start, end);
 
     const col = document.createElement('div');
     col.style.cssText = `flex:1;display:flex;flex-direction:column;min-width:0;`
-      + (i < 10 ? `border-right:${bdrW} solid ${bdrC};` : '');
+      + (i < numWeeks ? `border-right:${bdrW} solid ${bdrC};` : '');
 
     // start date
     const sEl = document.createElement('div');

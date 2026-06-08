@@ -101,7 +101,7 @@ function buildWindows() {
         <div class="date-range-card" id="dateRangeCard"></div>
         <div id="dayCards" style="display:flex;flex-direction:column;gap:var(--margin);"></div>
         <div id="gridView" style="display:none;flex-direction:column;gap:var(--margin);"></div>
-        <div class="totals-card">
+        <div class="totals-card" id="totalsCard">
           <div class="totals-label">Total Hours</div>
           <div class="totals-value" id="totalsValue">00 Hours  00 Minutes</div>
         </div>
@@ -131,6 +131,7 @@ function buildWindows() {
         <div class="label-card">Select First Day of Work Week</div>
         <div class="dow-card" id="dowCard">${buildDowBtns('jsPickDow')}</div>
         <div class="toggle-card" id="toggleSecondShift" onclick="settingToggle('showSecondShift')"><div class="toggle-check"><svg width="16" height="13" viewBox="0 0 16 13" fill="none"><path d="M1.5 6.5 L6 11 L14.5 1.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="toggle-content"><div class="toggle-label">Second Shift</div><div class="toggle-blurb">Show extra shift slot on each day card</div></div></div>
+        <div class="toggle-card" id="toggleGridLegend" onclick="settingToggle('showGridLegend')"><div class="toggle-check"><svg width="16" height="13" viewBox="0 0 16 13" fill="none"><path d="M1.5 6.5 L6 11 L14.5 1.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="toggle-content"><div class="toggle-label">Grid Legend</div><div class="toggle-blurb">Show color legend below the grid view</div></div></div>
         <div class="clear-card" id="clearFullCard" onclick="clearFullSchedule()">Clear Full Schedule</div>
         <div class="delete-card" id="deleteCard" onclick="jsDeleteJob()">Delete Job</div>
       </div>
@@ -159,7 +160,6 @@ function buildWindows() {
         <div class="label-card">Job Card Sections</div>
         <div id="timerSectionsToggleSlot"></div>
         <div id="miniGraphToggleSlot"></div>
-        <div id="miniGraphDaysSlot"></div>
         <div id="timeDotToggleSlot"></div>
       </div>
       <div class="data-body" id="spanel-theme" style="display:none;">
@@ -205,7 +205,7 @@ function buildWindows() {
   document.body.insertAdjacentHTML('beforeend', html);
 }
 
-const _settingsDefaults = { showJobCards: true, showQuickSchedule: true, showTimeDot: true, showHistory: true, showTimerSections: true, showMiniGraph: true, miniGraphDays: 3, theme: 'none', showSecondShift: true, customFont: 'def', drawnBorders: false, showTimelineCard: true, timelineRollover: false, timeline24h: false };
+const _settingsDefaults = { showJobCards: true, showQuickSchedule: true, showTimeDot: true, showHistory: true, showTimerSections: true, showMiniGraph: true, miniGraphDays: 3, theme: 'none', showSecondShift: true, customFont: 'def', drawnBorders: false, showTimelineCard: true, timelineRollover: false, timeline24h: false, qsColor: '', qsDays: 7, histColor: '', histWeeks: 10, showGridLegend: true };
 let appSettings = Object.assign({}, _settingsDefaults, ls('sch_settings', {}));
 
 function updateDaySqVar() {
@@ -222,6 +222,7 @@ function settingToggle(key) {
   renderJobs();
   if(key==='showSecondShift'){updateDaySqVar();renderDayCards();}
   if(key==='drawnBorders'){renderJobs();if(appSettings.drawnBorders)requestAnimationFrame(function(){if(typeof DrawnBorders!=='undefined')DrawnBorders.applyJobWindow();});else if(typeof DrawnBorders!=='undefined')DrawnBorders.clearJobWindow();}
+  var _gv=document.getElementById('gridView');if(_gv&&_gv.style.display==='flex'&&typeof buildGridView==='function')buildGridView(window._currentJob);
 }
 
 function updateSettingsUI() {
@@ -230,39 +231,98 @@ function updateSettingsUI() {
     return `<div class="toggle-card" id="${id}" onclick="${onclick}"><div class="toggle-check">${CHK}</div><div class="toggle-content"><div class="toggle-label">${label}</div><div class="toggle-blurb">${blurb}</div></div></div>`;
   }
   function makeDropdownToggle(id, onclick, blurb) {
-    return `<div class="toggle-card dd-toggle" id="${id}" onclick="${onclick}"><div class="toggle-check">${CHK}</div><div class="dd-toggle-blurb">${blurb}</div></div>`;
+    return `<div class="dd-toggle" id="${id}" onclick="${onclick}"><div class="toggle-check">${CHK}</div><div class="dd-toggle-blurb">${blurb}</div></div>`;
   }
   const tsSlot = document.getElementById('timerSectionsToggleSlot');
   if (tsSlot) tsSlot.innerHTML = makeToggle('toggleTimerSections', "settingToggle('showTimerSections')", 'Quick Shift Timer', 'Timer button on the right side of each job card');
   const mgSlot = document.getElementById('miniGraphToggleSlot');
-  if (mgSlot) mgSlot.innerHTML = makeToggle('toggleMiniGraph', "settingToggle('showMiniGraph')", 'Weekly Graph', 'Daily bars showing past worked and upcoming scheduled hours');
-  const mgDays = document.getElementById('miniGraphDaysSlot');
-  if (mgDays) {
-    const cur = appSettings.miniGraphDays || 3;
-    mgDays.innerHTML = `<div class="filter-card" style="flex-shrink:0;">
-      <button class="filter-btn${cur===3?' active':''}" onclick="setMiniGraphDays(3)">3 Days</button>
-      <button class="filter-btn${cur===5?' active':''}" onclick="setMiniGraphDays(5)">5 Days</button>
-      <button class="filter-btn${cur===7?' active':''}" onclick="setMiniGraphDays(7)">7 Days</button>
-    </div>`;
+  if (mgSlot) {
+    const mgOn = appSettings.showMiniGraph !== false;
+    const mgWasOpen = document.getElementById('mgExpandBody') && document.getElementById('mgExpandBody').classList.contains('open');
+    const mgCur = appSettings.miniGraphDays || 3;
+    const BSVG3 = `<svg width="18" height="18" viewBox="0 0 50 50" fill="none"><line class="tl-chev-l" x1="10" y1="8" x2="25" y2="42" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><line class="tl-chev-r" x1="40" y1="8" x2="25" y2="42" stroke="currentColor" stroke-width="5" stroke-linecap="round"/></svg>`;
+    const mgDaysHTML = [3,5,7].map(d =>
+      `<button class="dd-num-cell${d===mgCur?' selected':''}" style="${d===mgCur?'background:var(--primary);color:#fff;':''}" onclick="event.stopPropagation();mgPickDays(${d})">${d}</button>`
+    ).join('');
+    mgSlot.innerHTML =
+      `<div class="setting-expand-card">` +
+        `<div class="toggle-card" id="toggleMiniGraph" onclick="settingToggle('showMiniGraph')">` +
+          `<div class="toggle-check">${CHK}</div>` +
+          `<div class="toggle-content"><div class="toggle-label">Weekly Graph</div><div class="toggle-blurb">Daily bars showing worked and scheduled hours</div></div>` +
+          (mgOn ? `<div class="tl-expand-btn${mgWasOpen?' open':''}" id="mgExpandBtn" onclick="event.stopPropagation();toggleMgDropdown()">${BSVG3}</div>` : '') +
+        `</div>` +
+        `<div class="setting-expand-body${mgWasOpen?' open':''}" id="mgExpandBody" onclick="event.stopPropagation()">` +
+          `<div class="dd-label-card">How Many Past &amp; Future Days?</div>` +
+          `<div class="dd-num-card" style="flex-shrink:0;">${mgDaysHTML}</div>` +
+        `</div>` +
+      `</div>`;
   }
+  const mgDays = document.getElementById('miniGraphDaysSlot');
+  if (mgDays) mgDays.innerHTML = '';
   const qsSlot = document.getElementById('quickScheduleToggleSlot');
-  if (qsSlot) {
-    qsSlot.innerHTML = typeof renderQuickSchedule === 'function'
-      ? makeToggle('toggleQuickSchedule', "settingToggle('showQuickSchedule')", 'Quick Schedule', '7-day shift timeline with hour markers across all jobs')
-      : '';
+  if (qsSlot && typeof renderQuickSchedule === 'function') {
+    const qsOn = appSettings.showQuickSchedule !== false;
+    const qsWasOpen = document.getElementById('qsExpandBody') && document.getElementById('qsExpandBody').classList.contains('open');
+    const swatchCols = getSwatchColors();
+    const _rawQsCol = appSettings.qsColor || '--swatch-7';
+    const curCol = _rawQsCol.startsWith('--')
+      ? getComputedStyle(document.documentElement).getPropertyValue(_rawQsCol).trim() || swatchCols[6]
+      : _rawQsCol;
+    const curDays = appSettings.qsDays || 7;
+    const BSVG = `<svg width="18" height="18" viewBox="0 0 50 50" fill="none"><line class="tl-chev-l" x1="10" y1="8" x2="25" y2="42" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><line class="tl-chev-r" x1="40" y1="8" x2="25" y2="42" stroke="currentColor" stroke-width="5" stroke-linecap="round"/></svg>`;
+    const swatchHTML = swatchCols.map((c,i) =>
+      `<button class="nw-swatch dd-h-swatch${('--swatch-'+(i+1))===(appSettings.qsColor||'--swatch-7')?' selected':''}" style="background:${c};" data-var="--swatch-${i+1}" onclick="event.stopPropagation();qsPickColor(this)"></button>`
+    ).join('');
+    const daysHTML = Array.from({length:14},(_,i)=>i+1).map(d =>
+      `<button class="dd-num-cell${d===curDays?' selected':''}" style="${d===curDays?'background:'+curCol+';color:#fff;':''}" onclick="event.stopPropagation();qsPickDays(this,${d})">${d}</button>`
+    ).join('');
+    qsSlot.innerHTML =
+      `<div class="setting-expand-card">` +
+        `<div class="toggle-card" id="toggleQuickSchedule" onclick="settingToggle('showQuickSchedule')">` +
+          `<div class="toggle-check">${CHK}</div>` +
+          `<div class="toggle-content"><div class="toggle-label">Quick Schedule</div><div class="toggle-blurb">Shift timeline across all jobs</div></div>` +
+          (qsOn ? `<div class="tl-expand-btn${qsWasOpen?' open':''}" id="qsExpandBtn" onclick="event.stopPropagation();toggleQsDropdown()">${BSVG}</div>` : '') +
+        `</div>` +
+        `<div class="setting-expand-body${qsWasOpen?' open':''}" id="qsExpandBody" onclick="event.stopPropagation()">` +
+          `<div class="dd-label-card">Pick a Color</div>` +
+          `<div class="dd-h-color-card">${swatchHTML}</div>` +
+          `<div class="dd-label-card">How Many Days?</div>` +
+          `<div class="dd-num-card">${daysHTML}</div>` +
+          `<div class="dd-label-card">Current Time Indicator</div>` +
+          makeDropdownToggle('toggleTimeDot', "settingToggle('showTimeDot')", 'Triangle marking where you are now') +
+        `</div>` +
+      `</div>`;
   }
   const tdSlot = document.getElementById('timeDotToggleSlot');
-  if (tdSlot) {
-    tdSlot.innerHTML = typeof renderQuickSchedule === 'function'
-      ? makeToggle('toggleTimeDot', "settingToggle('showTimeDot')", 'Current Time Indicator', 'Small diamond on the schedule marking where you are now')
-      : '';
-  }
+  if (tdSlot) tdSlot.innerHTML = '';
   const slot = document.getElementById('historyToggleSlot');
-  if (slot) {
-    slot.innerHTML = typeof renderHistory === 'function'
-      ? makeToggle('toggleHistory', "settingToggle('showHistory')", 'History', 'This week, next week and the last 10 weeks of hours')
-      : '';
-  }
+  if (slot && typeof renderHistory === 'function') {
+    const histOn = appSettings.showHistory !== false;
+    const histWasOpen = document.getElementById('histExpandBody') && document.getElementById('histExpandBody').classList.contains('open');
+    const swatchCols2 = getSwatchColors();
+    const _rawHistCol = appSettings.histColor || '--swatch-6';
+    const histCol = _rawHistCol.startsWith('--')
+      ? getComputedStyle(document.documentElement).getPropertyValue(_rawHistCol).trim() || swatchCols2[5]
+      : _rawHistCol;
+    const BSVG2 = `<svg width="18" height="18" viewBox="0 0 50 50" fill="none"><line class="tl-chev-l" x1="10" y1="8" x2="25" y2="42" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><line class="tl-chev-r" x1="40" y1="8" x2="25" y2="42" stroke="currentColor" stroke-width="5" stroke-linecap="round"/></svg>`;
+    const histSwatchHTML = swatchCols2.map((c,i) =>
+      `<button class="nw-swatch dd-h-swatch${('--swatch-'+(i+1))===(appSettings.histColor||'--swatch-6')?' selected':''}" style="background:${c};" data-var="--swatch-${i+1}" onclick="event.stopPropagation();histPickColor(this)"></button>`
+    ).join('');
+    slot.innerHTML =
+      `<div class="setting-expand-card">` +
+        `<div class="toggle-card" id="toggleHistory" onclick="settingToggle('showHistory')">` +
+          `<div class="toggle-check">${CHK}</div>` +
+          `<div class="toggle-content"><div class="toggle-label">History</div><div class="toggle-blurb">Weekly and historical hours view</div></div>` +
+          (histOn ? `<div class="tl-expand-btn${histWasOpen?' open':''}" id="histExpandBtn" onclick="event.stopPropagation();toggleHistDropdown()">${BSVG2}</div>` : '') +
+        `</div>` +
+        `<div class="setting-expand-body${histWasOpen?' open':''}" id="histExpandBody" onclick="event.stopPropagation()">` +
+          `<div class="dd-label-card">Pick a Color</div>` +
+          `<div class="dd-h-color-card">${histSwatchHTML}</div>` +
+          `<div class="dd-label-card">How Many Past Weeks?</div>` +
+          `<div class="dd-num-card">${Array.from({length:11},(_,i)=>i).map(d=>`<button class="dd-num-cell${d===(appSettings.histWeeks!==undefined?appSettings.histWeeks:10)?' selected':''}" style="${d===(appSettings.histWeeks!==undefined?appSettings.histWeeks:10)?'background:'+histCol+';color:#fff;':''}" onclick="event.stopPropagation();histPickWeeks(${d})">${d}</button>`).join('')}</div>` +
+        `</div>` +
+      `</div>`;
+  } else if (slot) { slot.innerHTML = ''; }
   const tlSlot = document.getElementById('timelineToggleSlot');
   if (tlSlot) {
     const isOn = appSettings.showTimelineCard !== false;
@@ -272,12 +332,12 @@ function updateSettingsUI() {
       `<div class="setting-expand-card">` +
         `<div class="toggle-card" id="toggleTimelineCard" onclick="settingToggle('showTimelineCard')">` +
           `<div class="toggle-check">${CHK}</div>` +
-          `<div class="toggle-content"><div class="toggle-label">Timeline Card</div><div class="toggle-blurb">Shows a 24-hour view of today with your shifts</div></div>` +
+          `<div class="toggle-content"><div class="toggle-label">Timeline Card</div><div class="toggle-blurb">24-hour view of today with shifts</div></div>` +
           (isOn ? `<div class="tl-expand-btn${wasOpen ? ' open' : ''}" id="tlExpandBtn" onclick="event.stopPropagation();toggleTlDropdown()">${BSVG}</div>` : '') +
         `</div>` +
         `<div class="setting-expand-body${wasOpen ? ' open' : ''}" id="tlExpandBody" onclick="event.stopPropagation()">` +
-          makeDropdownToggle('toggleTimelineRollover', "settingToggle('timelineRollover')", 'Extends the timeline past midnight if a shift rolls over into the next day') +
-          makeDropdownToggle('toggleTimeline24h', "settingToggle('timeline24h')", 'Show hour numbers in 24-hour format') +
+          makeDropdownToggle('toggleTimelineRollover', "settingToggle('timelineRollover')", 'Extend past midnight for night shifts') +
+          makeDropdownToggle('toggleTimeline24h', "settingToggle('timeline24h')", 'Show hours in 24-hour format') +
         `</div>` +
       `</div>`;
   }
@@ -370,7 +430,7 @@ function updateSettingsUI() {
     showTimeDot: 'toggleTimeDot', showHistory: 'toggleHistory',
     showTimerSections: 'toggleTimerSections', showMiniGraph: 'toggleMiniGraph',
     showSecondShift: 'toggleSecondShift', drawnBorders: 'toggleDrawnBorders',
-    showTimelineCard: 'toggleTimelineCard', timelineRollover: 'toggleTimelineRollover', timeline24h: 'toggleTimeline24h',
+    showTimelineCard: 'toggleTimelineCard', timelineRollover: 'toggleTimelineRollover', timeline24h: 'toggleTimeline24h', showGridLegend: 'toggleGridLegend',
   };
   Object.keys(toggleMap).forEach(k => {
     const card = document.getElementById(toggleMap[k]);
@@ -474,6 +534,18 @@ function settingsTab(tab) {
   var btn  = document.getElementById('tlExpandBtn');
   if (body) body.classList.remove('open');
   if (btn)  btn.classList.remove('open');
+  var qsBody = document.getElementById('qsExpandBody');
+  var qsBtn  = document.getElementById('qsExpandBtn');
+  if (qsBody) qsBody.classList.remove('open');
+  if (qsBtn)  qsBtn.classList.remove('open');
+  var histBody = document.getElementById('histExpandBody');
+  var histBtn  = document.getElementById('histExpandBtn');
+  if (histBody) histBody.classList.remove('open');
+  if (histBtn)  histBtn.classList.remove('open');
+  var mgBody2 = document.getElementById('mgExpandBody');
+  var mgBtn2  = document.getElementById('mgExpandBtn');
+  if (mgBody2) mgBody2.classList.remove('open');
+  if (mgBtn2)  mgBtn2.classList.remove('open');
 }
 
 function setMiniGraphDays(n) {
@@ -650,9 +722,12 @@ function buildExpandedGraph(job, container) {
   for(let i=0;i<21;i++){
     const d=new Date(mon.getTime()+i*DAY);const key=localDateKey(d);const rel=Math.round((d-today)/DAY);
     const when=rel<0?'past':rel===0?'today':'future';const src=when==='past'?job.worked:job.schedule;const entry=src&&src[key];
-    let hours=0;
-    if(entry&&entry.start&&entry.start!=='OFF'&&entry.start!=='NONE'&&entry.end){const s=parseTimeToMins(entry.start),e=parseTimeToMins(entry.end);if(s!==null&&e!==null){let diff=e-s;if(diff<=0)diff+=1440;hours=diff/60;}}
-    days.push({when,hours});
+    let hours=0,dayType='none';
+    if(entry){
+      if(entry.start&&entry.start!=='OFF'&&entry.start!=='NONE'&&entry.end){const s=parseTimeToMins(entry.start),e=parseTimeToMins(entry.end);if(s!==null&&e!==null){let diff=e-s;if(diff<=0)diff+=1440;hours=diff/60;dayType='worked';}}
+      else{dayType='off';}
+    }
+    days.push({when,hours,dayType});
   }
   const maxH=Math.max(...days.map(d=>d.hours),1);
   for(let w=0;w<3;w++){
@@ -660,10 +735,21 @@ function buildExpandedGraph(job, container) {
     for(let d=0;d<7;d++){
       const day=days[w*7+d];const col=document.createElement('div');col.className='ex-col';
       const el=document.createElement('div');
-      if(day.hours>0){el.className='ex-bar';el.style.height=Math.max(2,Math.round((day.hours/maxH)*31))+'px';}
-      else el.className='ex-dot';
-      el.style.background=COL[day.when];
-      col.appendChild(el);week.appendChild(col);
+      const c=COL[day.when];
+      const ns='http://www.w3.org/2000/svg';
+      if(day.dayType==='worked'){
+        el.className='ex-bar';el.style.height=Math.max(2,Math.round((day.hours/maxH)*31))+'px';el.style.background=c;
+        col.appendChild(el);
+      } else if(day.dayType==='off'){
+        const svg=document.createElementNS(ns,'svg');svg.setAttribute('width','100%');svg.setAttribute('viewBox','0 0 10 10');
+        const ci=document.createElementNS(ns,'circle');ci.setAttribute('cx','5');ci.setAttribute('cy','5');ci.setAttribute('r','5');ci.setAttribute('fill',c);
+        svg.appendChild(ci);col.appendChild(svg);
+      } else {
+        const svg=document.createElementNS(ns,'svg');svg.setAttribute('width','100%');svg.setAttribute('viewBox','0 0 10 8.66');
+        const poly=document.createElementNS(ns,'polygon');poly.setAttribute('points','0,8.66 10,8.66 5,0');poly.setAttribute('fill',c);
+        svg.appendChild(poly);col.appendChild(svg);
+      }
+      week.appendChild(col);
     }
     container.appendChild(week);
   }
@@ -725,9 +811,18 @@ function buildTimelineCard() {
   function pctN(h){ return (h-DSTART)/DSPAN*100; }
   var now = new Date(); var nowH = now.getHours() + now.getMinutes()/60;
 
+  // Adaptive grid line color based on --bg-2 luminance
+  var _cs2 = getComputedStyle(document.documentElement);
+  var _bg2 = _cs2.getPropertyValue('--bg-2').trim();
+  var _r=parseInt(_bg2.slice(1,3),16)||0, _g=parseInt(_bg2.slice(3,5),16)||0, _b=parseInt(_bg2.slice(5,7),16)||0;
+  var _lum = (0.299*_r + 0.587*_g + 0.114*_b) / 255;
+  var _adj = _lum < 0.5 ? 30 : -30;
+  function _clamp(v){return Math.max(0,Math.min(255,v));}
+  var _glCol = 'rgb('+_clamp(_r+_adj)+','+_clamp(_g+_adj)+','+_clamp(_b+_adj)+')';
+
   // Hourly grid lines
   for (var h=0; h<=maxEnd; h++) {
-    var gl=document.createElement('div'); gl.className='tl-gl'; gl.style.left=pct(h); card.appendChild(gl);
+    var gl=document.createElement('div'); gl.className='tl-gl'; gl.style.left=pct(h); gl.style.background=_glCol; card.appendChild(gl);
   }
   // Night zones
   var n1=document.createElement('div'); n1.className='tl-night'; n1.style.left='0%'; n1.style.width=pct(6); card.appendChild(n1);
@@ -816,13 +911,27 @@ function openJobWindow(job) {
   const titleEl = document.getElementById('jobWindowTitle'); titleEl.textContent = job.title;
   titleEl.style.cssText = `background:${job.color};color:var(--text-light);font-size:var(--text-md);font-weight:var(--fw-heavy);letter-spacing:var(--ls-wider);`;
   window._currentJob = job;
-  var _gv=document.getElementById('gridView');if(_gv){_gv.style.display='none';}
-  var _dc=document.getElementById('dayCards');if(_dc){_dc.style.display='flex';}
-  var _wf=document.getElementById('weekFilterCard');if(_wf){_wf.style.display='';}
-  var _hf=document.getElementById('hoursCard');if(_hf){_hf.style.display='';}
-  var _dr=document.getElementById('dateRangeCard');if(_dr){_dr.style.display='';}
-  var _b1=document.getElementById('btnViewDayCard');if(_b1){_b1.classList.add('active');}
-  var _b2=document.getElementById('btnViewGrid');if(_b2){_b2.classList.remove('active');}
+  var _savedView = job.defaultView || 'daycard';
+  if(_savedView==='grid'){
+    var _gv=document.getElementById('gridView');if(_gv){_gv.style.display='flex';}
+    var _dc=document.getElementById('dayCards');if(_dc){_dc.style.display='none';}
+    var _wf=document.getElementById('weekFilterCard');if(_wf){_wf.style.display='none';}
+    var _hf=document.getElementById('hoursCard');if(_hf){_hf.style.display='none';}
+    var _dr=document.getElementById('dateRangeCard');
+    var _tc=document.getElementById('totalsCard');if(_tc){_tc.style.display='none';}
+    var _b1=document.getElementById('btnViewDayCard');if(_b1){_b1.classList.remove('active');}
+    var _b2=document.getElementById('btnViewGrid');if(_b2){_b2.classList.add('active');}
+    requestAnimationFrame(function(){buildGridView(job);if(_dr){_dr.style.display='';var _j=job;var _fdow=(_j.firstDow!==undefined)?_j.firstDow:1;var _td=new Date();_td.setHours(0,0,0,0);var _db=(_td.getDay()-_fdow+7)%7+7;var _st=new Date(_td.getTime()-_db*86400000);var _en=new Date(_st.getTime()+20*86400000);var _mo=typeof MONTHS!=='undefined'?MONTHS:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];_dr.textContent=_mo[_st.getMonth()]+' '+_st.getDate()+' - '+_mo[_en.getMonth()]+' '+_en.getDate();}});
+  } else {
+    var _gv=document.getElementById('gridView');if(_gv){_gv.style.display='none';}
+    var _dc=document.getElementById('dayCards');if(_dc){_dc.style.display='flex';}
+    var _wf=document.getElementById('weekFilterCard');if(_wf){_wf.style.display='';}
+    var _hf=document.getElementById('hoursCard');if(_hf){_hf.style.display='';}
+    var _dr=document.getElementById('dateRangeCard');if(_dr){_dr.style.display='';}
+    var _tc=document.getElementById('totalsCard');if(_tc){_tc.style.display='';}
+    var _b1=document.getElementById('btnViewDayCard');if(_b1){_b1.classList.add('active');}
+    var _b2=document.getElementById('btnViewGrid');if(_b2){_b2.classList.remove('active');}
+  }
   activeWeek = 'this'; activeHours = 'scheduled'; updateWeekUI();
   const jw = document.getElementById('jobWindow');
   jw.style.opacity = '0';
@@ -957,4 +1066,97 @@ function toggleTlDropdown() {
   if (!body) return;
   var isOpen = body.classList.toggle('open');
   if (btn) btn.classList.toggle('open', isOpen);
+}
+
+function toggleQsDropdown() {
+  var body = document.getElementById('qsExpandBody');
+  var btn  = document.getElementById('qsExpandBtn');
+  if (!body) return;
+  var isOpen = body.classList.toggle('open');
+  if (btn) btn.classList.toggle('open', isOpen);
+}
+
+function qsPickColor(el) {
+  var col = el.getAttribute('data-var');
+  if (!col) return;
+  appSettings.qsColor = col;
+  lsSet('sch_settings', appSettings);
+  var body = document.getElementById('qsExpandBody');
+  if (body) {
+    var hex = getComputedStyle(document.documentElement).getPropertyValue(col).trim();
+    body.querySelectorAll('.dd-h-swatch,.nw-swatch').forEach(function(s){ s.classList.toggle('selected', s.getAttribute('data-var')===col); });
+    body.querySelectorAll('.dd-num-cell').forEach(function(c){ if(c.classList.contains('selected')){ c.style.background=hex; } });
+  }
+  if (typeof renderQuickSchedule === 'function') { buildQuickSchedule(); renderQuickSchedule(); }
+}
+
+function qsPickDays(el, d) {
+  appSettings.qsDays = d;
+  lsSet('sch_settings', appSettings);
+  updateSettingsUI();
+  renderQuickSchedule();
+}
+
+function toggleHistDropdown() {
+  var body = document.getElementById('histExpandBody');
+  var btn  = document.getElementById('histExpandBtn');
+  if (!body) return;
+  var isOpen = body.classList.toggle('open');
+  if (btn) btn.classList.toggle('open', isOpen);
+}
+
+function histPickColor(el) {
+  var col = el.getAttribute('data-var');
+  if (!col) return;
+  appSettings.histColor = col;
+  lsSet('sch_settings', appSettings);
+  var body = document.getElementById('histExpandBody');
+  if (body) {
+    var hex = getComputedStyle(document.documentElement).getPropertyValue(col).trim();
+    // Update swatch selected state
+    body.querySelectorAll('.dd-h-swatch').forEach(function(s){ s.classList.toggle('selected', s.getAttribute('data-var')===col); });
+    // Update weeks picker selected color
+    var hw = appSettings.histWeeks !== undefined ? appSettings.histWeeks : 10;
+    body.querySelectorAll('.dd-num-cell').forEach(function(c,i){ if(c.classList.contains('selected')){ c.style.background=hex; } });
+  }
+  if (typeof renderHistory === 'function') { buildHistory(); renderHistory(); }
+}
+
+function histPickWeeks(n) {
+  appSettings.histWeeks = n;
+  lsSet('sch_settings', appSettings);
+  // Update selected state directly in DOM -- no slot rebuild needed
+  var body = document.getElementById('histExpandBody');
+  if (body) {
+    var cells = body.querySelectorAll('.dd-num-cell');
+    var histCol = (appSettings.histColor||'').startsWith('--')
+      ? getComputedStyle(document.documentElement).getPropertyValue(appSettings.histColor).trim()
+      : (getSwatchColors()[5]);
+    cells.forEach(function(el,i){ var isOn=i===n; el.classList.toggle('selected',isOn); el.style.background=isOn?histCol:''; el.style.color=isOn?'#fff':''; });
+  }
+  if (typeof renderHistory === 'function') { buildHistory(); renderHistory(); }
+}
+
+function toggleMgDropdown() {
+  var body = document.getElementById('mgExpandBody');
+  var btn  = document.getElementById('mgExpandBtn');
+  if (!body) return;
+  var isOpen = body.classList.toggle('open');
+  if (btn) btn.classList.toggle('open', isOpen);
+}
+
+function mgPickDays(n) {
+  appSettings.miniGraphDays = n;
+  lsSet('sch_settings', appSettings);
+  var body = document.getElementById('mgExpandBody');
+  if (body) {
+    body.querySelectorAll('.dd-num-cell').forEach(function(c,i){
+      var d=[3,5,7][i];
+      var isOn=d===n;
+      c.classList.toggle('selected',isOn);
+      c.style.background=isOn?'var(--primary)':'';
+      c.style.color=isOn?'#fff':'';
+    });
+  }
+  renderJobs();
 }
