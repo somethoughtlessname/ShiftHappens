@@ -89,7 +89,7 @@ function buildWindows() {
         <button class="data-window-settings" onclick="spinDotGrid(this);setTimeout(openJobSettings,150)" id="jobSettingsBtn"></button>
       </div>
       <div class="data-body" id="jobWindowBody">
-        <div class="filter-card">
+        <div class="filter-card" id="weekFilterCard">
           <button class="filter-btn" id="fwPrev" onclick="setWeek('prev')">Last Week</button>
           <button class="filter-btn active" id="fwThis" onclick="setWeek('this')">This Week</button>
           <button class="filter-btn" id="fwNext" onclick="setWeek('next')">Next Week</button>
@@ -100,12 +100,17 @@ function buildWindows() {
         </div>
         <div class="date-range-card" id="dateRangeCard"></div>
         <div id="dayCards" style="display:flex;flex-direction:column;gap:var(--margin);"></div>
+        <div id="gridView" style="display:none;flex-direction:column;gap:var(--margin);"></div>
         <div class="totals-card">
           <div class="totals-label">Total Hours</div>
           <div class="totals-value" id="totalsValue">00 Hours  00 Minutes</div>
         </div>
       </div>
       <div class="clear-card-wrap">
+        <div class="view-toggle-card">
+          <button class="filter-btn active" id="btnViewDayCard" onclick="switchJobView('daycard')">Day Card</button>
+          <button class="filter-btn" id="btnViewGrid" onclick="switchJobView('grid')">Grid</button>
+        </div>
         <div class="clear-card" id="clearSchedCard" onclick="clearCurrentSchedule()">Clear Schedule</div>
       </div>
     </div>
@@ -125,7 +130,7 @@ function buildWindows() {
         <div class="nw-color-card" id="jsColorCard">${buildSwatches('jsPickColor')}</div>
         <div class="label-card">Select First Day of Work Week</div>
         <div class="dow-card" id="dowCard">${buildDowBtns('jsPickDow')}</div>
-        <div class="toggle-card" id="toggleSecondShift" onclick="settingToggle('showSecondShift')"><div class="toggle-check"><svg width="16" height="13" viewBox="0 0 16 13" fill="none"><path d="M1.5 6.5 L6 11 L14.5 1.5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="toggle-content"><div class="toggle-label">Second Shift</div><div class="toggle-blurb">Show extra shift slot on each day card</div></div></div>
+        <div class="toggle-card" id="toggleSecondShift" onclick="settingToggle('showSecondShift')"><div class="toggle-check"><svg width="16" height="13" viewBox="0 0 16 13" fill="none"><path d="M1.5 6.5 L6 11 L14.5 1.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="toggle-content"><div class="toggle-label">Second Shift</div><div class="toggle-blurb">Show extra shift slot on each day card</div></div></div>
         <div class="clear-card" id="clearFullCard" onclick="clearFullSchedule()">Clear Full Schedule</div>
         <div class="delete-card" id="deleteCard" onclick="jsDeleteJob()">Delete Job</div>
       </div>
@@ -145,9 +150,10 @@ function buildWindows() {
       </div>
       <div class="data-body" id="spanel-display">
         <div class="label-card">What shows in the main window</div>
-        <div class="toggle-card" id="toggleJobCards" onclick="settingToggle('showJobCards')"><div class="toggle-check"><svg width="16" height="13" viewBox="0 0 16 13" fill="none"><path d="M1.5 6.5 L6 11 L14.5 1.5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="toggle-content"><div class="toggle-label">Job Cards</div><div class="toggle-blurb">Shows each job as a card with your next shift countdown</div></div></div>
+        <div class="toggle-card" id="toggleJobCards" onclick="settingToggle('showJobCards')"><div class="toggle-check"><svg width="16" height="13" viewBox="0 0 16 13" fill="none"><path d="M1.5 6.5 L6 11 L14.5 1.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="toggle-content"><div class="toggle-label">Job Cards</div><div class="toggle-blurb">Shows each job as a card with your next shift countdown</div></div></div>
         <div id="quickScheduleToggleSlot"></div>
         <div id="historyToggleSlot"></div>
+        <div id="timelineToggleSlot"></div>
       </div>
       <div class="data-body" id="spanel-cards" style="display:none;">
         <div class="label-card">Job Card Sections</div>
@@ -168,6 +174,8 @@ function buildWindows() {
         <div id="settingsSavedThemesList"></div>
       </div>
       <div class="data-body" id="spanel-other" style="display:none;">
+        <div class="label-card">Style</div>
+        <div class="toggle-card" id="toggleDrawnBorders" onclick="settingToggle('drawnBorders')"><div class="toggle-check"><svg width="16" height="13" viewBox="0 0 16 13" fill="none"><path d="M1.5 6.5 L6 11 L14.5 1.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="toggle-content"><div class="toggle-label">Drawn Borders</div><div class="toggle-blurb">Hand-drawn pen style borders on job cards</div></div></div>
         <div class="label-card">Notifications</div>
         <div style="font-size:var(--text-xs);color:var(--text-mid);padding:2px 4px 6px;">Test that push notifications are working on your device</div>
         <div class="toggle-card" id="notifTestBtn" onclick="testNotification()" style="cursor:pointer;">
@@ -197,7 +205,7 @@ function buildWindows() {
   document.body.insertAdjacentHTML('beforeend', html);
 }
 
-const _settingsDefaults = { showJobCards: true, showQuickSchedule: true, showTimeDot: true, showHistory: true, showTimerSections: true, showMiniGraph: true, miniGraphDays: 3, theme: 'none', showSecondShift: true, customFont: 'def' };
+const _settingsDefaults = { showJobCards: true, showQuickSchedule: true, showTimeDot: true, showHistory: true, showTimerSections: true, showMiniGraph: true, miniGraphDays: 3, theme: 'none', showSecondShift: true, customFont: 'def', drawnBorders: false, showTimelineCard: true, timelineRollover: false, timeline24h: false };
 let appSettings = Object.assign({}, _settingsDefaults, ls('sch_settings', {}));
 
 function updateDaySqVar() {
@@ -213,12 +221,16 @@ function settingToggle(key) {
   updateSettingsUI();
   renderJobs();
   if(key==='showSecondShift'){updateDaySqVar();renderDayCards();}
+  if(key==='drawnBorders'){renderJobs();if(appSettings.drawnBorders)requestAnimationFrame(function(){if(typeof DrawnBorders!=='undefined')DrawnBorders.applyJobWindow();});else if(typeof DrawnBorders!=='undefined')DrawnBorders.clearJobWindow();}
 }
 
 function updateSettingsUI() {
-  const CHK = `<svg width="16" height="13" viewBox="0 0 16 13" fill="none"><path d="M1.5 6.5 L6 11 L14.5 1.5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  const CHK = `<svg width="16" height="13" viewBox="0 0 16 13" fill="none"><path d="M1.5 6.5 L6 11 L14.5 1.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
   function makeToggle(id, onclick, label, blurb) {
     return `<div class="toggle-card" id="${id}" onclick="${onclick}"><div class="toggle-check">${CHK}</div><div class="toggle-content"><div class="toggle-label">${label}</div><div class="toggle-blurb">${blurb}</div></div></div>`;
+  }
+  function makeDropdownToggle(id, onclick, blurb) {
+    return `<div class="toggle-card dd-toggle" id="${id}" onclick="${onclick}"><div class="toggle-check">${CHK}</div><div class="dd-toggle-blurb">${blurb}</div></div>`;
   }
   const tsSlot = document.getElementById('timerSectionsToggleSlot');
   if (tsSlot) tsSlot.innerHTML = makeToggle('toggleTimerSections', "settingToggle('showTimerSections')", 'Quick Shift Timer', 'Timer button on the right side of each job card');
@@ -250,6 +262,24 @@ function updateSettingsUI() {
     slot.innerHTML = typeof renderHistory === 'function'
       ? makeToggle('toggleHistory', "settingToggle('showHistory')", 'History', 'This week, next week and the last 10 weeks of hours')
       : '';
+  }
+  const tlSlot = document.getElementById('timelineToggleSlot');
+  if (tlSlot) {
+    const isOn = appSettings.showTimelineCard !== false;
+    const wasOpen = document.getElementById('tlExpandBody') && document.getElementById('tlExpandBody').classList.contains('open');
+    const BSVG = `<svg width="18" height="18" viewBox="0 0 50 50" fill="none"><line class="tl-chev-l" x1="10" y1="8" x2="25" y2="42" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><line class="tl-chev-r" x1="40" y1="8" x2="25" y2="42" stroke="currentColor" stroke-width="5" stroke-linecap="round"/></svg>`;
+    tlSlot.innerHTML =
+      `<div class="setting-expand-card">` +
+        `<div class="toggle-card" id="toggleTimelineCard" onclick="settingToggle('showTimelineCard')">` +
+          `<div class="toggle-check">${CHK}</div>` +
+          `<div class="toggle-content"><div class="toggle-label">Timeline Card</div><div class="toggle-blurb">Shows a 24-hour view of today with your shifts</div></div>` +
+          (isOn ? `<div class="tl-expand-btn${wasOpen ? ' open' : ''}" id="tlExpandBtn" onclick="event.stopPropagation();toggleTlDropdown()">${BSVG}</div>` : '') +
+        `</div>` +
+        `<div class="setting-expand-body${wasOpen ? ' open' : ''}" id="tlExpandBody" onclick="event.stopPropagation()">` +
+          makeDropdownToggle('toggleTimelineRollover', "settingToggle('timelineRollover')", 'Extends the timeline past midnight if a shift rolls over into the next day') +
+          makeDropdownToggle('toggleTimeline24h', "settingToggle('timeline24h')", 'Show hour numbers in 24-hour format') +
+        `</div>` +
+      `</div>`;
   }
   const stList = document.getElementById('settingsSavedThemesList');
   if (stList && typeof ThemeSystem !== 'undefined') {
@@ -339,7 +369,8 @@ function updateSettingsUI() {
     showJobCards: 'toggleJobCards', showQuickSchedule: 'toggleQuickSchedule',
     showTimeDot: 'toggleTimeDot', showHistory: 'toggleHistory',
     showTimerSections: 'toggleTimerSections', showMiniGraph: 'toggleMiniGraph',
-    showSecondShift: 'toggleSecondShift',
+    showSecondShift: 'toggleSecondShift', drawnBorders: 'toggleDrawnBorders',
+    showTimelineCard: 'toggleTimelineCard', timelineRollover: 'toggleTimelineRollover', timeline24h: 'toggleTimeline24h',
   };
   Object.keys(toggleMap).forEach(k => {
     const card = document.getElementById(toggleMap[k]);
@@ -359,6 +390,10 @@ function openWindow(id) {
     win.style.transition = 'opacity 0.6s';
     win.style.opacity = '1';
     setTimeout(() => { win.style.transition = ''; }, 200);
+    if(typeof appSettings!=='undefined'&&appSettings.drawnBorders&&typeof DrawnBorders!=='undefined'){
+      if(id==='newWindow') DrawnBorders.applyNewWindow();
+      if(id==='jobSettingsWindow') DrawnBorders.applyJobSettingsWindow();
+    }
   });
 }
 
@@ -434,6 +469,11 @@ function settingsTab(tab) {
     document.getElementById('spanel-' + t).style.display = t === tab ? 'flex' : 'none';
     document.getElementById('stab-'   + t).classList.toggle('active', t === tab);
   });
+  // Always close expand dropdowns on tab change
+  var body = document.getElementById('tlExpandBody');
+  var btn  = document.getElementById('tlExpandBtn');
+  if (body) body.classList.remove('open');
+  if (btn)  btn.classList.remove('open');
 }
 
 function setMiniGraphDays(n) {
@@ -600,6 +640,35 @@ function buildMiniGraph(job, container) {
   }
 }
 
+function buildExpandedGraph(job, container) {
+  const cs=getComputedStyle(document.documentElement);
+  const COL={past:cs.getPropertyValue('--secondary').trim(),today:cs.getPropertyValue('--primary').trim(),future:cs.getPropertyValue('--accent').trim()};
+  const today=new Date();today.setHours(0,0,0,0);
+  const DAY=86400000;
+  const mon=new Date(today);mon.setDate(mon.getDate()-((mon.getDay()+6)%7)-7);
+  const days=[];
+  for(let i=0;i<21;i++){
+    const d=new Date(mon.getTime()+i*DAY);const key=localDateKey(d);const rel=Math.round((d-today)/DAY);
+    const when=rel<0?'past':rel===0?'today':'future';const src=when==='past'?job.worked:job.schedule;const entry=src&&src[key];
+    let hours=0;
+    if(entry&&entry.start&&entry.start!=='OFF'&&entry.start!=='NONE'&&entry.end){const s=parseTimeToMins(entry.start),e=parseTimeToMins(entry.end);if(s!==null&&e!==null){let diff=e-s;if(diff<=0)diff+=1440;hours=diff/60;}}
+    days.push({when,hours});
+  }
+  const maxH=Math.max(...days.map(d=>d.hours),1);
+  for(let w=0;w<3;w++){
+    const week=document.createElement('div');week.className='ex-week';
+    for(let d=0;d<7;d++){
+      const day=days[w*7+d];const col=document.createElement('div');col.className='ex-col';
+      const el=document.createElement('div');
+      if(day.hours>0){el.className='ex-bar';el.style.height=Math.max(2,Math.round((day.hours/maxH)*31))+'px';}
+      else el.className='ex-dot';
+      el.style.background=COL[day.when];
+      col.appendChild(el);week.appendChild(col);
+    }
+    container.appendChild(week);
+  }
+}
+
 const CUSTOM_FONTS = {
   def:   {label:'DEF',   family:'system-ui,-apple-system,BlinkMacSystemFont,sans-serif'},
   mono:  {label:'MONO',  family:"'Courier New',Courier,monospace"},
@@ -621,6 +690,75 @@ function applyCustomFont(id) {
   s.textContent = (id && id !== 'def') ? `*{font-family:${f.family}!important;}` : '';
 }
 
+
+
+
+
+
+function buildTimelineCard() {
+  var card = document.createElement('div'); card.className = 'tl-card';
+  var rollover = appSettings.timelineRollover;
+
+  // Collect today's shifts to determine max end time
+  var todayKey = localDateKey(new Date());
+  var shifts = [];
+  jobs.forEach(function(job){
+    var src = job.worked && job.worked[todayKey] ? job.worked : job.schedule;
+    var entry = src && src[todayKey];
+    if (entry && entry.start && entry.start!=='OFF' && entry.start!=='NONE' && entry.end) {
+      var sm=parseTimeToMins(entry.start), em=parseTimeToMins(entry.end);
+      if (sm!==null && em!==null) { if(em<=sm) em+=1440; shifts.push({s:sm/60,e:em/60,col:job.color}); }
+    }
+    var ex = entry && entry.extra && entry.extra[0];
+    if (ex && ex.start && ex.start!=='NONE' && ex.end) {
+      var sm2=parseTimeToMins(ex.start), em2=parseTimeToMins(ex.end);
+      if (sm2!==null && em2!==null) { if(em2<=sm2) em2+=1440; shifts.push({s:sm2/60,e:em2/60,col:job.color}); }
+    }
+  });
+
+  // Determine timeline end: 24h normally, extended if rollover and any shift crosses midnight
+  var maxEnd = 24;
+  if (rollover) shifts.forEach(function(sh){ if (sh.e > 24) maxEnd = Math.max(maxEnd, Math.ceil(sh.e)); });
+  var DSTART = -1, DEND = maxEnd + 1, DSPAN = DEND - DSTART;
+  function pct(h){ return ((h-DSTART)/DSPAN*100).toFixed(3)+'%'; }
+  function pctN(h){ return (h-DSTART)/DSPAN*100; }
+  var now = new Date(); var nowH = now.getHours() + now.getMinutes()/60;
+
+  // Hourly grid lines
+  for (var h=0; h<=maxEnd; h++) {
+    var gl=document.createElement('div'); gl.className='tl-gl'; gl.style.left=pct(h); card.appendChild(gl);
+  }
+  // Night zones
+  var n1=document.createElement('div'); n1.className='tl-night'; n1.style.left='0%'; n1.style.width=pct(6); card.appendChild(n1);
+  var n2=document.createElement('div'); n2.className='tl-night'; n2.style.left=pct(18); n2.style.width='calc(100% - '+pct(18)+')'; card.appendChild(n2);
+  // Hour labels every 3h including midnight
+  for (var lh=0; lh<=maxEnd; lh+=3) {
+    var t=document.createElement('div'); t.className='tl-hour'; t.style.left=pct(lh);
+    var label = appSettings.timeline24h
+      ? (lh===24 ? '0' : String(lh))
+      : (lh===0||lh===24 ? '12' : lh<12 ? String(lh) : String(lh-12));
+    t.textContent = label; card.appendChild(t);
+  }
+
+  // Detect overlaps
+  var hasOverlap = false;
+  for (var i=0; i<shifts.length; i++) for (var j=i+1; j<shifts.length; j++)
+    if (Math.max(shifts[i].s,shifts[j].s) < Math.min(shifts[i].e,shifts[j].e)) hasOverlap=true;
+
+  var sh = hasOverlap ? 7 : 14;
+  shifts.forEach(function(shift, idx){
+    var b=document.createElement('div'); b.className='tl-shift';
+    b.style.left=pct(shift.s); b.style.width='calc('+pct(shift.e)+' - '+pct(shift.s)+')';
+    b.style.background=shift.col; b.style.height=sh+'px';
+    b.style.top = hasOverlap ? (3 + idx*(sh+1))+'px' : '3px';
+    card.appendChild(b);
+  });
+
+  // Triangle cursor
+  var tri=document.createElement('div'); tri.className='tl-tri'; tri.style.left=pctN(nowH).toFixed(3)+'%'; card.appendChild(tri);
+  return card;
+}
+
 function renderJobs() {
   const app = document.getElementById('mainApp'); app.innerHTML = '';
   if (appSettings.showJobCards) {
@@ -629,6 +767,7 @@ function renderJobs() {
       placeholder.textContent = 'Tap New to Add a Job'; placeholder.style.cursor = 'pointer';
       placeholder.onclick = () => openWindow('newWindow'); app.appendChild(placeholder);
     } else {
+      if (appSettings.showTimelineCard !== false) app.appendChild(buildTimelineCard());
       const lbl = document.createElement('div'); lbl.className = 'label-card';
       lbl.textContent = 'Time Until Next Shift'; app.appendChild(lbl);
     }
@@ -639,14 +778,31 @@ function renderJobs() {
     const bottomText = timerState === 'running' ? (getElapsedStr(job) || '00h 00m') : (countdown || '-- h -- m');
     const showTimer = appSettings.showTimerSections !== false; const showGraph = appSettings.showMiniGraph !== false;
     card.innerHTML =
+      `<div class="jc-normal">` +
       (showGraph ? `<div class="job-card-left" id="graph-${job.id}" style="display:flex;flex-direction:row;align-items:flex-end;padding:3px 4px;gap:1px;"></div>` : '') +
       `<div class="job-card-center"><div class="job-card-top" style="background:${job.color}"><span class="job-card-title">${job.title}</span></div><div class="job-card-bottom">${bottomText}</div></div>` +
-      (showTimer ? `<div class="job-card-right" onclick="timerTap(${job.id}, event)">${timerIcon(timerState, job)}</div>` : '');
-    if (showGraph) { const graphEl = card.querySelector('#graph-' + job.id); if (graphEl) buildMiniGraph(job, graphEl); }
-    card.onclick = () => openJobWindow(job); app.appendChild(card);
+      (showTimer ? `<div class="job-card-right" onclick="timerTap(${job.id}, event)">${timerIcon(timerState, job)}</div>` : '') +
+      `</div>` +
+      (showGraph ? `<div class="jc-expanded" id="exp-${job.id}"></div>` : '');
+    if (showGraph) {
+      const graphEl = card.querySelector('#graph-' + job.id);
+      if (graphEl) {
+        buildMiniGraph(job, graphEl);
+        const expEl = card.querySelector('#exp-' + job.id);
+        if (expEl) buildExpandedGraph(job, expEl);
+        graphEl.addEventListener('click', e => { e.stopPropagation(); card.classList.toggle('graph-expanded'); });
+      }
+    }
+    card.onclick = e => {
+      if (card.classList.contains('graph-expanded')) { card.classList.remove('graph-expanded'); return; }
+      openJobWindow(job);
+    };
+    app.appendChild(card);
   });
   if (typeof renderQuickSchedule === 'function' && appSettings.showQuickSchedule) { buildQuickSchedule(); renderQuickSchedule(); }
   if (typeof renderHistory === 'function') { buildHistory(); renderHistory(); }
+  if (appSettings.drawnBorders) requestAnimationFrame(function(){ if(typeof applyDrawnBorders==='function') applyDrawnBorders(); });
+  else if (typeof clearDrawnBorders === 'function') clearDrawnBorders();
 }
 
 function refreshSwatchCards() {
@@ -657,7 +813,15 @@ function refreshSwatchCards() {
 function openJobWindow(job) {
   for(const k in _dcExpanded)delete _dcExpanded[k];  refreshSwatchCards(); activeJobId = job.id; activeFirstDow = job.firstDow !== undefined ? job.firstDow : 1;
   const titleEl = document.getElementById('jobWindowTitle'); titleEl.textContent = job.title;
-  titleEl.style.cssText = `background:${job.color};font-size:var(--text-md);font-weight:var(--fw-heavy);letter-spacing:var(--ls-wider);`;
+  titleEl.style.cssText = `background:${job.color};color:var(--text-light);font-size:var(--text-md);font-weight:var(--fw-heavy);letter-spacing:var(--ls-wider);`;
+  window._currentJob = job;
+  var _gv=document.getElementById('gridView');if(_gv){_gv.style.display='none';}
+  var _dc=document.getElementById('dayCards');if(_dc){_dc.style.display='flex';}
+  var _wf=document.getElementById('weekFilterCard');if(_wf){_wf.style.display='';}
+  var _hf=document.getElementById('hoursCard');if(_hf){_hf.style.display='';}
+  var _dr=document.getElementById('dateRangeCard');if(_dr){_dr.style.display='';}
+  var _b1=document.getElementById('btnViewDayCard');if(_b1){_b1.classList.add('active');}
+  var _b2=document.getElementById('btnViewGrid');if(_b2){_b2.classList.remove('active');}
   activeWeek = 'this'; activeHours = 'scheduled'; updateWeekUI();
   const jw = document.getElementById('jobWindow');
   jw.style.opacity = '0';
@@ -669,6 +833,8 @@ function openJobWindow(job) {
     setTimeout(() => { jw.style.transition = ''; }, 200);
   });
   const hoursCard = document.getElementById('hoursCard');
+  if(appSettings.drawnBorders&&typeof DrawnBorders!=='undefined')
+    requestAnimationFrame(function(){DrawnBorders.applyJobWindow();});
 }
 
 function openJobSettings() {
@@ -680,7 +846,7 @@ function openJobSettings() {
   const savedDow = job.firstDow !== undefined ? job.firstDow : 1;
   document.querySelectorAll('#dowCard .dow-btn').forEach(b => {
     const isActive = parseInt(b.dataset.dow) === savedDow;
-    b.classList.toggle('active', isActive); b.style.background = isActive ? job.color : ''; b.style.color = isActive ? 'var(--text-mid)' : '';
+    b.classList.toggle('active', isActive); b.style.background = isActive ? job.color : ''; b.style.color = isActive ? 'var(--text-light)' : '';
   });
   document.getElementById('deleteCard').classList.remove('confirm'); document.getElementById('deleteCard').textContent = 'Delete Job';
   openWindow('jobSettingsWindow');
@@ -782,4 +948,12 @@ function fireTestNotification(){
   const status=document.getElementById('notifStatus');
   if('serviceWorker' in navigator&&navigator.serviceWorker.controller){navigator.serviceWorker.ready.then(reg=>{reg.showNotification('Shift Happens',{body:'Your shift starts in 30 minutes',icon:'icon-192.png',badge:'icon-192.png',tag:'shift-test',vibrate:[200,100,200]});status.textContent='Notification sent!';status.style.color='var(--primary)';});}
   else{new Notification('Shift Happens',{body:'Your shift starts in 30 minutes',icon:'icon-192.png'});status.textContent='Notification sent!';status.style.color='var(--primary)';}
+}
+
+function toggleTlDropdown() {
+  var body = document.getElementById('tlExpandBody');
+  var btn  = document.getElementById('tlExpandBtn');
+  if (!body) return;
+  var isOpen = body.classList.toggle('open');
+  if (btn) btn.classList.toggle('open', isOpen);
 }

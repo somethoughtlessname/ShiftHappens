@@ -88,7 +88,7 @@ function renderDayCards() {
     _svg.setAttribute('width','26');_svg.setAttribute('height','26');_svg.setAttribute('viewBox','0 0 50 50');
     const _pl1=document.createElementNS(_svgNS,'line');
     const _pl2=document.createElementNS(_svgNS,'line');
-    [_pl1,_pl2].forEach(function(l){l.style.stroke='white';l.setAttribute('stroke-width','5');l.setAttribute('stroke-linecap','round');});
+    [_pl1,_pl2].forEach(function(l){l.setAttribute('stroke','currentColor');l.setAttribute('stroke-width','5');l.setAttribute('stroke-linecap','round');});
     const _pStates={plus:{l1:[25,8,25,42],l2:[8,25,42,25]},back:{l1:[8,25,42,10],l2:[8,25,42,40]},fwd:{l1:[8,10,42,25],l2:[8,40,42,25]}};
     function _pSet(s){var st=_pStates[s];_pl1.setAttribute('x1',st.l1[0]);_pl1.setAttribute('y1',st.l1[1]);_pl1.setAttribute('x2',st.l1[2]);_pl1.setAttribute('y2',st.l1[3]);_pl2.setAttribute('x1',st.l2[0]);_pl2.setAttribute('y1',st.l2[1]);_pl2.setAttribute('x2',st.l2[2]);_pl2.setAttribute('y2',st.l2[3]);}
     function _pMorph(fromS,toS,dur,fromCol,toCol){var from=_pStates[fromS],to=_pStates[toS],start=null;function ease(t){return t<0.5?2*t*t:-1+(4-2*t)*t;}function hx(c){return parseInt(c,16);}function parseCol(v){var m=v.replace('#','');return[hx(m.slice(0,2)),hx(m.slice(2,4)),hx(m.slice(4,6))];}function step(ts){if(!start)start=ts;var t=Math.min((ts-start)/dur,1),e=ease(t);function lp(a,b){return a+(b-a)*e;}_pl1.setAttribute('x1',lp(from.l1[0],to.l1[0]));_pl1.setAttribute('y1',lp(from.l1[1],to.l1[1]));_pl1.setAttribute('x2',lp(from.l1[2],to.l1[2]));_pl1.setAttribute('y2',lp(from.l1[3],to.l1[3]));_pl2.setAttribute('x1',lp(from.l2[0],to.l2[0]));_pl2.setAttribute('y1',lp(from.l2[1],to.l2[1]));_pl2.setAttribute('x2',lp(from.l2[2],to.l2[2]));_pl2.setAttribute('y2',lp(from.l2[3],to.l2[3]));if(fromCol&&toCol){var fc=parseCol(fromCol),tc=parseCol(toCol);plusBtn.style.background='rgb('+Math.round(lp(fc[0],tc[0]))+','+Math.round(lp(fc[1],tc[1]))+','+Math.round(lp(fc[2],tc[2]))+')'}if(t<1)requestAnimationFrame(step);else if(toCol)plusBtn.style.background='rgb('+tc[0]+','+tc[1]+','+tc[2]+')';}requestAnimationFrame(step);}
@@ -96,6 +96,7 @@ function renderDayCards() {
     _svg.appendChild(_pl1);_svg.appendChild(_pl2);
     const plusBtn = document.createElement('div');
     plusBtn.className = 'day-card-plus';
+    plusBtn.style.color = 'var(--text-light)';
     if(hasExtra)plusBtn.style.background='var(--accent)';
     plusBtn.appendChild(_svg);
     dcTrack.appendChild(plusBtn);
@@ -114,7 +115,7 @@ function renderDayCards() {
     const _xsvg=document.createElementNS(_svgNS,'svg');
     _xsvg.setAttribute('width','26');_xsvg.setAttribute('height','26');_xsvg.setAttribute('viewBox','0 0 50 50');
     const _xl1=document.createElementNS(_svgNS,'line');const _xl2=document.createElementNS(_svgNS,'line');
-    [_xl1,_xl2].forEach(function(l){l.style.stroke='white';l.setAttribute('stroke-width','5');l.setAttribute('stroke-linecap','round');});
+    [_xl1,_xl2].forEach(function(l){l.setAttribute('stroke','currentColor');l.setAttribute('stroke-width','5');l.setAttribute('stroke-linecap','round');});
     _xl1.setAttribute('x1','12');_xl1.setAttribute('y1','12');_xl1.setAttribute('x2','38');_xl1.setAttribute('y2','38');
     _xl2.setAttribute('x1','38');_xl2.setAttribute('y1','12');_xl2.setAttribute('x2','12');_xl2.setAttribute('y2','38');
     _xsvg.appendChild(_xl1);_xsvg.appendChild(_xl2);closeBtn.appendChild(_xsvg);
@@ -235,6 +236,8 @@ function renderDayCards() {
   }
   const totEl = document.getElementById('totalsValue');
   if (totEl) totEl.textContent = `${String(Math.floor(totalMins/60)).padStart(2,'0')} Hours  ${String(totalMins%60).padStart(2,'0')} Minutes`;
+  if(typeof appSettings!=='undefined'&&appSettings.drawnBorders&&typeof DrawnBorders!=='undefined')
+    requestAnimationFrame(function(){DrawnBorders.applyJobWindow();});
 }
 
 const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -349,7 +352,7 @@ document.getElementById('jobSettingsBtn').appendChild(buildDotGrid());
     const svg=document.createElementNS(ns,'svg');
     svg.setAttribute('width','22');svg.setAttribute('height','22');svg.setAttribute('viewBox','0 0 50 50');
     const l1=document.createElementNS(ns,'line');const l2=document.createElementNS(ns,'line');
-    [l1,l2].forEach(function(l){l.style.stroke='var(--text-light)';l.setAttribute('stroke-width','5');l.setAttribute('stroke-linecap','round');});
+    [l1,l2].forEach(function(l){l.setAttribute('stroke','currentColor');l.setAttribute('stroke-width','5');l.setAttribute('stroke-linecap','round');});
     l1.setAttribute('x1','42');l1.setAttribute('y1','10');l1.setAttribute('x2','8');l1.setAttribute('y2','25');
     l2.setAttribute('x1','42');l2.setAttribute('y1','40');l2.setAttribute('x2','8');l2.setAttribute('y2','25');
     svg.appendChild(l1);svg.appendChild(l2);
@@ -371,3 +374,132 @@ requestAnimationFrame(() => {
   setTimeout(function(){ _graphAnimDone = true; }, 2000);
 });
 setInterval(() => { renderJobs(); }, 60000);
+
+function switchJobView(view) {
+  var dc=document.getElementById('dayCards');
+  var gv=document.getElementById('gridView');
+  var b1=document.getElementById('btnViewDayCard');
+  var b2=document.getElementById('btnViewGrid');
+  var wf=document.getElementById('weekFilterCard');
+  var hf=document.getElementById('hoursCard');
+  var dr=document.getElementById('dateRangeCard');
+  if(view==='grid'){
+    if(dc)dc.style.display='none';
+    if(gv){gv.style.display='flex';buildGridView(window._currentJob);}
+    if(b1)b1.classList.remove('active');
+    if(b2)b2.classList.add('active');
+    if(wf)wf.style.display='none';
+    if(hf)hf.style.display='none';
+    if(dr)dr.style.display='none';
+  } else {
+    if(dc)dc.style.display='flex';
+    if(gv)gv.style.display='none';
+    if(b1)b1.classList.add('active');
+    if(b2)b2.classList.remove('active');
+    if(wf)wf.style.display='';
+    if(hf)hf.style.display='';
+    if(dr)dr.style.display='';
+  }
+}
+
+function buildGridView(job) {
+  var gv=document.getElementById('gridView');
+  if(!gv||!job)return;
+  gv.innerHTML='';
+  var DAY=86400000,DOW=['S','M','T','W','T','F','S'];
+  var today=new Date();today.setHours(0,0,0,0);
+  var mon=new Date(today);mon.setDate(mon.getDate()-((mon.getDay()+6)%7)-7);
+  var cs=getComputedStyle(document.documentElement);
+  var COL={past:cs.getPropertyValue('--secondary').trim(),today:cs.getPropertyValue('--primary').trim(),future:cs.getPropertyValue('--accent').trim()};
+  var NIGHT='rgba(0,0,0,0.35)';
+  var days=[];
+  for(var i=0;i<21;i++){
+    var d=new Date(mon.getTime()+i*DAY);
+    var key=localDateKey(d),rel=Math.round((d-today)/DAY);
+    var w=rel<0?'past':rel===0?'today':'future';
+    var src=w==='past'?job.worked:job.schedule;
+    var entry=src&&src[key],startH=null,endH=null;
+    if(entry&&entry.start&&entry.start!=='OFF'&&entry.start!=='NONE'&&entry.end){
+      var sm=parseTimeToMins(entry.start),em=parseTimeToMins(entry.end);
+      if(sm!==null&&em!==null){if(em<=sm)em+=1440;startH=sm/60;endH=em/60;}
+    }
+    var extra2S=null,extra2E=null;
+    var ex=(entry&&entry.extra&&entry.extra[0])||null;
+    if(ex&&ex.start&&ex.start!=='NONE'&&ex.end){
+      var sm2=parseTimeToMins(ex.start),em2=parseTimeToMins(ex.end);
+      if(sm2!==null&&em2!==null){if(em2<=sm2)em2+=1440;extra2S=sm2/60;extra2E=em2/60;}
+    }
+    days.push({d:d,rel:rel,w:w,startH:startH,endH:endH,extra2S:extra2S,extra2E:extra2E});
+  }
+  var allS=days.filter(function(x){return x.startH!==null;}).map(function(x){return x.startH;});
+  var allE=days.filter(function(x){return x.endH!==null;}).map(function(x){return x.endH;});
+  days.forEach(function(x){if(x.extra2S!==null){allS.push(x.extra2S);allE.push(x.extra2E);}});
+  if(!allS.length){gv.innerHTML='<div style="padding:16px;text-align:center;color:var(--text-mid);font-size:var(--text-xs);">No shifts scheduled</div>';return;}
+  var TSTART=Math.floor(Math.min.apply(null,allS)),TEND=Math.ceil(Math.max.apply(null,allE));
+  var DSTART=TSTART-1,DEND=TEND+1,DSPAN=DEND-DSTART;
+  function pct(h){return((h-DSTART)/DSPAN*100).toFixed(2)+'%';}
+  function isNight(h){return h<6||h>=18;}
+  function jit(s,r){var x=Math.sin(s*9301+49297)*233280;return(x-Math.floor(x)-0.5)*r;}
+  var card=document.createElement('div');card.className='tw-card';
+  days.forEach(function(day,i){
+    var row=document.createElement('div');row.className='tw-row'+(day.rel===0?' tw-today':'');
+    var dl=document.createElement('div');dl.className='tw-day-lbl';dl.textContent=DOW[day.d.getDay()];row.appendChild(dl);
+    var dn=document.createElement('div');dn.className='tw-date-lbl';dn.textContent=day.d.getDate();row.appendChild(dn);
+    var tl=document.createElement('div');tl.className='tw-timeline';
+    var dur=0;
+    if(day.startH!==null){
+      for(var h=TSTART;h<=TEND;h++){var gl=document.createElement('div');gl.className='tw-gl';gl.style.left=pct(h);tl.appendChild(gl);}
+      var js=day.rel<0?jit(i*3+1,0.6):0,je=day.rel<0?jit(i*3+2,0.6):0;
+      var s=day.startH+js,e=day.endH+je;dur=e-s;
+      var blk=document.createElement('div');blk.className='tw-shift';
+      blk.style.left=pct(s);blk.style.width='calc('+pct(e)+' - '+pct(s)+')';
+      blk.style.background=COL[day.w];tl.appendChild(blk);
+    } else {
+      var off=document.createElement('div');off.className='tw-off';off.textContent='Off';tl.appendChild(off);
+    }
+    row.appendChild(tl);
+    var hrs=document.createElement('div');hrs.className='tw-hours';hrs.textContent=dur>0?dur.toFixed(2):'0.00';row.appendChild(hrs);
+    card.appendChild(row);
+
+    // Second shift row
+    if(day.startH!==null&&day.extra2S!==null){
+      var js2=day.rel<0?jit(i*3+3,0.6):0,je2=day.rel<0?jit(i*3+4,0.6):0;
+      var s2=day.extra2S+js2,e2=day.extra2E+je2,dur2=e2-s2;
+      var overlaps=Math.max(s,s2)<Math.min(e,e2);
+      var blk2=document.createElement('div');blk2.className='tw-shift';
+      blk2.style.left=pct(s2);blk2.style.width='calc('+pct(e2)+' - '+pct(s2)+')';
+      blk2.style.background=COL[day.w];
+      if(!overlaps){
+        // Same row -- add bar to existing timeline, update hours total
+        tl.appendChild(blk2);
+        hrs.textContent=(dur+dur2).toFixed(2);
+      } else {
+        // New row for overlapping second shift
+        var row2=document.createElement('div');row2.className='tw-row'+(day.rel===0?' tw-today':'');
+        var dl2=document.createElement('div');dl2.className='tw-day-lbl';row2.appendChild(dl2);
+        var dn2=document.createElement('div');dn2.className='tw-date-lbl';row2.appendChild(dn2);
+        var tl2=document.createElement('div');tl2.className='tw-timeline';
+        for(var h2=TSTART;h2<=TEND;h2++){var gl2=document.createElement('div');gl2.className='tw-gl';gl2.style.left=pct(h2);tl2.appendChild(gl2);}
+        tl2.appendChild(blk2);row2.appendChild(tl2);
+        var hrs2=document.createElement('div');hrs2.className='tw-hours';hrs2.textContent=dur2.toFixed(2);row2.appendChild(hrs2);
+        card.appendChild(row2);
+      }
+    }
+  });
+  var ns='http://www.w3.org/2000/svg';
+  var labW='calc(var(--day-sq)*2)',hrsW='calc(var(--day-sq)*2 + var(--border-width))';
+  var axis=document.createElement('div');axis.className='tw-axis';
+  var sp=document.createElement('div');sp.className='tw-axis-spacer';
+  sp.style.cssText='width:'+labW+';background:'+(isNight(TSTART)?NIGHT:'')+'';
+  var tk=document.createElement('div');tk.className='tw-axis-ticks';
+  for(var h=TSTART;h<=TEND;h++){
+    var t=document.createElement('div');t.className='tw-tick';t.style.left=pct(h);
+    t.textContent=h>12?String(h-12):String(h);tk.appendChild(t);
+  }
+  if(TSTART<6){var o=document.createElement('div');o.style.cssText='position:absolute;top:0;left:0;width:'+pct(6)+';height:100%;background:'+NIGHT+';pointer-events:none;';tk.appendChild(o);}
+  if(TEND>18){var o2=document.createElement('div');o2.style.cssText='position:absolute;top:0;left:'+pct(18)+';right:0;height:100%;background:'+NIGHT+';pointer-events:none;';tk.appendChild(o2);}
+  var ar=document.createElement('div');ar.style.cssText='width:'+hrsW+';flex-shrink:0;background:'+(isNight(TEND)?NIGHT:'var(--secondary)')+';';
+  axis.appendChild(sp);axis.appendChild(tk);axis.appendChild(ar);
+  card.appendChild(axis);
+  gv.appendChild(card);
+}

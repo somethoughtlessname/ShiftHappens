@@ -171,12 +171,12 @@ function hWeekCard(label, offset, anchorDow) {
   startEl.textContent = hFmtDate(start);
   card.appendChild(startEl);
 
-  // divider line
-  const div = document.createElement('div');
-  div.style.cssText = `height:var(--border-width);background:${mutedCol};width:75%;margin:0 auto;display:block;`;
+  // divider line — CSS pill
   const divWrap = document.createElement('div');
-  divWrap.style.cssText = `background:${darkBg};`;
-  divWrap.appendChild(div);
+  divWrap.style.cssText = `background:${darkBg};padding:3px 0;`;
+  const divPill = document.createElement('div');
+  divPill.style.cssText = `height:3px;width:75%;margin:0 auto;background:${mutedCol};border-radius:99px;`;
+  divWrap.appendChild(divPill);
   card.appendChild(divWrap);
 
   // end date
@@ -279,10 +279,10 @@ function hLast10Card(anchorDow) {
 
     // divider
     const divWrap = document.createElement('div');
-    divWrap.style.cssText = `background:${darkBg};`;
-    const div = document.createElement('div');
-    div.style.cssText = `height:var(--border-width);background:${mutedCol};width:75%;margin:0 auto;`;
-    divWrap.appendChild(div);
+    divWrap.style.cssText = `background:${darkBg};padding:2px 0;`;
+    const divPill = document.createElement('div');
+    divPill.style.cssText = `height:3px;width:75%;margin:0 auto;background:${mutedCol};border-radius:99px;`;
+    divWrap.appendChild(divPill);
     col.appendChild(divWrap);
 
     // end date

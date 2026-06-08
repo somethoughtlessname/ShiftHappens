@@ -726,7 +726,7 @@ function tbBuildWindow() {
         </div>
       </div>
     </div>
-  `;document.body.appendChild(win);(function(){var ns='http://www.w3.org/2000/svg';var svg=document.createElementNS(ns,'svg');svg.setAttribute('width','22');svg.setAttribute('height','22');svg.setAttribute('viewBox','0 0 50 50');var l1=document.createElementNS(ns,'line');var l2=document.createElementNS(ns,'line');[l1,l2].forEach(function(l){l.style.stroke='var(--text-light)';l.setAttribute('stroke-width','5');l.setAttribute('stroke-linecap','round');});l1.setAttribute('x1','42');l1.setAttribute('y1','10');l1.setAttribute('x2','8');l1.setAttribute('y2','25');l2.setAttribute('x1','42');l2.setAttribute('y1','40');l2.setAttribute('x2','8');l2.setAttribute('y2','25');svg.appendChild(l1);svg.appendChild(l2);var el=document.getElementById('themeWindowBack');if(el)el.appendChild(svg);})();
+  `;document.body.appendChild(win);(function(){var ns='http://www.w3.org/2000/svg';var svg=document.createElementNS(ns,'svg');svg.setAttribute('width','22');svg.setAttribute('height','22');svg.setAttribute('viewBox','0 0 50 50');var l1=document.createElementNS(ns,'line');var l2=document.createElementNS(ns,'line');[l1,l2].forEach(function(l){l.setAttribute('stroke','currentColor');l.setAttribute('stroke-width','5');l.setAttribute('stroke-linecap','round');});l1.setAttribute('x1','42');l1.setAttribute('y1','10');l1.setAttribute('x2','8');l1.setAttribute('y2','25');l2.setAttribute('x1','42');l2.setAttribute('y1','40');l2.setAttribute('x2','8');l2.setAttribute('y2','25');svg.appendChild(l1);svg.appendChild(l2);var el=document.getElementById('themeWindowBack');if(el&&!el.querySelector('svg'))el.appendChild(svg);})();
 }
 
 /* ---------------------------------------

@@ -151,13 +151,13 @@ body {
   flex: 1;
   background: var(--bg-3); border: none;
   border-right: var(--border-width) solid var(--border-color);
-  color: var(--text-light);
+  color: var(--text-mid);
   font-size: var(--text-sm); font-weight: var(--fw-bold);
   letter-spacing: var(--ls-wide); text-transform: uppercase;
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
 }
-.header-action-btn:last-child { border-right: none; color: var(--text-mid); }
+.header-action-btn:last-child { border-right: none; }
 
 
 /* -------------------------------------------------------
@@ -196,8 +196,26 @@ body.overlay-over .header-tab { z-index: 10100; }
   border: var(--border-width) solid var(--border-color);
   border-radius: var(--radius); overflow: hidden; flex-shrink: 0;
   display: flex; flex-direction: row; align-items: stretch;
-  cursor: pointer;
+  cursor: pointer; position: relative; height: var(--card-height);
 }
+.jc-normal {
+  display: flex; align-items: stretch; width: 100%;
+  transition: opacity 0.18s ease;
+}
+.job-card.graph-expanded .jc-normal { opacity: 0; pointer-events: none; }
+.jc-expanded {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: row; align-items: stretch;
+  background: var(--bg-2);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.18s ease;
+}
+.job-card.graph-expanded .jc-expanded { opacity: 1; pointer-events: all; }
+.ex-week { flex: 1; display: flex; flex-direction: row; align-items: flex-end; gap: 3px; padding: 5px 5px 3px; }
+.ex-week + .ex-week { border-left: var(--border-width) solid var(--border-color); }
+.ex-col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; flex: 1; min-width: 0; }
+.ex-bar { width: 100%; border-radius: 99px 99px 0 0; }
+.ex-dot { width: 100%; aspect-ratio: 1; border-radius: 50%; margin-bottom: 1px; }
 .job-card-left {
   width: var(--card-height); flex-shrink: 0;
   background: var(--bg-2);
@@ -290,7 +308,7 @@ body.overlay-over .header-tab { z-index: 10100; }
   display: flex; align-items: center; justify-content: center;
   font-size: var(--text-sm); font-weight: var(--fw-bold);
   letter-spacing: var(--ls-wider); text-transform: uppercase;
-  color: var(--text-light); pointer-events: none;
+  color: var(--text-mid); pointer-events: none;
 }
 .data-window-settings {
   width: var(--card-height); min-width: var(--card-height);
@@ -622,7 +640,7 @@ body.overlay-over .header-tab { z-index: 10100; }
   display: flex; align-items: center; justify-content: center;
   font-size: var(--text-sm); font-weight: var(--fw-bold);
   letter-spacing: var(--ls-wider); text-transform: uppercase;
-  color: var(--text-light); pointer-events: none;
+  color: var(--text-mid); pointer-events: none;
 }
 .sched-modal-body {
   --fx-over-active: 0;
@@ -802,7 +820,7 @@ body.overlay-over .header-tab { z-index: 10100; }
   display: flex; align-items: center; justify-content: center;
   background: var(--bg-3); transition: background 0.15s;
 }
-.toggle-card.active .toggle-check { background: var(--primary); }
+.toggle-card.active .toggle-check { background: var(--primary); color: var(--text-light); }
 .toggle-check svg { display: none; }
 .toggle-card.active .toggle-check svg { display: block; }
 .toggle-content {
@@ -879,6 +897,51 @@ body.theme-dusk::after {
 }
 body.theme-dusk { filter: brightness(0.95) contrast(0.95) saturate(0.8); }
 
+
+/* ------- THREE-WEEK GRID VIEW ------- */
+.view-toggle-card { display:flex; height:var(--card-height); flex-shrink:0; border:var(--border-width) solid var(--border-color); border-radius:var(--radius); overflow:hidden; margin-bottom:var(--margin); }
+.tw-card { border:var(--border-width) solid var(--border-color); border-radius:var(--radius); overflow:hidden; background:var(--border-color); display:flex; flex-direction:column; flex-shrink:0; gap:3px; }
+.tw-row { display:flex; flex-direction:row; align-items:center; background:var(--bg-2); height:18px; }
+.tw-day-lbl,.tw-date-lbl { width:var(--day-sq); min-width:var(--day-sq); flex-shrink:0; align-self:stretch; display:flex; align-items:center; justify-content:center; background:var(--bg-4); color:var(--text-dark); font-size:var(--text-xs); font-weight:var(--fw-bold); letter-spacing:var(--ls-wide); text-transform:uppercase; }
+.tw-day-lbl { border-right:var(--border-width) solid var(--border-color); }
+.tw-date-lbl { border-right:var(--border-width) solid var(--border-color); }
+.tw-row.tw-today .tw-day-lbl,.tw-row.tw-today .tw-date-lbl { background:var(--primary); color:var(--text-light); }
+.tw-timeline { flex:1; position:relative; align-self:stretch; }
+.tw-gl { position:absolute; top:0; bottom:0; width:1px; background:rgba(255,255,255,0.18); transform:translateX(-50%); pointer-events:none; }
+.tw-shift { position:absolute; top:50%; transform:translateY(-50%); height:14px; border:var(--border-width) solid var(--border-color); border-radius:99px; }
+.tw-off { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:var(--fw-bold); letter-spacing:var(--ls-widest); text-transform:uppercase; color:var(--text-mid); }
+.tw-hours { width:calc(var(--day-sq)*2 + var(--border-width)); min-width:calc(var(--day-sq)*2 + var(--border-width)); flex-shrink:0; align-self:stretch; display:flex; align-items:center; justify-content:center; background:var(--bg-4); color:var(--text-dark); border-left:var(--border-width) solid var(--border-color); font-size:var(--text-xs); font-weight:var(--fw-bold); letter-spacing:var(--ls-wide); }
+.tw-row.tw-today .tw-hours { background:var(--primary); color:var(--text-light); }
+.tw-axis { display:flex; flex-direction:row; background:var(--secondary); flex-shrink:0; }
+.tw-axis-spacer { flex-shrink:0; }
+.tw-axis-ticks { flex:1; position:relative; height:var(--qs-row); overflow:hidden; background:var(--secondary); }
+.tw-tick { position:absolute; top:0; bottom:0; display:flex; align-items:center; transform:translateX(-50%); font-size:8px; font-weight:var(--fw-bold); color:var(--text-light); white-space:nowrap; user-select:none; z-index:3; }
+
+/* ------- TIMELINE CARD ------- */
+.tl-card { height:var(--card-height); border:var(--border-width) solid var(--border-color); border-radius:var(--radius); overflow:hidden; position:relative; background:var(--bg-2); flex-shrink:0; }
+.tl-gl { position:absolute; top:0; bottom:0; width:1px; background:rgba(255,255,255,0.12); transform:translateX(-50%); pointer-events:none; z-index:1; }
+.tl-night { position:absolute; top:0; bottom:0; background:rgba(0,0,0,0.32); pointer-events:none; z-index:2; }
+.tl-hour { position:absolute; bottom:10px; transform:translateX(-50%); font-size:9px; font-weight:800; color:#fff; z-index:4; pointer-events:none; }
+.tl-elapsed { position:absolute; top:0; bottom:0; left:0; background:rgba(255,255,255,0.06); z-index:2; }
+.tl-shift { position:absolute; top:3px; height:14px; border:var(--border-width) solid var(--border-color); border-radius:99px; z-index:5; }
+.tl-tri { position:absolute; bottom:0; width:0; height:0; border-left:7px solid transparent; border-right:7px solid transparent; border-bottom:9px solid var(--primary); transform:translateX(-50%); z-index:6; }
+
+/* ------- SETTING EXPAND CARD (Pantry Pro style dropdown) ------- */
+.setting-expand-card { border:var(--border-width) solid var(--border-color); border-radius:var(--radius); overflow:hidden; flex-shrink:0; }
+.setting-expand-card > .toggle-card { border:none; border-radius:0; }
+.setting-expand-body { background:var(--bg-3); overflow:hidden; max-height:0; display:flex; flex-direction:column; gap:var(--margin); padding:0; }
+.setting-expand-body.open { max-height:600px; border-top:var(--border-width) solid var(--border-color); padding:var(--margin); }
+.setting-expand-body .toggle-card { border:var(--border-width) solid var(--border-color); border-radius:var(--radius); }
+
+/* ------- DROPDOWN TOGGLE CARD ------- */
+.dd-toggle { cursor:pointer; }
+.dd-toggle-blurb { flex:1; font-size:var(--text-xs); color:var(--text-mid); padding:0 var(--margin); display:flex; align-items:center; }
+
+/* ------- TIMELINE EXPAND CHEVRON ------- */
+.tl-expand-btn { width:var(--card-height); min-width:var(--card-height); flex-shrink:0; align-self:stretch; display:flex; align-items:center; justify-content:center; border-left:var(--border-width) solid var(--border-color); cursor:pointer; color:var(--text-mid); }
+.tl-chev-l { transform-origin:17.5px 25px; transition:transform 0.3s cubic-bezier(0.4,0,0.2,1); }
+.tl-chev-r { transform-origin:32.5px 25px; transition:transform 0.3s cubic-bezier(0.4,0,0.2,1); }
+.tl-expand-btn.open .tl-chev-l,.tl-expand-btn.open .tl-chev-r { transform:rotate(180deg); }
   `;
   document.head.appendChild(style);
 })();
