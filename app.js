@@ -687,7 +687,8 @@ function applyCustomFont(id) {
   let s = document.getElementById('_customFontStyle');
   if (!s) { s = document.createElement('style'); s.id = '_customFontStyle'; document.head.appendChild(s); }
   const f = CUSTOM_FONTS[id || 'def'];
-  s.textContent = (id && id !== 'def') ? `*{font-family:${f.family}!important;}` : '';
+  const isPxl = id === 'pxlf';
+  s.textContent = (id && id !== 'def') ? `*{font-family:${f.family}!important;}` + (isPxl ? `:root{--text-xs:13px;--text-sm:16px;--text-md:19px;}` : '') : '';
 }
 
 
