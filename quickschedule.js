@@ -53,7 +53,7 @@ function renderQuickSchedule() {
     jobs.forEach(job => {
       if (!job.schedule || !job.schedule[key]) return;
       const s    = job.schedule[key];
-      const isOff = s.start === 'OFF';
+      const isOff = s.start === 'OFF' || s.start === 'NONE' || (!s.start && !s.end);
       const startMins = (!isOff && s.start && s.start !== 'NONE') ? parseTimeToMins(s.start) : null;
       const endMins   = (!isOff && s.end   && s.end   !== 'NONE') ? parseTimeToMins(s.end)   : null;
       const normEnd = (endMins !== null && startMins !== null && endMins < startMins)
@@ -98,14 +98,11 @@ function renderQuickSchedule() {
   function hr12(m) { const h = Math.floor(m / 60) % 24; return h > 12 ? h - 12 : (h === 0 ? 12 : h); }
 
 
-  /* -- night overlay helper (6PM-6AM = 1080-1800 normalised) -- */
-  const NIGHT_START = 18 * 60;       // 6PM in mins
-  const NIGHT_END   = 6 * 60 + 1440; // 6AM next day in mins
-
   const cs = getComputedStyle(document.documentElement);
   const _qsRaw = (appSettings && appSettings.qsColor) || '--swatch-7';
   const QS_PURPLE = _qsRaw.startsWith('--') ? cs.getPropertyValue(_qsRaw).trim() : (_qsRaw || cs.getPropertyValue('--accent').trim());
   const QS_PURPLE_DK = darkenColor(QS_PURPLE, 0.8);
+  const QS_NIGHT_MODE = (appSettings && appSettings.timelineNightMode) || '6pm6am';
 
   // Adaptive grid line color from --bg-2
   const _bg2qs = cs.getPropertyValue('--bg-2').trim();
@@ -115,16 +112,26 @@ function renderQuickSchedule() {
   const _clampq=v=>Math.max(0,Math.min(255,v));
   const QS_GRID_COL=`rgb(${_clampq(_rq+_adjq)},${_clampq(_gq+_adjq)},${_clampq(_bq+_adjq)})`;
 
-  function addNightOverlay(container, color) {
-    const oLeft  = Math.max(NIGHT_START, bufLeft);
-    const oRight = Math.min(NIGHT_END,   bufRight);
+  function addNightOverlay(container, s, e) {
+    const oLeft  = Math.max(s, bufLeft);
+    const oRight = Math.min(e, bufRight);
     if (oLeft >= oRight) return;
     const ol = pct(oLeft);
     const ow = pct(oRight) - ol;
     const overlay = document.createElement('div');
     overlay.style.cssText = `position:absolute;top:0;left:${ol}%;width:${ow}%;height:100%;`
-      + `background:${color};pointer-events:none;z-index:1;`;
+      + `background:rgba(0,0,0,0.32);pointer-events:none;z-index:1;`;
     container.appendChild(overlay);
+  }
+
+  function addQSNightZones(container) {
+    if (QS_NIGHT_MODE === 'off') return;
+    if (QS_NIGHT_MODE === '6pm6am') {
+      addNightOverlay(container, 0,    6*60);    // midnight-6am
+      addNightOverlay(container, 18*60, 24*60);  // 6pm-midnight
+    } else {
+      addNightOverlay(container, 12*60, 24*60);  // noon-midnight
+    }
   }
 
   /* -- title -- */
@@ -245,34 +252,54 @@ function renderQuickSchedule() {
   axis.className    = 'qs-axis';
   axis.style.height = QS_ROW_PX + 'px';
 
-  function isNight(m) { const t = m % 1440; return t >= 1080 || t < 360; }
+  function isNight(m) {
+    if (QS_NIGHT_MODE === 'off') return false;
+    const t = m % 1440;
+    if (QS_NIGHT_MODE === '12pm12am') return t >= 720;
+    return t >= 1080 || t < 360;
+  }
 
-  /* single gradient background - margins always light, night center darkens */
+  /* multi-day gradient background for axis */
   function toFullPct(cp) {
     return `calc(${(QS_ROW_PX*(1-2*cp/100)).toFixed(2)}px + ${cp.toFixed(2)}%)`;
   }
-  const M  = QS_ROW_PX;
-  const nL = Math.max(NIGHT_START, bufLeft);
-  const nR = Math.min(NIGHT_END,   bufRight);
-  const hasNight = nL < nR;
+  const M = QS_ROW_PX;
   const lmColor = isNight(axisLeft)  ? QS_PURPLE_DK : QS_PURPLE;
   const rmColor = isNight(axisRight) ? QS_PURPLE_DK : QS_PURPLE;
-  let bg;
-  if (!hasNight) {
-    bg = `linear-gradient(to right,`
-       + `${lmColor} 0,${lmColor} ${M}px,`
-       + `${QS_PURPLE} ${M}px,${QS_PURPLE} calc(100% - ${M}px),`
-       + `${rmColor} calc(100% - ${M}px),${rmColor} 100%)`;
-  } else {
-    const nlPos = toFullPct(pct(nL));
-    const nrPos = toFullPct(pct(nR));
-    bg = `linear-gradient(to right,`
-       + `${lmColor} 0,${lmColor} ${M}px,`
-       + `${QS_PURPLE} ${M}px,${QS_PURPLE} ${nlPos},`
-       + `${QS_PURPLE_DK} ${nlPos},${QS_PURPLE_DK} ${nrPos},`
-       + `${QS_PURPLE} ${nrPos},${QS_PURPLE} calc(100% - ${M}px),`
-       + `${rmColor} calc(100% - ${M}px),${rmColor} 100%)`;
+
+  // Collect all night ranges within [bufLeft, bufRight]
+  var nightRanges = [];
+  if (QS_NIGHT_MODE !== 'off') {
+    var nightS60 = QS_NIGHT_MODE === '12pm12am' ? 12*60 : 18*60;
+    var nightE60 = QS_NIGHT_MODE === '12pm12am' ? 24*60 : 30*60;
+    var totalMins = bufRight - bufLeft + 1440;
+    for (var nd = -1; nd <= Math.ceil(totalMins / 1440); nd++) {
+      var ns = nd * 1440 + nightS60, ne = nd * 1440 + nightE60;
+      // For 6pm6am also add early morning
+      if (QS_NIGHT_MODE === '6pm6am') {
+        var ms = nd * 1440, me = nd * 1440 + 6*60;
+        var cl = Math.max(ms, bufLeft), cr = Math.min(me, bufRight);
+        if (cl < cr) nightRanges.push([cl, cr]);
+      }
+      var l = Math.max(ns, bufLeft), r = Math.min(ne, bufRight);
+      if (l < r) nightRanges.push([l, r]);
+    }
+    nightRanges.sort(function(a,b){return a[0]-b[0];});
   }
+
+  // Build gradient stops
+  var stops = [`${lmColor} 0,${lmColor} ${M}px`];
+  var cur = bufLeft; var prevColor = QS_PURPLE;
+  nightRanges.forEach(function(nr) {
+    var l = nr[0], r = nr[1];
+    if (l > cur) stops.push(`${QS_PURPLE} ${toFullPct(pct(cur))},${QS_PURPLE} ${toFullPct(pct(l))}`);
+    stops.push(`${QS_PURPLE_DK} ${toFullPct(pct(l))},${QS_PURPLE_DK} ${toFullPct(pct(r))}`);
+    cur = r;
+  });
+  if (cur < bufRight) stops.push(`${QS_PURPLE} ${toFullPct(pct(cur))},${QS_PURPLE} calc(100% - ${M}px)`);
+  else stops.push(`${QS_PURPLE} calc(100% - ${M}px)`);
+  stops.push(`${rmColor} calc(100% - ${M}px),${rmColor} 100%`);
+  const bg = `linear-gradient(to right,${stops.join(',')})`;
 
   const axisBg = document.createElement('div');
   axisBg.style.cssText = `position:absolute;inset:0;background:${bg};`;

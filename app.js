@@ -20,6 +20,34 @@ function getSwatchColors() {
   const s = getComputedStyle(document.documentElement);
   return [1,2,3,4,5,6,7,8,9,10].map(i => s.getPropertyValue('--swatch-' + i).trim());
 }
+
+// Called by rand.js after applying a new theme — maps each job to nearest new swatch
+window.remapJobColors = function(newSwatches) {
+  if (!newSwatches || !newSwatches.length) return;
+  function hexToRgb(hex) {
+    hex = hex.replace('#','');
+    if (hex.length === 3) hex = hex.split('').map(c=>c+c).join('');
+    return [parseInt(hex.slice(0,2),16), parseInt(hex.slice(2,4),16), parseInt(hex.slice(4,6),16)];
+  }
+  function colorDist(a, b) {
+    const ra=hexToRgb(a), rb=hexToRgb(b);
+    return Math.sqrt((ra[0]-rb[0])**2 + (ra[1]-rb[1])**2 + (ra[2]-rb[2])**2);
+  }
+  function nearestSwatch(color) {
+    let best = 0, bestDist = Infinity;
+    newSwatches.forEach((s, i) => {
+      try { const d = colorDist(color, s); if (d < bestDist) { bestDist = d; best = i; } } catch(e) {}
+    });
+    return newSwatches[best];
+  }
+  let changed = false;
+  jobs.forEach(job => {
+    if (!job.color) return;
+    const nearest = nearestSwatch(job.color);
+    if (nearest && nearest !== job.color) { job.color = nearest; changed = true; }
+  });
+  if (changed) lsSet('sch_jobs', jobs);
+};
 function buildSwatches(onclickFn) {
   return getSwatchColors().map(c =>
     `<button class="nw-swatch" style="background:${c};" data-color="${c}" onclick="${onclickFn}(this)"></button>`
@@ -130,8 +158,8 @@ function buildWindows() {
         <div class="nw-color-card" id="jsColorCard">${buildSwatches('jsPickColor')}</div>
         <div class="label-card">Select First Day of Work Week</div>
         <div class="dow-card" id="dowCard">${buildDowBtns('jsPickDow')}</div>
-        <div class="toggle-card" id="toggleSecondShift" onclick="settingToggle('showSecondShift')"><div class="toggle-check"><svg width="16" height="13" viewBox="0 0 16 13" fill="none"><path d="M1.5 6.5 L6 11 L14.5 1.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="toggle-content"><div class="toggle-label">Second Shift</div><div class="toggle-blurb">Show extra shift slot on each day card</div></div></div>
-        <div class="toggle-card" id="toggleGridLegend" onclick="settingToggle('showGridLegend')"><div class="toggle-check"><svg width="16" height="13" viewBox="0 0 16 13" fill="none"><path d="M1.5 6.5 L6 11 L14.5 1.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="toggle-content"><div class="toggle-label">Grid Legend</div><div class="toggle-blurb">Show color legend below the grid view</div></div></div>
+        <div class="toggle-card" id="toggleJs_showSecondShift" onclick="jobSettingToggle('showSecondShift')"><div class="toggle-check"><svg width="16" height="13" viewBox="0 0 16 13" fill="none"><path d="M1.5 6.5 L6 11 L14.5 1.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="toggle-content"><div class="toggle-label">Second Shift</div><div class="toggle-blurb">Show extra shift slot on each day card</div></div></div>
+        <div class="toggle-card" id="toggleJs_showGridLegend" onclick="jobSettingToggle('showGridLegend')"><div class="toggle-check"><svg width="16" height="13" viewBox="0 0 16 13" fill="none"><path d="M1.5 6.5 L6 11 L14.5 1.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="toggle-content"><div class="toggle-label">Grid Legend</div><div class="toggle-blurb">Show color legend below the grid view</div></div></div>
         <div class="clear-card" id="clearFullCard" onclick="clearFullSchedule()">Clear Full Schedule</div>
         <div class="delete-card" id="deleteCard" onclick="jsDeleteJob()">Delete Job</div>
       </div>
@@ -162,17 +190,33 @@ function buildWindows() {
         <div id="miniGraphToggleSlot"></div>
         <div id="timeDotToggleSlot"></div>
       </div>
-      <div class="data-body" id="spanel-theme" style="display:none;">
-        <div style="border:var(--border-width) solid var(--border-color);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column">
-          <div onclick="ThemeSystem.open()" style="height:calc(var(--job-half) + var(--border-width)*2);display:flex;align-items:center;justify-content:center;background:var(--primary);color:var(--text-light);font-size:var(--text-xs);font-weight:var(--fw-heavy);letter-spacing:var(--ls-wider);text-transform:uppercase;cursor:pointer;border-bottom:var(--border-width) solid var(--border-color)">Open Theme Builder</div>
-          <div style="display:flex">
-            <div onclick="tbRandFromSettings()" style="flex:1;height:calc(var(--job-half) + var(--border-width)*2);display:flex;align-items:center;justify-content:center;background:var(--secondary);color:var(--text-light);font-size:var(--text-xs);font-weight:var(--fw-heavy);letter-spacing:var(--ls-wider);text-transform:uppercase;cursor:pointer;border-right:var(--border-width) solid var(--border-color);text-align:center;padding:0 4px">Tap to Create Random Themes</div>
-            <div onclick="tbRandReset()" id="tbRandResetBtn" style="flex:1;height:calc(var(--job-half) + var(--border-width)*2);display:flex;align-items:center;justify-content:center;background:var(--accent);color:var(--text-light);font-size:var(--text-xs);font-weight:var(--fw-heavy);letter-spacing:var(--ls-wider);text-transform:uppercase;cursor:pointer;pointer-events:none">Reset</div>
+        <div id="spanel-theme" class="data-body" style="display:none;">
+
+          <!-- Always visible: Create + Builder cards -->
+          <div id="sRandCreateBtn" onclick="sRandCreate()" style="height:var(--card-height);border:var(--border-width) solid var(--border-color);border-radius:var(--radius);background:var(--primary);color:var(--text-light);display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:var(--fw-heavy);letter-spacing:var(--ls-wider);text-transform:uppercase;cursor:pointer;">Tap to Create Random Theme</div>
+          <div id="sRandBuilderBtn" onclick="ThemeSystem.open()" style="height:var(--card-height);border:var(--border-width) solid var(--border-color);border-radius:var(--radius);background:var(--bg-2);color:var(--text-mid);display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:var(--fw-heavy);letter-spacing:var(--ls-wider);text-transform:uppercase;cursor:pointer;">Tap to Enter Theme Builder</div>
+
+          <!-- Revealed after first tap -->
+          <div id="sRandArray" style="display:none;flex-direction:column;gap:var(--border-width);">
+            <!-- Randomize + Name -->
+            <div style="border:var(--border-width) solid var(--border-color);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;">
+              <div onclick="sRandAgain()" style="height:var(--job-half);background:var(--secondary);border-bottom:var(--border-width) solid var(--border-color);display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:var(--fw-heavy);letter-spacing:var(--ls-wider);text-transform:uppercase;cursor:pointer;color:var(--text-light);">Randomize</div>
+              <div id="sRandName" style="height:var(--job-half);background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:var(--fw-heavy);letter-spacing:var(--ls-wide);text-transform:uppercase;text-align:center;padding:0 8px;color:var(--text-light);"></div>
+            </div>
+            <!-- Preview injected here by sRandCreate -->
+            <!-- Actions: Save / Builder / Export / Reset -->
+            <div style="height:var(--card-height);border:var(--border-width) solid var(--border-color);border-radius:var(--radius);overflow:hidden;display:flex;">
+              <div onclick="sRandSave()" style="flex:1;display:flex;align-items:center;justify-content:center;background:var(--bg-2);color:var(--text-mid);font-size:var(--text-xs);font-weight:var(--fw-heavy);letter-spacing:var(--ls-wider);text-transform:uppercase;cursor:pointer;border-right:var(--border-width) solid var(--border-color);">Save</div>
+              <div onclick="sRandEdit()" id="sRandEditBtn" style="flex:1;display:flex;align-items:center;justify-content:center;background:var(--bg-2);color:var(--text-mid);font-size:var(--text-xs);font-weight:var(--fw-heavy);letter-spacing:var(--ls-wider);text-transform:uppercase;cursor:pointer;border-right:var(--border-width) solid var(--border-color);">Builder</div>
+              <div id="sRandExportBtn" onclick="sRandExport()" style="flex:1;display:flex;align-items:center;justify-content:center;background:var(--bg-2);color:var(--text-mid);font-size:var(--text-xs);font-weight:var(--fw-heavy);letter-spacing:var(--ls-wider);text-transform:uppercase;cursor:pointer;border-right:var(--border-width) solid var(--border-color);">Export</div>
+              <div onclick="sRandReset()" style="flex:1;display:flex;align-items:center;justify-content:center;background:var(--bg-2);color:var(--text-mid);font-size:var(--text-xs);font-weight:var(--fw-heavy);letter-spacing:var(--ls-wider);text-transform:uppercase;cursor:pointer;">Reset</div>
+            </div>
           </div>
+
+          <!-- Saved themes -->
+          <div class="label-card" style="margin-top:var(--margin);text-align:center">Pick a Theme</div>
+          <div id="settingsSavedThemesList"></div>
         </div>
-        <div class="label-card" style="margin-top:var(--margin);text-align:center">Pick a Theme</div>
-        <div id="settingsSavedThemesList"></div>
-      </div>
       <div class="data-body" id="spanel-other" style="display:none;">
         <div class="label-card">Style</div>
         <div class="toggle-card" id="toggleDrawnBorders" onclick="settingToggle('drawnBorders')"><div class="toggle-check"><svg width="16" height="13" viewBox="0 0 16 13" fill="none"><path d="M1.5 6.5 L6 11 L14.5 1.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="toggle-content"><div class="toggle-label">Drawn Borders</div><div class="toggle-blurb">Hand-drawn pen style borders on job cards</div></div></div>
@@ -205,7 +249,7 @@ function buildWindows() {
   document.body.insertAdjacentHTML('beforeend', html);
 }
 
-const _settingsDefaults = { showJobCards: true, showQuickSchedule: true, showTimeDot: true, showHistory: true, showTimerSections: true, showMiniGraph: true, miniGraphDays: 3, theme: 'none', showSecondShift: true, customFont: 'def', drawnBorders: false, showTimelineCard: true, timelineRollover: false, timeline24h: false, qsColor: '', qsDays: 7, histColor: '', histWeeks: 10, showGridLegend: true };
+const _settingsDefaults = { showJobCards: true, showQuickSchedule: true, showTimeDot: true, showHistory: true, showTimerSections: true, showMiniGraph: true, miniGraphDays: 3, theme: 'none', showSecondShift: true, customFont: 'def', drawnBorders: false, showTimelineCard: true, timelineRollover: false, timeline24h: false, timelineNightMode: '6pm6am', qsColor: '', qsDays: 7, histColor: '', histWeeks: 10 };
 let appSettings = Object.assign({}, _settingsDefaults, ls('sch_settings', {}));
 
 function updateDaySqVar() {
@@ -222,6 +266,16 @@ function settingToggle(key) {
   renderJobs();
   if(key==='showSecondShift'){updateDaySqVar();renderDayCards();}
   if(key==='drawnBorders'){renderJobs();if(appSettings.drawnBorders)requestAnimationFrame(function(){if(typeof DrawnBorders!=='undefined')DrawnBorders.applyJobWindow();});else if(typeof DrawnBorders!=='undefined')DrawnBorders.clearJobWindow();}
+  var _gv=document.getElementById('gridView');if(_gv&&_gv.style.display==='flex'&&typeof buildGridView==='function')buildGridView(window._currentJob);
+}
+
+function jobSettingToggle(key) {
+  if(!window._currentJob) return;
+  window._currentJob[key] = !window._currentJob[key];
+  lsSet('sch_jobs', jobs);
+  // Sync toggle active state
+  const el = document.getElementById('toggleJs_'+key); if(el) el.classList.toggle('active', !!window._currentJob[key]);
+  if(key==='showSecondShift'){updateDaySqVar();renderDayCards();}
   var _gv=document.getElementById('gridView');if(_gv&&_gv.style.display==='flex'&&typeof buildGridView==='function')buildGridView(window._currentJob);
 }
 
@@ -290,6 +344,8 @@ function updateSettingsUI() {
           `<div class="dd-num-card">${daysHTML}</div>` +
           `<div class="dd-label-card">Current Time Indicator</div>` +
           makeDropdownToggle('toggleTimeDot', "settingToggle('showTimeDot')", 'Triangle marking where you are now') +
+          `<div class="dd-label-card">Activate Shaded Hours</div>` +
+          `<div class="dd-num-card">${[['Off','off'],['6pm - 6am','6pm6am'],['12pm - 12am','12pm12am']].map(function(o){var isOn=(appSettings.timelineNightMode||'6pm6am')===o[1];return '<button class="dd-num-cell'+(isOn?' selected':'')+'" style="'+(isOn?'background:var(--primary);color:#fff;':'')+'" onclick="event.stopPropagation();setTimelineNight(\''+o[1]+'\')">'+o[0]+'</button>';}).join('')}</div>` +
         `</div>` +
       `</div>`;
   }
@@ -338,6 +394,8 @@ function updateSettingsUI() {
         `<div class="setting-expand-body${wasOpen ? ' open' : ''}" id="tlExpandBody" onclick="event.stopPropagation()">` +
           makeDropdownToggle('toggleTimelineRollover', "settingToggle('timelineRollover')", 'Extend past midnight for night shifts') +
           makeDropdownToggle('toggleTimeline24h', "settingToggle('timeline24h')", 'Show hours in 24-hour format') +
+          `<div class="dd-label-card">Activate Shaded Hours</div>` +
+          `<div class="dd-num-card">${[['Off','off'],['6pm - 6am','6pm6am'],['12pm - 12am','12pm12am']].map(function(o){var isOn=(appSettings.timelineNightMode||'6pm6am')===o[1];return '<button class="dd-num-cell'+(isOn?' selected':'')+'" style="'+(isOn?'background:var(--primary);color:#fff;':'')+'" onclick="event.stopPropagation();setTimelineNight(\''+o[1]+'\')">'+o[0]+'</button>';}).join('')}</div>` +
         `</div>` +
       `</div>`;
   }
@@ -430,7 +488,7 @@ function updateSettingsUI() {
     showTimeDot: 'toggleTimeDot', showHistory: 'toggleHistory',
     showTimerSections: 'toggleTimerSections', showMiniGraph: 'toggleMiniGraph',
     showSecondShift: 'toggleSecondShift', drawnBorders: 'toggleDrawnBorders',
-    showTimelineCard: 'toggleTimelineCard', timelineRollover: 'toggleTimelineRollover', timeline24h: 'toggleTimeline24h', showGridLegend: 'toggleGridLegend',
+    showTimelineCard: 'toggleTimelineCard', timelineRollover: 'toggleTimelineRollover', timeline24h: 'toggleTimeline24h',
   };
   Object.keys(toggleMap).forEach(k => {
     const card = document.getElementById(toggleMap[k]);
@@ -786,22 +844,43 @@ function buildTimelineCard() {
   var card = document.createElement('div'); card.className = 'tl-card';
   var rollover = appSettings.timelineRollover;
 
-  // Collect today's shifts to determine max end time
+  // Collect today's shifts
   var todayKey = localDateKey(new Date());
   var shifts = [];
-  jobs.forEach(function(job){
-    var src = job.worked && job.worked[todayKey] ? job.worked : job.schedule;
-    var entry = src && src[todayKey];
+  function collectEntry(entry, color) {
     if (entry && entry.start && entry.start!=='OFF' && entry.start!=='NONE' && entry.end) {
       var sm=parseTimeToMins(entry.start), em=parseTimeToMins(entry.end);
-      if (sm!==null && em!==null) { if(em<=sm) em+=1440; shifts.push({s:sm/60,e:em/60,col:job.color}); }
+      if (sm!==null && em!==null) { if(em<=sm) em+=1440; shifts.push({s:sm/60,e:em/60,col:color}); }
     }
     var ex = entry && entry.extra && entry.extra[0];
     if (ex && ex.start && ex.start!=='NONE' && ex.end) {
       var sm2=parseTimeToMins(ex.start), em2=parseTimeToMins(ex.end);
-      if (sm2!==null && em2!==null) { if(em2<=sm2) em2+=1440; shifts.push({s:sm2/60,e:em2/60,col:job.color}); }
+      if (sm2!==null && em2!==null) { if(em2<=sm2) em2+=1440; shifts.push({s:sm2/60,e:em2/60,col:color}); }
     }
+  }
+  jobs.forEach(function(job){
+    var src = job.worked && job.worked[todayKey] ? job.worked : job.schedule;
+    collectEntry(src && src[todayKey], job.color);
   });
+
+  // Yesterday's overnight shifts (crosses midnight into today) -- offset by -24h to map to today's scale
+  if (rollover) {
+    var yest = new Date(); yest.setDate(yest.getDate()-1);
+    var yKey = localDateKey(yest);
+    jobs.forEach(function(job){
+      var ySrc = job.worked && job.worked[yKey] ? job.worked : job.schedule;
+      var yEntry = ySrc && ySrc[yKey];
+      if (yEntry && yEntry.start && yEntry.start!=='OFF' && yEntry.start!=='NONE' && yEntry.end) {
+        var ysm=parseTimeToMins(yEntry.start), yem=parseTimeToMins(yEntry.end);
+        if (ysm!==null && yem!==null) { if(yem<=ysm) yem+=1440; if(yem>1440) shifts.push({s:(ysm-1440)/60,e:(yem-1440)/60,col:job.color}); }
+      }
+      var yex = yEntry && yEntry.extra && yEntry.extra[0];
+      if (yex && yex.start && yex.start!=='NONE' && yex.end) {
+        var ysm2=parseTimeToMins(yex.start), yem2=parseTimeToMins(yex.end);
+        if (ysm2!==null && yem2!==null) { if(yem2<=ysm2) yem2+=1440; if(yem2>1440) shifts.push({s:(ysm2-1440)/60,e:(yem2-1440)/60,col:job.color}); }
+      }
+    });
+  }
 
   // Determine timeline end: 24h normally, extended if rollover and any shift crosses midnight
   var maxEnd = 24;
@@ -824,15 +903,41 @@ function buildTimelineCard() {
   for (var h=0; h<=maxEnd; h++) {
     var gl=document.createElement('div'); gl.className='tl-gl'; gl.style.left=pct(h); gl.style.background=_glCol; card.appendChild(gl);
   }
-  // Night zones
-  var n1=document.createElement('div'); n1.className='tl-night'; n1.style.left='0%'; n1.style.width=pct(6); card.appendChild(n1);
-  var n2=document.createElement('div'); n2.className='tl-night'; n2.style.left=pct(18); n2.style.width='calc(100% - '+pct(18)+')'; card.appendChild(n2);
-  // Hour labels every 3h including midnight
+  // Night zones based on timelineNightMode setting
+  var nightMode = appSettings.timelineNightMode || '6pm6am';
+  function addNightZone(from, to) {
+    if(from >= to || to <= DSTART || from >= DEND) return;
+    var f = Math.max(from, DSTART), t = Math.min(to, DEND);
+    if(f >= t) return;
+    var nz = document.createElement('div'); nz.className = 'tl-night';
+    nz.style.left = pct(f);
+    if(t >= DEND) { nz.style.right = '0'; }
+    else { nz.style.width = 'calc('+pct(t)+' - '+pct(f)+')'; }
+    card.appendChild(nz);
+  }
+  if (nightMode !== 'off') {
+    if (nightMode === '6pm6am') {
+      addNightZone(DSTART, 0);  // left gap (11pm)
+      for (var nDay = 0; nDay <= Math.ceil(maxEnd / 24); nDay++) {
+        addNightZone(nDay * 24, nDay * 24 + 6);
+        addNightZone(nDay * 24 + 18, nDay * 24 + 24);
+      }
+    } else {
+      // 12pm12am: noon-midnight per day, no left gap, right gap only at midnight boundary
+      for (var nDay2 = 0; nDay2 <= Math.ceil(maxEnd / 24); nDay2++) {
+        addNightZone(nDay2 * 24 + 12, nDay2 * 24 + 24);
+      }
+      if (maxEnd % 24 === 0) addNightZone(maxEnd, DEND);
+    }
+  }
+
+  // Hour labels every 3h - wrap past midnight back to 0-23
   for (var lh=0; lh<=maxEnd; lh+=3) {
     var t=document.createElement('div'); t.className='tl-hour'; t.style.left=pct(lh);
+    var h24 = ((lh % 24) + 24) % 24;
     var label = appSettings.timeline24h
-      ? (lh===24 ? '0' : String(lh))
-      : (lh===0||lh===24 ? '12' : lh<12 ? String(lh) : String(lh-12));
+      ? String(h24)
+      : (h24===0 ? '12' : h24 < 12 ? String(h24) : h24===12 ? '12' : String(h24-12));
     t.textContent = label; card.appendChild(t);
   }
 
@@ -958,11 +1063,16 @@ function openJobSettings() {
     const isActive = parseInt(b.dataset.dow) === savedDow;
     b.classList.toggle('active', isActive); b.style.background = isActive ? job.color : ''; b.style.color = isActive ? 'var(--text-light)' : '';
   });
+  // Sync per-job toggles
+  ['showSecondShift','showGridLegend'].forEach(function(k){
+    var el=document.getElementById('toggleJs_'+k);
+    if(el) el.classList.toggle('active', job[k]!==false);
+  });
   document.getElementById('deleteCard').classList.remove('confirm'); document.getElementById('deleteCard').textContent = 'Delete Job';
   openWindow('jobSettingsWindow');
   requestAnimationFrame(() => {
     const titleCard = document.getElementById('jobSettingsWindow') && document.getElementById('jobSettingsWindow').querySelector('.nw-title-card');
-    if (titleCard && job) { titleCard.style.background = job.color; }  // already in RAF
+    if (titleCard && job) { titleCard.style.background = job.color; }
   });
 }
 function jsUpdateTitle() {
@@ -1159,4 +1269,20 @@ function mgPickDays(n) {
     });
   }
   renderJobs();
+}
+
+function setTimelineNight(mode) {
+  appSettings.timelineNightMode = mode;
+  lsSet('sch_settings', appSettings);
+  var modes = ['off','6pm6am','12pm12am'];
+  // Update all night mode pickers (timeline + QS dropdowns)
+  document.querySelectorAll('.dd-num-card .dd-num-cell').forEach(function(c,i){});
+  [document.getElementById('tlExpandBody'), document.getElementById('qsExpandBody')].forEach(function(body){
+    if (!body) return;
+    var cells = body.querySelectorAll('.dd-num-card:last-of-type .dd-num-cell');
+    if (!cells.length) cells = body.querySelectorAll('.dd-num-cell');
+    cells.forEach(function(c,i){ var isOn=modes[i]===mode; c.classList.toggle('selected',isOn); c.style.background=isOn?'var(--primary)':''; c.style.color=isOn?'#fff':''; });
+  });
+  renderJobs();
+  if (typeof renderQuickSchedule === 'function') { buildQuickSchedule(); renderQuickSchedule(); }
 }

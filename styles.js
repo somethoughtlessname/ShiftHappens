@@ -932,7 +932,7 @@ body.theme-dusk { filter: brightness(0.95) contrast(0.95) saturate(0.8); }
 .setting-expand-card { border:var(--border-width) solid var(--border-color); border-radius:var(--radius); overflow:hidden; flex-shrink:0; }
 .setting-expand-card > .toggle-card { border:none; border-radius:0; height:calc(var(--card-height) - var(--border-width) * 2); }
 .setting-expand-body { background:var(--bg-3); overflow:hidden; max-height:0; display:flex; flex-direction:column; gap:var(--margin); padding:0; }
-.setting-expand-body.open { max-height:600px; border-top:var(--border-width) solid var(--border-color); padding:var(--margin); }
+.setting-expand-body.open { max-height:800px; border-top:var(--border-width) solid var(--border-color); padding:var(--margin); }
 .setting-expand-body .toggle-card { border:var(--border-width) solid var(--border-color); border-radius:var(--radius); }
 
 /* ------- DROPDOWN TOGGLE CARD ------- */

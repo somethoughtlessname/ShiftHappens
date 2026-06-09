@@ -65,24 +65,10 @@ const TB_BASE_VAR_MAP = {
 --------------------------------------- */
 
 function tbApplyCssVars(baseColors, jobColors) {
-  const root = document.documentElement;const cs = getComputedStyle(root);
-  // Capture old swatch colors BEFORE setting new values (index 0 = swatch1)
-  const oldSwatches = Array.from({length:10},(_,i)=>cs.getPropertyValue('--swatch-'+(i+1)).replace(/\s/g,'').toLowerCase());
-  delete baseColors.muted;delete baseColors.color10;
-  Object.keys(baseColors).forEach(k=>{const v=TB_BASE_VAR_MAP[k];if(v)root.style.setProperty(v,baseColors[k]);});
-  Object.keys(jobColors).forEach(k=>{const v=TB_JOB_VAR_MAP[k];if(v)root.style.setProperty(v,jobColors[k]);});
-  // Update job colors by matching against old swatch positions
-  if(typeof jobs!=='undefined'){
-    const newSwatches=Array.from({length:10},(_,i)=>(jobColors['swatch'+(i+1)]||'').replace(/\s/g,'').toLowerCase());
-    let changed=false;
-    jobs.forEach(job=>{
-      if(!job.color)return;
-      const jc=job.color.replace(/\s/g,'').toLowerCase();
-      const idx=oldSwatches.indexOf(jc);
-      if(idx!==-1&&newSwatches[idx]&&newSwatches[idx]!==jc){job.color=newSwatches[idx];changed=true;}
-    });
-    if(changed&&typeof lsSet==='function')lsSet('sch_jobs',jobs);
-  }
+  const root = document.documentElement;
+  delete baseColors.muted; delete baseColors.color10;
+  Object.keys(baseColors).forEach(k => { const v = TB_BASE_VAR_MAP[k]; if (v) root.style.setProperty(v, baseColors[k]); });
+  Object.keys(jobColors).forEach(k => { const v = TB_JOB_VAR_MAP[k]; if (v) root.style.setProperty(v, jobColors[k]); });
 }
 
 function tbRerender() {
@@ -372,13 +358,19 @@ window.ThemeSystem = {
     const themes = this.getSavedThemes();themes.splice(index, 1);localStorage.setItem('shift_themes', JSON.stringify(themes));this.deleteConfirm = {};this.renderSavedList();},
 
   openSaveModal() {
-    const modal = document.getElementById('tbSaveModal');if (modal) {
-      modal.style.display = 'flex';const inp = document.getElementById('tbThemeNameInput');if (inp) { inp.value = ''; inp.focus(); }
+    const modal = document.getElementById('tbSaveModal');
+    if (modal) {
+      if (modal.parentElement !== document.body) document.body.appendChild(modal);
+      modal.style.display = 'flex';
+      const inp = document.getElementById('tbThemeNameInput');
+      if (inp) { inp.value = ''; inp.focus(); }
     }
   },
 
   closeSaveModal() {
-    const modal = document.getElementById('tbSaveModal');if (modal) modal.style.display = 'none';},
+    const modal = document.getElementById('tbSaveModal');
+    if (modal) modal.style.display = 'none';
+  },
 
   confirmSave() {
     const name = (document.getElementById('tbThemeNameInput').value || '').trim();if (!name) return;const exists = this.getSavedThemes().findIndex(t => t.name === name) !== -1;if (exists) {
@@ -698,7 +690,7 @@ function tbBuildWindow() {
     </div>
 
     <!-- SAVE MODAL -->
-    <div id="tbSaveModal" style="display:none;position:fixed;inset:0;z-index:9100;align-items:center;justify-content:center;backdrop-filter:blur(6px);background:rgba(0,0,0,0.3);">
+    <div id="tbSaveModal" style="display:none;position:fixed;inset:0;z-index:11000;align-items:center;justify-content:center;backdrop-filter:blur(6px);background:rgba(0,0,0,0.3);">
       <div style="background:var(--bg-2);border:var(--border-width) solid var(--border-color);border-radius:var(--radius);width:90%;max-width:320px;overflow:hidden;">
         <div class="label-card" style="border-radius:0;border:none;border-bottom:var(--border-width) solid var(--border-color);">Save Theme</div>
         <div style="padding:var(--margin);">
@@ -716,7 +708,7 @@ function tbBuildWindow() {
     <div id="tbRandPanelSlot"></div>
 
         <!-- OVERWRITE MODAL -->
-    <div id="tbOverwriteModal" style="display:none;position:fixed;inset:0;z-index:9100;align-items:center;justify-content:center;backdrop-filter:blur(6px);background:rgba(0,0,0,0.3);">
+    <div id="tbOverwriteModal" style="display:none;position:fixed;inset:0;z-index:11000;align-items:center;justify-content:center;backdrop-filter:blur(6px);background:rgba(0,0,0,0.3);">
       <div style="background:var(--bg-2);border:var(--border-width) solid var(--border-color);border-radius:var(--radius);width:90%;max-width:320px;overflow:hidden;">
         <div class="label-card" style="border-radius:0;border:none;border-bottom:var(--border-width) solid var(--border-color);">Overwrite Theme?</div>
         <div style="padding:12px;text-align:center;font-size:var(--text-xs);color:var(--text-light);">A theme with this name already exists.</div>

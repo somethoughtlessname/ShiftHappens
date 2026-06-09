@@ -378,6 +378,24 @@ const _rBgStrategies = {
     const angle = which === 'near-warm' ? _rRnd(25,45) : which === 'near-cool' ? _rRnd(-45,-25) : which === 'far-warm' ? _rRnd(315,335) : _rRnd(25,55);
     return { bgH: (h + angle + 360) % 360, bgS: _rRnd(10, 18) };
   },
+
+  // Vivid primary — high saturation, bg hue = primary hue
+  'vivid-primary': h => ({ bgH: h, bgS: _rRnd(55, 85), vivid: true }),
+
+  // Vivid complement — saturated opposite hue
+  'vivid-complement': h => ({ bgH: (h + 180 + _rRnd(-15,15) + 360) % 360, bgS: _rRnd(50, 80), vivid: true }),
+
+  // Vivid contrast — saturated 90° or 120° offset
+  'vivid-contrast': h => ({ bgH: (h + _rPick([90,-90,120,-120]) + _rRnd(-15,15) + 360) % 360, bgS: _rRnd(45, 75), vivid: true }),
+
+  // Vivid wild — completely random saturated hue, no relation to primary
+  'vivid-wild': h => ({ bgH: Math.floor(_rRnd(0, 360)), bgS: _rRnd(40, 90), vivid: true }),
+
+  // Vivid warm — saturated warm hues (red/orange/amber)
+  'vivid-warm': h => ({ bgH: _rPick([0,10,20,30,40,50]), bgS: _rRnd(50, 80), vivid: true }),
+
+  // Vivid cool — saturated cool hues (teal/blue/cyan)
+  'vivid-cool': h => ({ bgH: _rPick([180,190,200,210,220,240]), bgS: _rRnd(50, 80), vivid: true }),
 };
 
 
@@ -410,10 +428,16 @@ function _rMakeTheme(primaryHex, fixedPrimary) {
   const bgPick = (_rBgStrategies[bgKey] || _rBgStrategies.complement)(h);
   const bH     = bgKey === 'primary-dark' ? h : bgPick.bgH;
   const bS     = bgPick.bgS;
+  const vivid  = !!bgPick.vivid;
   const w      = () => _rRnd(-2, 2);
 
   let bg1, bg2, bg3;
-  if (tone === 'dark') {
+  if (vivid) {
+    const vL = tone === 'dark' ? _rRnd(18, 38) : tone === 'mid' ? _rRnd(30, 50) : _rRnd(55, 72);
+    bg1 = _rHsl(bH, bS, vL + w());
+    bg2 = _rHsl(bH, Math.max(20, bS - 10), vL + 10 + w());
+    bg3 = _rHsl(bH, bS, vL - 10 + w());
+  } else if (tone === 'dark') {
     bg1 = _rHsl(bH, bS, 12 + w()); bg2 = _rHsl(bH, bS, 20 + w()); bg3 = _rHsl(bH, bS, 7 + w());
   } else if (tone === 'mid') {
     bg1 = _rHsl(bH, bS, 26 + w()); bg2 = _rHsl(bH, bS, 34 + w()); bg3 = _rHsl(bH, bS, 18 + w());
@@ -421,29 +445,49 @@ function _rMakeTheme(primaryHex, fixedPrimary) {
     bg1 = _rHsl(bH, bS, 93 + w()); bg2 = _rHsl(bH, bS, 85 + w()); bg3 = _rHsl(bH, bS, 77 + w());
   }
 
-  // Text - find which candidate works best across action colors and bg surfaces
-  const WHITE = '#f2f2f2', BLACK = '#111111';
-  const actions = [pri, sec, acc];
-  const surfaces = [bg1, bg2, bg3];
-  // textLight is rendered ON action colors (headers) -- score against actions only
-  const worstW_actions = Math.min(...actions.map(c => _rRatio(WHITE, c)));
-  const worstB_actions = Math.min(...actions.map(c => _rRatio(BLACK, c)));
-  let tl = worstW_actions >= worstB_actions ? WHITE : BLACK;
-  // bg3 also gets text-light (header tab) -- flip only if it won't break action contrast
-  if (_rRatio(tl, bg3) < 3.5) {
-    const flipped = tl === WHITE ? BLACK : WHITE;
-    if (Math.min(...actions.map(c => _rRatio(flipped, c))) >= 3.5) tl = flipped;
+  // -- NEW CONTRAST RULES ------------------------------------------
+  // Walk lightness until contrast passes -- stays in hue family
+  function _rWalk(h, s, startL, surfaces, minR) {
+    const goLight = startL > 50;
+    const step = goLight ? 1 : -1;
+    let l = startL;
+    for (let i = 0; i < 90; i++) {
+      const c = _rHsl(h, s, l);
+      if (surfaces.every(sf => _rRatio(c, sf) >= minR)) return c;
+      l += step;
+      if (l >= 98 || l <= 2) break;
+    }
+    return goLight ? _rHsl(h, Math.min(s, 15), 96) : _rHsl(h, Math.min(s, 15), 4);
   }
-  // Hard floor -- if tl still fails action contrast, force it
-  if (Math.min(...actions.map(c => _rRatio(tl, c))) < 3) {
-    tl = _rLum(pri) > 0.15 ? BLACK : WHITE;
-  }
-  const tm = _rLum(bg2) > 0.3 ? _rHsl(bH, 20, 35) : _rHsl(bH, 12, 65);
 
-  // Border
-  const border = tone === 'light'
-    ? _rPick(['#000000', _rHsl(bH, 15, 20), _rHsl(bH, 12, 28)])
-    : _rPick([_rHsl(bH, Math.max(bS, 5), 4), '#000000']);
+  // text-light -- must pass 4.5:1 on pri, sec, acc, bg3
+  const tlSurfaces = [pri, sec, acc, bg3];
+  const tlLumAvg = tlSurfaces.reduce((a, c) => a + _rLum(c), 0) / tlSurfaces.length;
+  const tlGoLight = tlLumAvg < 0.35;
+  const tlStartL = tlGoLight ? 88 : 12;
+  const tlStartS = Math.min(bS * 1.5, 30);
+  const tl = _rWalk(bH, tlStartS, tlStartL, tlSurfaces, 4.5);
+
+  // border -- always dark, occasionally dark-colored
+  const tlIsDark = _rLum(tl) < 0.2;
+  let border;
+  if (tlIsDark) {
+    border = tl;
+  } else {
+    const useDarkColor = Math.random() < 0.1;
+    if (useDarkColor) {
+      const brdH = _rPick([h, (h + 180) % 360, bH]);
+      border = _rHsl(brdH, Math.min(pS * 0.6, 45), Math.round(_rRnd(8, 16)));
+    } else {
+      border = _rHsl(bH, Math.min(bS * 0.5, 10), Math.round(_rRnd(3, 10)));
+    }
+  }
+
+  // text-mid -- bg hue family, walk to 4.5:1 on hardest bg
+  const tmHard = tone === 'light' ? bg3 : bg2;
+  const tmGoLight = _rLum(tmHard) < 0.35;
+  const tmStartS = Math.min(bS * 2, 30);
+  const tm = _rWalk(bH, tmStartS, tmGoLight ? 72 : 28, [tmHard], 4.5);
 
   // Surface (bg4)
   const surfaceNames = [
@@ -538,8 +582,10 @@ function _rMakeTheme(primaryHex, fixedPrimary) {
     ? Math.floor(Math.random() * surfaceFns.length) % surfaceFns.length
     : Math.max(0, Math.min(surfaceNames.indexOf(_rSurfSel), surfaceFns.length - 1));
   let { bg4, td4 } = surfaceFns[surfIdx]();
-  if (!bg4) { bg4 = '#ffffff'; td4 = '#000000'; } // safety fallback
-  if (_rRatio(td4, bg4) < 4) td4 = _rLum(bg4) > 0.5 ? _rHsl(bH, bS, 4) : _rHsl(bH, 6, 92);
+  if (!bg4) { bg4 = '#ffffff'; td4 = '#000000'; }
+  // Walk td4 to pass 4.5:1 on bg4 -- keep hue tinted
+  const [td4H, td4S] = [bH, Math.min(bS * 1.5, 20)];
+  td4 = _rWalk(td4H, td4S, _rLum(bg4) > 0.5 ? 5 : 90, [bg4], 4.5);
 
   // Swatches
   const sw = [0, ...offsets, 60, 90, 120, 150, 180, 210, 270]
@@ -557,6 +603,184 @@ function _rMakeTheme(primaryHex, fixedPrimary) {
 }
 
 
+// -- THEME NAME GENERATOR ----------------------------------------------------
+function _rClassifyColor(hex) {
+  const r=parseInt(hex.slice(1,3),16)/255, g=parseInt(hex.slice(3,5),16)/255, b=parseInt(hex.slice(5,7),16)/255;
+  const mx=Math.max(r,g,b), mn=Math.min(r,g,b), l=(mx+mn)/2;
+  const s = mx===mn ? 0 : l>0.5 ? (mx-mn)/(2-mx-mn) : (mx-mn)/(mx+mn);
+  const sl=Math.round(s*100), ll=Math.round(l*100);
+  if (ll < 8) return 'black';
+  if (ll > 90 && sl < 20) return 'white';
+  const thresh = ll > 70 ? 22 : ll < 25 ? 18 : 14;
+  if (sl < thresh) return ll < 40 ? 'grey-dark' : ll > 65 ? 'grey-light' : 'grey';
+  let hh = 0;
+  if (mx !== mn) {
+    const d = mx-mn;
+    hh = mx===r ? (g-b)/d+(g<b?6:0) : mx===g ? (b-r)/d+2 : (r-g)/d+4;
+    hh = Math.round(hh/6*360);
+  }
+  if (hh < 15 || hh >= 345) return 'red';
+  if (hh < 45)  return 'orange';
+  if (hh < 75)  return 'yellow';
+  if (hh < 100) return 'yellow-green';
+  if (hh < 155) return 'green';
+  if (hh < 195) return 'teal';
+  if (hh < 255) return 'blue';
+  if (hh < 295) return 'purple';
+  return 'pink';
+}
+
+function _rAnalyzeTheme(t) {
+  const weighted = [
+    [t.bg1,4],[t.bg2,3],[t.bg3,2.5],[t.bg4,1.5],
+    [t.primary,2],[t.secondary,1.5],[t.accent,1],[t.border,0.5],
+  ];
+  const totals = {}, total = weighted.reduce((s,[,w])=>s+w,0);
+  weighted.forEach(([hex,w])=>{ const cat=_rClassifyColor(hex); totals[cat]=(totals[cat]||0)+w; });
+  return Object.entries(totals).map(([k,v])=>({cat:k,pct:Math.round(v/total*100)})).sort((a,b)=>b.pct-a.pct);
+}
+
+function _rHueWords(h, s) {
+  h=((h%360)+360)%360;
+  if(s!==undefined&&s<8) return ['Ash','Smoke','Slate','Stone','Fog','Cinder'];
+  const bands=[
+    ['Garnet','Carmine','Claret','Vermeil','Lacquer'],
+    ['Scarlet','Flame','Blaze','Flare','Cinnabar'],
+    ['Ember','Cinder','Smolder','Char','Burn'],
+    ['Rust','Oxide','Tarnish','Patina','Wrought'],
+    ['Terra','Clay','Adobe','Loam','Tilework'],
+    ['Sienna','Ochre','Umber','Warm','Raw'],
+    ['Copper','Bronze','Metal','Forge','Foundry'],
+    ['Amber','Resin','Honey','Sap','Gold'],
+    ['Gold','Gilded','Bullion','Sovereign','Doubloon'],
+    ['Harvest','Grain','Field','Straw','Wheat'],
+    ['Solar','Sunlit','Bright','Noon','Peak'],
+    ['Flax','Lemon','Citron','Pale','Yellow'],
+    ['Lime','Absin','Acid','Tonic','Cloud'],
+    ['Lime','Citrus','Zest','Rind','Peel'],
+    ['Sprout','Shoot','Bud','Seedling','Tender'],
+    ['Leaf','Blade','Frond','Canopy','Green'],
+    ['Fern','Brush','Scrub','Glade','Dapple'],
+    ['Forest','Timber','Grove','Copse','Thicket'],
+    ['Pine','Spruce','Branch','Bough','Needle'],
+    ['Moss','Lichen','Peat','Bog','Marsh'],
+    ['Jade','Sage','Copper','Stone','Patina'],
+    ['Emerald','Viridian','Beryl','Tourmaline','Verdure'],
+    ['Seafoam','Surf','Brine','Kelp','Saltwater'],
+    ['Teal','Shore','Shallow','Estuary','Inlet'],
+    ['Lagoon','Island','Cove','Reef','Atoll'],
+    ['Turquoise','Glacial','Fjord','Thaw','Ice'],
+    ['Aqua','Pool','Robin','Clear','Crystal'],
+    ['Harbor','Marina','Port','Mooring','Dock'],
+    ['Azure','Sky','Cirrus','Horizon','Canopy'],
+    ['Cerulean','Powder','Haze','Vapor','Air'],
+    ['Cornflower','Peri','Delphinium','Bell','Bluebell'],
+    ['Cobalt','Lapis','Majorelle','Klein','Ultra'],
+    ['Ocean','Pelagic','Deep','Dark','Floor'],
+    ['Storm','Tempest','Squall','Gale','Maelstrom'],
+    ['Slate','Gunmetal','Flint','Steel','Iron'],
+    ['Sapphire','Regal','Royal','Celestial','Lapis'],
+    ['Navy','Night','Sailor','Admiral','Deep'],
+    ['Indigo','Shade','Indigo','Pigment','Blue'],
+    ['Wisteria','Iris','Violet','Lupine','Bell'],
+    ['Amethyst','Geode','Crystal','Stone','Quartz'],
+    ['Plum','Dark','Sloe','Berry','Nightfall'],
+    ['Mulberry','Grape','Wine','Bramble','Claret'],
+    ['Orchid','Heather','Bloom','Thistle','Lavender'],
+    ['Fuchsia','Magenta','Shocking','Bright','Vivid'],
+    ['Hibiscus','Cerise','Bloom','Dragon','Punch'],
+    ['Rose','Peony','Damask','Floret','Petal'],
+    ['Berry','Raspberry','Bramble','Briar','Thornwood'],
+    ['Crimson','Madder','Red','Carmine','Lake'],
+    ['Oxblood','Burgundy','Bordeaux','Merlot','Wine'],
+    ['Maroon','Cardinal','Ruby','Carnelian','Garnet'],
+  ];
+  return bands[Math.min(Math.floor(h/7.2),49)]||bands[0];
+}
+
+function _rToneWords(tone, vivid) {
+  if(vivid) return ['Electric','Neon','Vivid','Charged','Radiant','Blazing'];
+  if(tone==='dark')  return ['Midnight','Shadow','Obsidian','Abyss','Noir','Void'];
+  if(tone==='mid')   return ['Dusk','Smoke','Haze','Twilight','Fog','Ash'];
+  return ['Dawn','Frost','Pearl','Ivory','Linen','Mist'];
+}
+
+function _rFixArticles(name) {
+  return name
+    .replace(/\bA ([aeiouAEIOU])/g,'An $1')
+    .replace(/\ba ([aeiouAEIOU])/g,'an $1')
+    .replace(/\bAn ([^aeiouAEIOU])/g,'A $1')
+    .replace(/\ban ([^aeiouAEIOU])/g,'a $1');
+}
+
+function _rMakeName(t, tone) {
+  const neutralCats = new Set(['grey','grey-dark','grey-light','black','white']);
+  const bucketHueMap = {red:5,orange:30,yellow:55,'yellow-green':88,green:125,teal:170,blue:220,purple:270,pink:320};
+  const analysis = _rAnalyzeTheme(t);
+  const colored = analysis.filter(x=>!neutralCats.has(x.cat));
+  function wordsFor(b){ return b?_rHueWords(bucketHueMap[b.cat]||0,60):_rHueWords(Math.floor(Math.random()*360),60); }
+  const used = new Set();
+  function fp(pool){ const f=pool.filter(w=>!used.has(w)); const w=_rPick(f.length?f:pool); used.add(w); return w; }
+  const A=()=>fp(wordsFor(colored[0]));
+  const B=()=>fp(wordsFor(colored[1]||colored[0]));
+  const C=()=>fp(wordsFor(colored[2]||colored[0]));
+  const D=()=>fp(_rToneWords(tone, t._tone==='vivid'));
+  const adjDark=['Dark','Deep','Rich','Heavy','Dim','Smoky','Dense','Dusky'];
+  const adjLight=['Soft','Pale','Faint','Clear','Airy','Washed','Gentle','Hushed'];
+  const adjMid=['Muted','Worn','Faded','Quiet','Still','Bare','Warm','Cool'];
+  const allAdj=tone==='dark'?[...adjDark,...adjMid]:tone==='light'?[...adjLight,...adjMid]:[...adjMid,...adjDark,...adjLight];
+  const E=()=>fp(allAdj);
+  const moods=['Reverie','Elegy','Solace','Longing','Vigil','Lament','Rapture','Ache','Bliss'];
+  const phen=['Thunder','Monsoon','Solstice','Eclipse','Tempest','Torrent','Cascade','Aurora','Gloaming'];
+  const places=['Summit','Canyon','Vale','Glade','Hollow','Ridge','Delta','Gorge','Cavern','Moor'];
+  const music=['Nocturne','Aria','Fugue','Sonata','Requiem','Cantata','Dirge','Ballad','Hymn'];
+  const abst=['Whisper','Echo','Phantom','Specter','Mirage','Secret','Omen','Veil','Shroud','Shadow'];
+  const W=()=>fp([...moods,...phen,...places,...music,...abst]);
+  const sig=colored.filter(x=>x.pct>=8);
+  const actionsSimilar=sig.length<2;
+  const isGreyDom=!colored.length||colored[0].pct<10;
+  const templates=[
+    ()=>B()+" of the "+D(), ()=>A()+" in the "+D(), ()=>D()+" of "+B(),
+    ()=>B()+" a la "+C(), ()=>B()+" meets "+C(), ()=>"A "+D()+" "+B(),
+    ()=>B()+" after "+D(), ()=>C()+" at "+D(), ()=>D()+" over "+A(),
+    ()=>B()+" beyond the "+D(), ()=>A()+" and "+B(), ()=>B()+" through "+D(),
+    ()=>C()+" in "+A(), ()=>B()+" "+C()+" in Moonlight", ()=>A()+" "+B()+" at Dusk",
+    ()=>"Somewhere Between "+B()+" and "+C(), ()=>"Born of "+B()+" and "+C(),
+    ()=>B()+" Steeped in "+D(), ()=>"The "+B()+" "+C()+" Hour",
+    ()=>"Where "+B()+" Meets "+C(), ()=>B()+" Before the "+D(),
+    ()=>B()+" Painted in "+C(), ()=>"Once "+D()+", Always "+B(),
+    ()=>B()+", "+C()+", and "+D(), ()=>A()+", "+B()+", and "+C(),
+    ()=>"My "+D()+" "+B()+" "+C(), ()=>"A Time of "+B()+" and "+C(),
+    ()=>"The Last "+B()+" "+D(),
+    ()=>B()+"'s "+C(), ()=>B()+"'s "+D(), ()=>"The "+B()+" of "+C(),
+    ()=>"The "+D()+" of "+B(), ()=>"Let "+B()+" be "+C(), ()=>"Let "+D()+" be "+B(),
+    ()=>B()+" for "+C(), ()=>B()+" against "+D(), ()=>B()+" beside "+C(),
+    ()=>B()+" without "+C(), ()=>B()+" chasing "+C(), ()=>B()+" becoming "+D(),
+    ()=>B()+" carrying "+C(), ()=>B()+" or "+C(), ()=>B()+" always "+D(),
+    ()=>B()+" still "+D(), ()=>B()+" within "+D(),
+    ()=>E()+" "+B()+" "+C(), ()=>E()+" "+B()+" "+D(), ()=>E()+" "+A()+" "+B(),
+    ()=>"The "+E()+" "+B(), ()=>E()+" "+B()+" of the "+D(),
+    ()=>B()+" and "+E()+" "+C(), ()=>E()+" and "+B(), ()=>B()+", "+E()+" "+C(),
+    ()=>B()+" of the "+W(), ()=>W()+" of "+B(), ()=>B()+" in "+W(),
+    ()=>"A "+W()+" of "+B(), ()=>W()+" over "+B(), ()=>B()+" through the "+W(),
+    ()=>"The "+B()+" "+W(), ()=>W()+" in "+B()+" Light",
+    ()=>W()+" of the "+W(), ()=>W()+" and "+W(), ()=>"The "+W()+" "+W(),
+  ];
+  const singleColor=[
+    ()=>"Just "+B(), ()=>"Pure "+B(), ()=>"All "+B(), ()=>"The "+B(),
+    ()=>"Only "+B(), ()=>B()+" Alone", ()=>"A Study in "+B(), ()=>"Nothing but "+B(),
+  ];
+  const pool=actionsSimilar||isGreyDom?[...singleColor,...templates.slice(50)]:templates;
+  let best=null;
+  for(let i=0;i<6;i++){
+    used.clear();
+    const cand=_rFixArticles(_rPick(pool)());
+    if(!best||cand.length<best.length) best=cand;
+    if(best.length<=25) break;
+  }
+  return best||'';
+}
+
 // -- APPLY THEME --------------------------------------------------------------
 function _rApplyTheme(t) {
   const bc = {
@@ -569,12 +793,29 @@ function _rApplyTheme(t) {
   const jc = {};
   t.sw.forEach((c, i) => { jc['swatch' + (i + 1)] = c; });
 
+  // Capture old swatches before applying (unused now, kept for safety)
+  const oldSwatches = typeof getSwatchColors === 'function' ? getSwatchColors() : [];
+
   ThemeSystem.baseColors = Object.assign({}, ThemeSystem.baseColors, bc);
   ThemeSystem.jobColors  = Object.assign({}, ThemeSystem.jobColors, jc);
   tbApplyCssVars(ThemeSystem.baseColors, ThemeSystem.jobColors);
+
+  // Remap job colors to nearest new swatches via app.js helper
+  const newSwatches = typeof getSwatchColors === 'function' ? getSwatchColors() : [];
+  if (typeof window.remapJobColors === 'function') window.remapJobColors(newSwatches);
+
   if (typeof tbRerender === 'function') tbRerender();
   ThemeSystem.renderBaseSwatches();
   ThemeSystem.renderJobSwatches();
+
+  // Generate and display theme name
+  const nameEl = document.getElementById('tbRandNameDisplay');
+  if (nameEl) {
+    const name = _rMakeName(bc, t._tone);
+    nameEl.textContent = name;
+    nameEl.style.background = t.pri;
+    nameEl.style.color = t.tl;
+  }
 
   // Highlight used/selected choices in each chip group
   const pairs = [
@@ -635,6 +876,7 @@ window.tbRandRandom = function () {
   _rUpdatePrimaryCard();
   const t = _rMakeTheme(_rHsl(randHue, randSat, randBri), true);
   _rApplyTheme(t);
+  return t;
 };
 
 window.tbRandApply = function () {
@@ -646,39 +888,107 @@ window.tbRandApply = function () {
 // -- SETTINGS TAB ACTIONS -----------------------------------------------------
 var _rPreRandColors = null; // snapshot of theme before first random
 
-window.tbRandFromSettings = function () {
-  // Enable reset button on first call
-  if (!_rPreRandColors) {
-    _rPreRandColors = true; // just a flag -- reset reads from localStorage
-    const btn = document.getElementById('tbRandResetBtn');
-    if (btn) {
-      btn.style.pointerEvents = 'auto';
+// -- SETTINGS THEME TAB RANDOMIZER -------------------------------------------
+let _sRandTheme = null; // holds last generated theme for save/edit/export
+
+window.sRandCreate = function () {
+  _sRandTheme = tbRandRandom();
+  const arr     = document.getElementById('sRandArray');
+  const btn     = document.getElementById('sRandCreateBtn');
+  const builder = document.getElementById('sRandBuilderBtn');
+  if (btn)     btn.style.display     = 'none';
+  if (builder) builder.style.display = 'none';
+  if (arr) {
+    if (!document.getElementById('sRandPreview')) {
+      const prev = document.createElement('div');
+      prev.id = 'sRandPreview';
+      prev.innerHTML = _rPreviewHTML();
+      const firstChild = arr.firstElementChild;
+      if (firstChild && firstChild.nextSibling) {
+        arr.insertBefore(prev, firstChild.nextSibling);
+      } else {
+        arr.appendChild(prev);
+      }
     }
+    arr.style.display = 'flex';
   }
-  tbRandRandom();
+  _sRandUpdateName();
 };
 
-window.tbRandReset = function () {
-  if (!_rPreRandColors) return;
-  // Reload the last properly saved/loaded theme from localStorage
+window.sRandAgain = function () {
+  _sRandTheme = tbRandRandom();
+  _sRandUpdateName();
+};
+
+function _sRandUpdateName() {
+  const el = document.getElementById('sRandName');
+  if (!el || !_sRandTheme) return;
+  const bc = ThemeSystem.baseColors;
+  const name = _rMakeName(bc, _sRandTheme._tone || 'dark');
+  el.textContent = name;
+  el.style.background = bc.primary;
+  el.style.color = bc.textLight;
+  // Also update the Randomize button color
+  const btn = el.previousElementSibling;
+  if (btn) { btn.style.background = bc.secondary; btn.style.color = bc.textLight; }
+  _sRandTheme._name = name;
+}
+
+window.sRandSave = function () {
+  if (!_sRandTheme) return;
+  ThemeSystem.openSaveModal();
+  const inp = document.getElementById('tbThemeNameInput');
+  if (inp && _sRandTheme._name) {
+    inp.value = _sRandTheme._name;
+    inp.dispatchEvent(new Event('input'));
+  }
+};
+
+window.sRandEdit = function () {
+  if (!_sRandTheme) return;
+  // Open theme builder — current random theme is already applied
+  ThemeSystem.open();
+};
+
+window.sRandExport = function () {
+  const bc = ThemeSystem.baseColors;
+  const jc = ThemeSystem.jobColors;
+  const parts = Object.entries(bc).map(([k,v]) => k+':'+v.replace('#',''));
+  Object.entries(jc).forEach(([k,v]) => parts.push(k+':'+v.replace('#','')));
+  const str = parts.join('|');
+  if (navigator.clipboard) navigator.clipboard.writeText(str);
+  const btn = document.getElementById('sRandExportBtn');
+  if (!btn) return;
+  const orig = btn.textContent;
+  btn.textContent = 'Copied';
+  setTimeout(() => { btn.textContent = orig; }, 1500);
+};
+
+window.sRandReset = function () {
+  // Restore pre-rand theme from localStorage
   const savedName = localStorage.getItem('shift_current_theme');
   if (savedName) {
     const themes = JSON.parse(localStorage.getItem('shift_themes') || '[]');
-    const theme  = themes.find(t => t.name === savedName);
+    const theme = themes.find(t => t.name === savedName);
     if (theme) {
       ThemeSystem.baseColors = Object.assign({}, TB_DEFAULTS.baseColors, theme.baseColors);
-      ThemeSystem.jobColors  = Object.assign({}, TB_DEFAULTS.jobColors,  theme.jobColors);
+      ThemeSystem.jobColors  = Object.assign({}, TB_DEFAULTS.jobColors, theme.jobColors);
       tbApplyCssVars(ThemeSystem.baseColors, ThemeSystem.jobColors);
       tbRerender();
     }
   }
-  // Lock reset again
-  _rPreRandColors = null;
-  const btn = document.getElementById('tbRandResetBtn');
-  if (btn) {
-    btn.style.pointerEvents = 'none';
-  }
+  const arr     = document.getElementById('sRandArray');
+  const btn     = document.getElementById('sRandCreateBtn');
+  const builder = document.getElementById('sRandBuilderBtn');
+  if (arr)     arr.style.display     = 'none';
+  if (btn)     btn.style.display     = 'flex';
+  if (builder) builder.style.display = 'flex';
+  _sRandTheme = null;
 };
+
+// Legacy — kept for any old callers
+window.tbRandFromSettings = window.sRandCreate;
+window.tbRandReset = window.sRandReset;
 
 
 function _rInitChips() {
@@ -692,6 +1002,66 @@ function _rInitChips() {
   });
 }
 
+
+function _rPreviewHTML() {
+  const BD = 'var(--border-width) solid var(--border-color)';
+  const R  = 'var(--radius)';
+  return `<div style="flex-shrink:0;border:var(--border-width) solid var(--border-color);border-radius:var(--radius);overflow:hidden">
+      <div class="tb-card-hdr" style="color:var(--text-light)">Preview</div>
+      <div style="background:var(--bg-1);padding:var(--margin);display:flex;flex-direction:column;gap:var(--margin);border-radius:calc(var(--radius) - 1px)">
+        <div style="display:flex;gap:var(--margin)">
+          <div class="label-card" style="flex:1;background:var(--bg-4);color:var(--text-dark)">Quick Schedule</div>
+          <div style="flex:1;display:flex;border:var(--border-width) solid var(--border-color);border-radius:var(--radius);overflow:hidden">
+            <div style="flex:1;display:flex;align-items:center;justify-content:center;background:var(--primary);border-right:var(--border-width) solid var(--border-color);font-size:var(--text-xs);font-weight:var(--fw-heavy);letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--text-light)">Tab 1</div>
+            <div style="flex:1;display:flex;align-items:center;justify-content:center;background:var(--bg-3);font-size:var(--text-xs);font-weight:var(--fw-heavy);letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--text-mid)">Tab A</div>
+          </div>
+        </div>
+        <div class="day-card" style="height:var(--job-half)">
+          <div class="day-letter" style="font-size:var(--text-xs)">M</div>
+          <div class="day-date"   style="font-size:var(--text-xs)">27</div>
+          <div class="day-body">
+            <div class="day-body-half day-half-off" style="font-size:var(--text-xs)">OFF</div>
+            <div class="day-body-half"              style="font-size:var(--text-xs)">9:00 AM</div>
+          </div>
+          <div class="day-hours" style="font-size:var(--text-xs)">08.00</div>
+        </div>
+        <div style="display:flex;gap:var(--margin);height:72px">
+          <div style="flex:1;border:${BD};border-radius:${R};overflow:hidden;display:flex;flex-direction:column">
+            <div style="height:var(--qs-hdr);flex-shrink:0;background:var(--primary);border-bottom:${BD};display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:900;letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--text-light)">JOB</div>
+            <div style="flex:1;background:var(--bg-2);display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:900;color:var(--text-mid)">19H 55M</div>
+            <div style="height:var(--qs-hdr);flex-shrink:0;background:var(--bg-2);border-top:${BD};display:flex;align-items:center;justify-content:center;gap:8px">
+              <svg width="9" height="10" viewBox="0 0 16 16" fill="none"><path d="M2 2 Q2 1 3 1.5 L13.5 7.5 Q15 8 13.5 8.5 L3 14.5 Q2 15 2 14 Z" fill="var(--text-mid)" stroke="var(--text-light)" stroke-width="1.5" stroke-linejoin="round"/></svg>
+              <div style="display:flex;gap:3px;align-items:center"><div style="width:3px;height:10px;background:var(--color-1);border-radius:2px"></div><div style="width:3px;height:10px;background:var(--color-1);border-radius:2px"></div></div>
+              <div style="width:9px;height:7px;border-left:2.5px solid var(--primary);border-bottom:2.5px solid var(--primary);border-radius:1px;transform:rotate(-45deg) translate(1px,-1px)"></div>
+            </div>
+          </div>
+          <div style="flex:1;border:${BD};border-radius:${R};overflow:hidden;display:flex;flex-direction:column">
+            <div style="height:var(--qs-hdr);flex-shrink:0;background:var(--secondary);border-bottom:${BD};display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:900;letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--text-light)">Week</div>
+            <div style="flex:1;background:var(--bg-2);display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:900;color:var(--text-mid)">38.50</div>
+            <div style="height:var(--qs-hdr);flex-shrink:0;background:var(--secondary);border-top:${BD};display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:900;color:var(--text-light)">HRS</div>
+          </div>
+          <div style="flex:1;border:${BD};border-radius:${R};overflow:hidden;display:flex;flex-direction:column">
+            <div style="height:var(--qs-hdr);flex-shrink:0;background:var(--accent);border-bottom:${BD};display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:900;letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--text-light)">Today</div>
+            <div style="flex:1;background:var(--bg-2);position:relative;overflow:hidden">
+              <div style="position:absolute;inset:0;display:flex">
+                <div style="flex:1;border-right:1px solid rgba(128,128,128,0.2)"></div>
+                <div style="flex:1;border-right:1px solid rgba(128,128,128,0.2)"></div>
+                <div style="flex:1;border-right:1px solid rgba(128,128,128,0.2)"></div>
+                <div style="flex:1"></div>
+              </div>
+              <div style="position:absolute;top:50%;left:10%;width:58%;transform:translateY(-50%);height:11px;background:var(--bg-4);border:2px solid var(--secondary);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:6px;font-weight:900;color:var(--text-dark)">9AM-5PM</div>
+            </div>
+            <div style="height:var(--qs-hdr);flex-shrink:0;background:var(--accent);border-top:${BD};display:flex;align-items:center;justify-content:space-around;padding:0 4px">
+              <span style="font-size:8px;font-weight:900;color:var(--text-light)">9</span>
+              <span style="font-size:8px;font-weight:900;color:var(--text-light)">12</span>
+              <span style="font-size:8px;font-weight:900;color:var(--text-light)">3</span>
+              <span style="font-size:8px;font-weight:900;color:var(--text-light)">6</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
 
 // -- INJECT PANEL HTML --------------------------------------------------------
 window.addEventListener('load', function () {
@@ -768,79 +1138,21 @@ window.addEventListener('load', function () {
       ['mix','RND'], ['dark','DRK'], ['mid','MID'], ['light','LGT'],
     ], 'tbRandToneDesc', window._rToneDescs);
 
-    const preview = `<div style="flex-shrink:0;border:var(--border-width) solid var(--border-color);border-radius:var(--radius);overflow:hidden">
-      <div class="tb-card-hdr" style="color:var(--text-light)">Preview</div>
-      <div style="background:var(--bg-1);padding:var(--margin);display:flex;flex-direction:column;gap:var(--margin);border-radius:calc(var(--radius) - 1px)">
-        <div style="display:flex;gap:var(--margin)">
-          <div class="label-card" style="flex:1;background:var(--bg-4);color:var(--text-dark)">Quick Schedule</div>
-          <div style="flex:1;display:flex;border:var(--border-width) solid var(--border-color);border-radius:var(--radius);overflow:hidden">
-            <div style="flex:1;display:flex;align-items:center;justify-content:center;background:var(--primary);border-right:var(--border-width) solid var(--border-color);font-size:var(--text-xs);font-weight:var(--fw-heavy);letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--text-light)">Tab 1</div>
-            <div style="flex:1;display:flex;align-items:center;justify-content:center;background:var(--bg-3);font-size:var(--text-xs);font-weight:var(--fw-heavy);letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--text-mid)">Tab A</div>
-          </div>
-        </div>
-        <div class="day-card" style="height:var(--job-half)">
-          <div class="day-letter" style="font-size:var(--text-xs)">M</div>
-          <div class="day-date"   style="font-size:var(--text-xs)">27</div>
-          <div class="day-body">
-            <div class="day-body-half day-half-off" style="font-size:var(--text-xs)">OFF</div>
-            <div class="day-body-half"              style="font-size:var(--text-xs)">9:00 AM</div>
-          </div>
-          <div class="day-hours" style="font-size:var(--text-xs)">08.00</div>
-        </div>
-        <div style="display:flex;gap:var(--margin);height:72px">
 
-          <!-- Primary: Job card -->
-          <div style="flex:1;border:${BD};border-radius:${R};overflow:hidden;display:flex;flex-direction:column">
-            <div style="height:var(--qs-hdr);flex-shrink:0;background:var(--primary);border-bottom:${BD};display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:900;letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--text-light)">JOB</div>
-            <div style="flex:1;background:var(--bg-2);display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:900;color:var(--text-mid)">19H 55M</div>
-            <div style="height:var(--qs-hdr);flex-shrink:0;background:var(--bg-2);border-top:${BD};display:flex;align-items:center;justify-content:center;gap:8px">
-              <svg width="9" height="10" viewBox="0 0 16 16" fill="none"><path d="M2 2 Q2 1 3 1.5 L13.5 7.5 Q15 8 13.5 8.5 L3 14.5 Q2 15 2 14 Z" fill="var(--text-mid)" stroke="var(--text-light)" stroke-width="1.5" stroke-linejoin="round"/></svg>
-              <div style="display:flex;gap:3px;align-items:center"><div style="width:3px;height:10px;background:var(--color-1);border-radius:2px"></div><div style="width:3px;height:10px;background:var(--color-1);border-radius:2px"></div></div>
-              <div style="width:9px;height:7px;border-left:2.5px solid var(--primary);border-bottom:2.5px solid var(--primary);border-radius:1px;transform:rotate(-45deg) translate(1px,-1px)"></div>
-            </div>
-          </div>
-
-          <!-- Secondary: History card -->
-          <div style="flex:1;border:${BD};border-radius:${R};overflow:hidden;display:flex;flex-direction:column">
-            <div style="height:var(--qs-hdr);flex-shrink:0;background:var(--secondary);border-bottom:${BD};display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:900;letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--text-light)">Week</div>
-            <div style="flex:1;background:var(--bg-2);display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:900;color:var(--text-mid)">38.50</div>
-            <div style="height:var(--qs-hdr);flex-shrink:0;background:var(--secondary);border-top:${BD};display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:900;color:var(--text-light)">HRS</div>
-          </div>
-
-          <!-- Accent: Quick Schedule card with hour lines and shift bar -->
-          <div style="flex:1;border:${BD};border-radius:${R};overflow:hidden;display:flex;flex-direction:column">
-            <div style="height:var(--qs-hdr);flex-shrink:0;background:var(--accent);border-bottom:${BD};display:flex;align-items:center;justify-content:center;font-size:var(--text-xs);font-weight:900;letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--text-light)">Today</div>
-            <div style="flex:1;background:var(--bg-2);position:relative;overflow:hidden">
-              <div style="position:absolute;inset:0;display:flex">
-                <div style="flex:1;border-right:1px solid rgba(128,128,128,0.2)"></div>
-                <div style="flex:1;border-right:1px solid rgba(128,128,128,0.2)"></div>
-                <div style="flex:1;border-right:1px solid rgba(128,128,128,0.2)"></div>
-                <div style="flex:1"></div>
-              </div>
-              <div style="position:absolute;top:50%;left:10%;width:58%;transform:translateY(-50%);height:11px;background:var(--bg-4);border:2px solid var(--secondary);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:6px;font-weight:900;color:var(--text-dark)">9AM-5PM</div>
-            </div>
-            <div style="height:var(--qs-hdr);flex-shrink:0;background:var(--accent);border-top:${BD};display:flex;align-items:center;justify-content:space-around;padding:0 4px">
-              <span style="font-size:8px;font-weight:900;color:var(--text-light)">9</span>
-              <span style="font-size:8px;font-weight:900;color:var(--text-light)">12</span>
-              <span style="font-size:8px;font-weight:900;color:var(--text-light)">3</span>
-              <span style="font-size:8px;font-weight:900;color:var(--text-light)">6</span>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </div>`;
+    const preview = _rPreviewHTML();
 
     const btns = `<div onclick="tbRandRandom()"
       style="border:var(--border-width) solid var(--border-color);border-radius:var(--radius);overflow:hidden;background:var(--bg-2);color:var(--text-mid);font-size:var(--text-xs);font-weight:900;letter-spacing:var(--ls-wider);text-transform:uppercase;cursor:pointer;padding:10px;text-align:center">
       Tap to Randomize
     </div>`;
 
+    const nameCard = `<div id="tbRandNameDisplay" style="height:var(--card-height);border:var(--border-width) solid var(--border-color);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:var(--text-sm);font-weight:var(--fw-heavy);letter-spacing:var(--ls-wider);text-transform:uppercase;background:var(--primary);color:var(--text-light);flex-shrink:0;">Theme Name</div>`;
+
     const panel = document.createElement('div');
     panel.className = 'tb-tab-panel tb-body';
     panel.id        = 'tbPanel-randomize';
     panel.style.gap = 'var(--margin)';
-    panel.innerHTML = sliders + primaryCard + bgChips + harmChips + surfChips + toneChips + preview + btns;
+    panel.innerHTML = sliders + primaryCard + nameCard + bgChips + harmChips + surfChips + toneChips + preview + btns;
     slot.replaceWith(panel);
 
     // Wire sliders

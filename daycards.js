@@ -42,7 +42,8 @@ function renderDayCards() {
         ex0.start = null; ex0.end = null;
       }
     }
-    const showSplit = appSettings.showSecondShift===false && hasExtra;
+    const _jobSS = window._currentJob ? window._currentJob.showSecondShift : appSettings.showSecondShift;
+const showSplit = _jobSS===false && hasExtra;
     const hoursHtml = showSplit
       ? `<div class="day-hours${todayCls}" style="flex-direction:column;align-items:stretch;padding:0;">` +
         `<div style="flex:1;display:flex;align-items:center;justify-content:center;border-bottom:var(--border-width) solid var(--border-color);">${calcDuration(startVal,endVal)}</div>` +
@@ -61,7 +62,7 @@ function renderDayCards() {
     });
     if(!isOff){const s=parseTimeToMins(startVal),e=parseTimeToMins(endVal);if(s!==null&&e!==null){let diff=e-s;if(diff<=0)diff+=24*60;totalMins+=diff;}}
     if(hasExtra&&ex0.start&&ex0.end){const s=parseTimeToMins(ex0.start),e=parseTimeToMins(ex0.end);if(s!==null&&e!==null){let diff=e-s;if(diff<=0)diff+=24*60;totalMins+=diff;}}
-    if(appSettings.showSecondShift !== false) {
+    if(_jobSS !== false) {
     const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--margin')) || 4;
     const sqW = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--card-height')) || 45;
     const rowW = container.clientWidth > 10 ? container.clientWidth : (window.innerWidth - gap*2);
@@ -556,7 +557,7 @@ function buildGridView(job) {
   }
 
   // Legend card
-  if(typeof appSettings==='undefined'||appSettings.showGridLegend!==false){
+  if(job.showGridLegend!==false){
     var legend=document.createElement('div');
     legend.style.cssText='height:var(--card-height);border:var(--bw) solid var(--bc);border-radius:var(--radius);overflow:hidden;display:flex;align-items:stretch;flex-shrink:0;'
       .replace('var(--bw)','var(--border-width)').replace('var(--bc)','var(--border-color)').replace('var(--radius)','var(--radius)');
