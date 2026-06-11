@@ -218,6 +218,8 @@ function buildWindows() {
           <div id="settingsSavedThemesList"></div>
         </div>
       <div class="data-body" id="spanel-other" style="display:none;">
+        <div class="label-card">Interface</div>
+        <div class="toggle-card" id="toggleLcarsMode" onclick="lcarsToggle()"><div class="toggle-check"><svg width="16" height="13" viewBox="0 0 16 13" fill="none"><path d="M1.5 6.5 L6 11 L14.5 1.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="toggle-content"><div class="toggle-label">LCARS Mode</div><div class="toggle-blurb">Star Trek LCARS style interface</div></div></div>
         <div class="label-card">Style</div>
         <div class="toggle-card" id="toggleDrawnBorders" onclick="settingToggle('drawnBorders')"><div class="toggle-check"><svg width="16" height="13" viewBox="0 0 16 13" fill="none"><path d="M1.5 6.5 L6 11 L14.5 1.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="toggle-content"><div class="toggle-label">Drawn Borders</div><div class="toggle-blurb">Hand-drawn pen style borders on job cards</div></div></div>
         <div class="label-card">Notifications</div>
@@ -249,7 +251,7 @@ function buildWindows() {
   document.body.insertAdjacentHTML('beforeend', html);
 }
 
-const _settingsDefaults = { showJobCards: true, showQuickSchedule: true, showTimeDot: true, showHistory: true, showTimerSections: true, showMiniGraph: true, miniGraphDays: 3, theme: 'none', showSecondShift: true, customFont: 'def', drawnBorders: false, showTimelineCard: true, timelineRollover: false, timeline24h: false, timelineNightMode: '6pm6am', qsColor: '', qsDays: 7, histColor: '', histWeeks: 10 };
+const _settingsDefaults = { showJobCards: true, showQuickSchedule: true, showTimeDot: true, showHistory: true, showTimerSections: true, showMiniGraph: true, miniGraphDays: 3, theme: 'none', showSecondShift: true, customFont: 'def', drawnBorders: false, showTimelineCard: true, timelineRollover: false, timeline24h: false, timelineNightMode: '6pm6am', qsColor: '', qsDays: 7, histColor: '', histWeeks: 10, lcarsMode: false };
 let appSettings = Object.assign({}, _settingsDefaults, ls('sch_settings', {}));
 
 function updateDaySqVar() {
@@ -581,6 +583,13 @@ function getNextShiftCountdown(job) {
   return null;
 }
 
+
+function lcarsToggle() {
+  appSettings.lcarsMode = !appSettings.lcarsMode;
+  lsSet('sch_settings', appSettings);
+  document.getElementById('toggleLcarsMode').classList.toggle('active', appSettings.lcarsMode);
+  if (typeof lcarsSetMode === 'function') lcarsSetMode(appSettings.lcarsMode);
+}
 
 function settingsTab(tab) {
   ['display','cards','other','theme'].forEach(t => {
