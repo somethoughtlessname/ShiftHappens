@@ -183,30 +183,26 @@ body.lcars-mode #mainApp { display:none !important; }
   line-height:1.8rem; white-space:nowrap;
 }
 
-/* ---- FRAME 3: HISTORY ---- */
-#lcarsRoot .hist3 { display:flex; gap:var(--lgap); }
-#lcarsRoot .hist3 .wk { flex:1; min-width:0; display:flex; flex-direction:column; }
-#lcarsRoot .hist3 .wk.now { flex:1.7; }
-#lcarsRoot .hist3 .hd {
-  height:1.9rem; display:flex; align-items:center; justify-content:center;
-  padding:0 0.6rem; font-size:1.2rem; font-weight:700;
-  letter-spacing:0.06em; text-transform:uppercase; color:#000;
-  white-space:nowrap; overflow:hidden;
+/* ---- FRAME 3: HISTORY — kit trend columns ---- */
+#lcarsRoot .trend { display:flex; gap:var(--lgap); }
+#lcarsRoot .trend .wk { flex:1; min-width:0; display:flex; flex-direction:column; }
+#lcarsRoot .trend .wk.now { flex:1.6; }
+#lcarsRoot .trend .hd, #lcarsRoot .trend .ft {
+  height:2.8rem; display:flex; align-items:center; justify-content:center;
+  padding:0 0.5rem; white-space:nowrap; overflow:hidden;
+  font-size:1.7rem; font-weight:800; letter-spacing:0.06em;
+  text-transform:uppercase; color:#000;
 }
-#lcarsRoot .hist3 .val {
-  font-weight:700; line-height:1; letter-spacing:0.06em;
-  text-align:center; padding:0.7rem 0.2rem 0.2rem;
-  font-size:3.4rem; color:var(--lgr);
+#lcarsRoot .trend .ft { margin-top:auto; font-variant-numeric:tabular-nums; }
+#lcarsRoot .trend .val {
+  font-weight:400; line-height:1; letter-spacing:0.06em;
+  text-align:center; padding:0.2rem;
+  font-size:1.7rem; min-height:2.8rem;
+  color:var(--lgr); white-space:nowrap;
+  display:flex; align-items:center; justify-content:center; flex:1;
   font-variant-numeric:tabular-nums;
 }
-#lcarsRoot .hist3 .wk.now .val { font-size:4.2rem; color:var(--ly); }
-#lcarsRoot .hist3 .sub {
-  display:flex; justify-content:center; align-items:baseline; gap:0.6rem;
-  font-size:1.2rem; font-weight:700; letter-spacing:0.06em; text-transform:uppercase;
-}
-#lcarsRoot .hist3 .sub span { color:var(--lgr); }
-#lcarsRoot .hist3 .sub b { color:var(--lo); font-weight:700; letter-spacing:0.08em; font-variant-numeric:tabular-nums; }
-#lcarsRoot .hist3 .rng { font-size:1.1rem; font-weight:500; letter-spacing:0.06em; text-transform:uppercase; color:var(--lgr); text-align:center; white-space:nowrap; overflow:hidden; }
+#lcarsRoot .trend .wk.now .val { color:var(--ly); }
 #lcarsRoot .logbar { display:flex; align-items:center; gap:0.8rem; margin-top:1.4rem; }
 #lcarsRoot .logbar .lbl { font-size:1.3rem; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--lpa); white-space:nowrap; }
 #lcarsRoot .logbar .trk { position:relative; flex:1; height:1.8rem; background:#222; border-radius:0.3rem; overflow:hidden; }
@@ -277,6 +273,11 @@ function _weekRange(offset) {
 function _fmtRange(offset) {
   const {s,e}=_weekRange(offset);
   return `${MO[s.getMonth()]} ${s.getDate()}–${e.getDate()}`;
+}
+function _fmtRangeNum(offset) {
+  const {s,e}=_weekRange(offset);
+  const p=n=>String(n).padStart(2,'0');
+  return `${p(s.getMonth()+1)}/${p(s.getDate())}-${p(e.getMonth()+1)}/${p(e.getDate())}`;
 }
 
 // Per-job LCARS colors (cycled by index)
@@ -358,6 +359,27 @@ function buildFrame1(job) {
     jobs.forEach(function(j, idx){
       const src=j.worked&&j.worked[todayKey]?j.worked:j.schedule;
       collectEntry(src&&src[todayKey], jobCol(idx));
+    });
+    // yesterday's overnight shifts spilling past midnight into today (-24h offset)
+    const yest=new Date(); yest.setDate(yest.getDate()-1);
+    const yKey=_ldk(yest);
+    function spill(sm, em, col) {
+      if (sm===null||em===null) return;
+      if (em<=sm) em+=1440;
+      if (em<=1440) return; // didn't cross midnight
+      const sp=tlPct((sm-1440)/60), ep=tlPct((em-1440)/60);
+      spans+=`<div class="tl-span ${col}" style="left:${sp.toFixed(1)}%;width:${Math.max(0.5,ep-sp).toFixed(1)}%;"></div>`;
+    }
+    jobs.forEach(function(j, idx){
+      const ySrc=j.worked&&j.worked[yKey]?j.worked:j.schedule;
+      const yEntry=ySrc&&ySrc[yKey];
+      if (yEntry&&yEntry.start&&yEntry.start!=='OFF'&&yEntry.start!=='NONE'&&yEntry.end) {
+        spill(_ptm(yEntry.start), _ptm(yEntry.end), jobCol(idx));
+      }
+      const yex=yEntry&&yEntry.extra&&yEntry.extra[0];
+      if (yex&&yex.start&&yex.start!=='NONE'&&yex.end) {
+        spill(_ptm(yex.start), _ptm(yex.end), jobCol(idx));
+      }
     });
   }
 
@@ -532,30 +554,28 @@ function buildFrame3(job) {
     <div class="bar-title" style="color:var(--ly);">History · Hours</div>
     <div class="et rb by"></div>
   </div>
-  <div class="mid" style="min-height:15rem;">
+  <div class="mid">
     <div class="pcol">
       <div class="blk sq bo"></div>
       <div class="blk fill by" style="flex:1;"></div>
       <div class="blk brd" style="height:2rem;"></div>
     </div>
     <div class="screen">
-      <div class="hist3">
+      <div class="trend">
         <div class="wk">
-          <div class="hd bgr">Last</div>
+          <div class="hd bpu">Last</div>
           <div class="val">${_fmtHH(lastMins)}</div>
-          <div class="rng">${_fmtRange(-1)}</div>
+          <div class="ft bpu">${_fmtRangeNum(-1)}</div>
         </div>
         <div class="wk now">
           <div class="hd bo">This Week</div>
-          <div class="val">${_fmtHH(thisWorked)}</div>
-          <div class="sub"><span>Sched</span><b>${_fmtHH(thisSched)}</b></div>
-          <div class="sub"><span>Proj</span><b>${_fmtHH(projMins)}</b></div>
-          <div class="rng">${_fmtRange(0)}</div>
+          <div class="val">${_fmtHH(thisWorked)}/${_fmtHH(thisSched)} (${_fmtHH(projMins)})</div>
+          <div class="ft bo">${_fmtRangeNum(0)}</div>
         </div>
         <div class="wk">
           <div class="hd bpu">Next</div>
           <div class="val">${_fmtHH(nextMins)}</div>
-          <div class="rng">${_fmtRange(1)}</div>
+          <div class="ft bpu">${_fmtRangeNum(1)}</div>
         </div>
       </div>
 
@@ -618,7 +638,7 @@ window.lcarsSetMode = function(on) {
   if (on) {
     // rem units scale from html font-size — save original and shrink
     if (!window._lcarsPrevHtmlFs) window._lcarsPrevHtmlFs = document.documentElement.style.fontSize || '';
-    document.documentElement.style.fontSize = (window.innerWidth <= 380) ? '5px' : '5.5px';
+    document.documentElement.style.fontSize = (window.innerWidth <= 380) ? '6.5px' : '7px';
     root.classList.add('active');
     document.body.classList.add('lcars-mode');
     lcarsRender();
