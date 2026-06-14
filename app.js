@@ -856,20 +856,20 @@ function buildTimelineCard() {
   // Collect today's shifts
   var todayKey = localDateKey(new Date());
   var shifts = [];
-  function collectEntry(entry, color) {
+  function collectEntry(entry, color, jobId) {
     if (entry && entry.start && entry.start!=='OFF' && entry.start!=='NONE' && entry.end) {
       var sm=parseTimeToMins(entry.start), em=parseTimeToMins(entry.end);
-      if (sm!==null && em!==null) { if(em<=sm) em+=1440; shifts.push({s:sm/60,e:em/60,col:color}); }
+      if (sm!==null && em!==null) { if(em<=sm) em+=1440; shifts.push({s:sm/60,e:em/60,col:color,jobId:jobId}); }
     }
     var ex = entry && entry.extra && entry.extra[0];
     if (ex && ex.start && ex.start!=='NONE' && ex.end) {
       var sm2=parseTimeToMins(ex.start), em2=parseTimeToMins(ex.end);
-      if (sm2!==null && em2!==null) { if(em2<=sm2) em2+=1440; shifts.push({s:sm2/60,e:em2/60,col:color}); }
+      if (sm2!==null && em2!==null) { if(em2<=sm2) em2+=1440; shifts.push({s:sm2/60,e:em2/60,col:color,jobId:jobId}); }
     }
   }
   jobs.forEach(function(job){
     var src = job.worked && job.worked[todayKey] ? job.worked : job.schedule;
-    collectEntry(src && src[todayKey], job.color);
+    collectEntry(src && src[todayKey], job.color, job.id);
   });
 
   // Yesterday's overnight shifts (crosses midnight into today) -- offset by -24h to map to today's scale
@@ -894,6 +894,18 @@ function buildTimelineCard() {
   // Determine timeline end: 24h normally, extended if rollover and any shift crosses midnight
   var maxEnd = 24;
   if (rollover) shifts.forEach(function(sh){ if (sh.e > 24) maxEnd = Math.max(maxEnd, Math.ceil(sh.e)); });
+  // Running jobs are absent from shifts[] (no end yet) — extend maxEnd from their scheduled span
+  if (rollover) {
+    jobs.forEach(function(job){
+      if (getTimerState(job) !== 'running') return;
+      var sEntry = job.schedule && job.schedule[todayKey];
+      if (!sEntry || !sEntry.start || sEntry.start==='OFF' || sEntry.start==='NONE' || !sEntry.end) return;
+      var ssm=parseTimeToMins(sEntry.start), sem=parseTimeToMins(sEntry.end);
+      if (ssm===null || sem===null) return;
+      if (sem<=ssm) sem+=1440;
+      if (sem/60 > 24) maxEnd = Math.max(maxEnd, Math.ceil(sem/60));
+    });
+  }
   var DSTART = -1, DEND = maxEnd + 1, DSPAN = DEND - DSTART;
   function pct(h){ return ((h-DSTART)/DSPAN*100).toFixed(3)+'%'; }
   function pctN(h){ return (h-DSTART)/DSPAN*100; }
@@ -956,12 +968,92 @@ function buildTimelineCard() {
     if (Math.max(shifts[i].s,shifts[j].s) < Math.min(shifts[i].e,shifts[j].e)) hasOverlap=true;
 
   var sh = hasOverlap ? 7 : 14;
+
+  // ── Pre-compute ghost state per job ──
+  var _tlExpired = {};   // job.id -> true (idle, scheduled time passed)
+  var _tlRunning = {};   // job.id -> {actualStartH, schedStartH, schedEndH}
+  var todayKeyTL = localDateKey(new Date());
+
+  jobs.forEach(function(job){
+    var timerState = getTimerState(job);
+    var tKey = getTimerKey(job);
+    var wEntry = job.worked && job.worked[tKey];
+    var actualStartH = null;
+    if (wEntry && wEntry.start && wEntry.start!=='OFF' && wEntry.start!=='NONE'){
+      var asm = parseTimeToMins(wEntry.start); if(asm!==null) actualStartH = asm/60;
+    }
+    var sEntry = job.schedule && job.schedule[todayKeyTL];
+    var schedStartH = null, schedEndH = null;
+    if(sEntry && sEntry.start && sEntry.start!=='OFF' && sEntry.start!=='NONE' && sEntry.end){
+      var ssm2=parseTimeToMins(sEntry.start), sem2=parseTimeToMins(sEntry.end);
+      if(ssm2!==null && sem2!==null){ if(sem2<=ssm2) sem2+=1440; schedStartH=ssm2/60; schedEndH=sem2/60; }
+    }
+    if(timerState==='idle' && schedEndH!==null && nowH>=schedEndH) _tlExpired[job.id]=true;
+    if(timerState==='running' && actualStartH!==null && schedStartH!==null)
+      _tlRunning[job.id]={actualStartH:actualStartH, schedStartH:schedStartH, schedEndH:schedEndH, color:job.color};
+  });
+
+  // ── Regular shift bars — skip expired today-shifts (drawn as ghost below) ──
   shifts.forEach(function(shift, idx){
+    if(shift.jobId !== undefined && _tlExpired[shift.jobId]) return; // expired: ghost replaces
     var b=document.createElement('div'); b.className='tl-shift';
     b.style.left=pct(shift.s); b.style.width='calc('+pct(shift.e)+' - '+pct(shift.s)+')';
     b.style.background=shift.col; b.style.height=sh+'px';
     b.style.top = hasOverlap ? (3 + idx*(sh+1))+'px' : '3px';
     card.appendChild(b);
+  });
+
+  // ── Ghost + live overlays ──
+  jobs.forEach(function(job){
+    var info = _tlRunning[job.id];
+    var isExpired = _tlExpired[job.id];
+    if(!info && !isExpired) return;
+
+    var sEntry = job.schedule && job.schedule[todayKeyTL];
+    if(!sEntry || !sEntry.start || sEntry.start==='OFF' || sEntry.start==='NONE' || !sEntry.end) return;
+    var ssm3=parseTimeToMins(sEntry.start), sem3=parseTimeToMins(sEntry.end);
+    if(ssm3===null||sem3===null) return;
+    if(sem3<=ssm3) sem3+=1440;
+    var schedStartH=ssm3/60, schedEndH=sem3/60;
+
+    if(isExpired){
+      // Missed shift: faded fill, solid border
+      var gexp=document.createElement('div'); gexp.className='tl-ghost show expired';
+      gexp.style.color=job.color;
+      gexp.style.left=pct(schedStartH); gexp.style.width='calc('+pct(schedEndH)+' - '+pct(schedStartH)+')';
+      gexp.style.height=sh+'px'; gexp.style.top='3px';
+      card.appendChild(gexp);
+      return;
+    }
+
+    // Running job
+    var actualStartH=info.actualStartH;
+    var inGhostZone = nowH >= schedStartH-1; // live bar within 1h of scheduled start
+
+    if(inGhostZone){
+      // Scheduled bar becomes dashed ghost
+      var ghost=document.createElement('div'); ghost.className='tl-ghost show';
+      ghost.style.color=job.color;
+      ghost.style.left=pct(schedStartH); ghost.style.width='calc('+pct(schedEndH)+' - '+pct(schedStartH)+')';
+      ghost.style.height=sh+'px'; ghost.style.top='3px';
+      card.appendChild(ghost);
+    } else {
+      // Live shift started early: scheduled bar still shows solid
+      var bs=document.createElement('div'); bs.className='tl-shift';
+      bs.style.left=pct(schedStartH); bs.style.width='calc('+pct(schedEndH)+' - '+pct(schedStartH)+')';
+      bs.style.background=job.color; bs.style.height=sh+'px'; bs.style.top='3px';
+      card.appendChild(bs);
+    }
+
+    // Live bar: starts at actualStart, right edge tracks now
+    var live=document.createElement('div'); live.className='tl-live';
+    live.style.display='block'; live.style.background=job.color;
+    var liveEndH=Math.min(nowH, maxEnd+1);
+    var lStart=pct(actualStartH), lEnd=pct(Math.max(actualStartH, liveEndH));
+    live.style.left=lStart;
+    live.style.width='max(7px, calc('+lEnd+' - '+lStart+'))';
+    live.style.top='6px';
+    card.appendChild(live);
   });
 
   // Triangle cursor

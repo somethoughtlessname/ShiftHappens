@@ -926,6 +926,11 @@ body.theme-dusk { filter: brightness(0.95) contrast(0.95) saturate(0.8); }
 .tl-hour { position:absolute; bottom:10px; transform:translateX(-50%); font-size:9px; font-weight:800; color:var(--text-mid); z-index:4; pointer-events:none; }
 .tl-elapsed { position:absolute; top:0; bottom:0; left:0; background:rgba(255,255,255,0.06); z-index:2; }
 .tl-shift { position:absolute; top:3px; height:14px; border:var(--border-width) solid var(--border-color); border-radius:99px; z-index:5; }
+.tl-ghost { position:absolute; top:3px; height:14px; border-radius:99px; z-index:6; border:2px dashed currentColor; opacity:0; pointer-events:none; }
+.tl-ghost.show { opacity:0.28; }
+.tl-ghost.expired { border-style:solid; opacity:1; background:transparent !important; }
+.tl-ghost.expired::before { content:''; position:absolute; inset:0; border-radius:99px; background:currentColor; opacity:0.25; }
+.tl-live { position:absolute; top:6px; height:8px; border:2px solid var(--border-color); border-radius:99px; z-index:7; display:none; pointer-events:none; }
 .tl-tri { position:absolute; bottom:0; width:0; height:0; border-left:7px solid transparent; border-right:7px solid transparent; border-bottom:9px solid var(--primary); transform:translateX(-50%); z-index:6; }
 
 /* ------- SETTING EXPAND CARD (Pantry Pro style dropdown) ------- */
