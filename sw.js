@@ -1,11 +1,23 @@
-const CACHE = 'shift-happens-v1780858999';
+const CACHE = 'shift-happens-v1781793420';
 
 const CACHE_ASSETS = [
   './index.html',
+  './manifest.json',
   './icon-192.png',
   './icon-512.png',
-  './manifest.json',
-  './history.js'
+  './app.js',
+  './styles.js',
+  './animations.js',
+  './daycards.js',
+  './quickschedule.js',
+  './history.js',
+  './jobhistory.js',
+  './borders.js',
+  './data.js',
+  './theme.js',
+  './rand.js',
+  './lcars.js',
+  './fx.js'
 ];
 
 self.addEventListener('install', e => {
