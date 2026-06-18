@@ -21,8 +21,27 @@ var JH_COLORS_HEX = [
 ];
 var JH_MO = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+
+function jhSetBackSvg(){
+  var isPxl=document.body.classList.contains('pxl-font');
+  var svg=isPxl?'<svg width="20" height="20" viewBox="0 0 7 7" fill="none" shape-rendering="crispEdges"><rect x="4" y="0" width="1" height="1" fill="currentColor"/><rect x="3" y="1" width="1" height="1" fill="currentColor"/><rect x="2" y="2" width="1" height="1" fill="currentColor"/><rect x="1" y="3" width="1" height="1" fill="currentColor"/><rect x="2" y="4" width="1" height="1" fill="currentColor"/><rect x="3" y="5" width="1" height="1" fill="currentColor"/><rect x="4" y="6" width="1" height="1" fill="currentColor"/></svg>':'<svg width="22" height="22" viewBox="0 0 50 50" fill="none"><line x1="42" y1="10" x2="8" y2="25" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><line x1="42" y1="40" x2="8" y2="25" stroke="currentColor" stroke-width="5" stroke-linecap="round"/></svg>';
+  ['jhWindowBack','jhFormBack'].forEach(function(id){
+    var b=document.getElementById(id); if(b) b.innerHTML=svg;
+  });
+}
 // ── PUBLIC API — defined first so onclick always finds it ─────────────────────
-window.openJobHistoryWindow  = function(){ jhRenderCo(); openWindow('jhWindow'); };
+window.openJobHistoryWindow  = function(){
+  jhSetBackSvg();
+  jhSetView('companies');
+  jhRenderCo();
+  openWindow('jhWindow');
+  requestAnimationFrame(function(){
+    var w=document.getElementById('jhWindow'); if(w) w.scrollTop=0;
+    if(typeof DrawnBorders!=='undefined'&&typeof appSettings!=='undefined'&&appSettings.drawnBorders){
+      DrawnBorders._applyFormWindow('jhWindow');
+    }
+  });
+};
 window.closeJobHistoryWindow = function(){ closeWindow('jhWindow'); };
 
 // ── INJECT STYLES ─────────────────────────────────────────────────────────────
@@ -36,6 +55,7 @@ function jhPm(s){ if(!s) return null; var p=s.split('-'); return [+p[0],+p[1]]; 
 function jhPmDay(ms,ds){ if(!ms) return null; var a=jhPm(ms); var d=parseInt(ds); if(d>=1&&d<=31) a.push(d); return a; }
 function jhToH(a){ return a ? a[0]+(a[1]-1)/12+((a[2]||1)-1)/(12*31) : 0; }
 function jhFmt(a){ return a ? JH_MO[a[1]-1]+' '+a[0] : '?'; }
+function jhFmtDay(a){ return a ? JH_MO[a[1]-1]+(a[2]?' '+String(a[2]).padStart(2,'0')+',':'')+' '+a[0] : '?'; }
 // format years/months only (card info + total)
 function jhFmtDur(mo){
   if(mo<0) mo=0;
@@ -61,16 +81,12 @@ function jhFmtDurDays(sd, ed, showDays){
   if(showDays&&diff.d>0) parts.push(String(diff.d).padStart(2,'0')+' '+(diff.d===1?'DAY':'DAYS'));
   return parts.join(', ');
 }
-// role duration — shows days when start day exists or role is current
+// role duration — always shows days if non-zero
 function jhDur(s,e){
   if(!s) return jhFmtDur(0);
-  var hasDayData=s[2]||(e&&e[2])||!e; // start day, end day, or current
-  if(hasDayData){
-    var sd=new Date(s[0],s[1]-1,s[2]||1);
-    var ed=e?new Date(e[0],e[1]-1,e[2]||1):new Date();
-    return jhFmtDurDays(sd,ed,true);
-  }
-  return jhFmtDur(Math.round((jhToH(e)-jhToH(s))*12));
+  var sd=new Date(s[0],s[1]-1,s[2]||1);
+  var ed=e?new Date(e[0],e[1]-1,e[2]||1):new Date();
+  return jhFmtDurDays(sd,ed,true);
 }
 function jhTotalDur(job){
   var totalMo=0, totalDays=0;
@@ -82,8 +98,13 @@ function jhTotalDur(job){
     totalMo+=diff.y*12+diff.m;
     totalDays+=diff.d;
   });
-  totalMo+=Math.floor(totalDays/30); // carry excess days into months
-  return jhFmtDur(totalMo);
+  totalMo+=Math.floor(totalDays/30);
+  var remDays=totalDays%30;
+  var y=Math.floor(totalMo/12), m=totalMo%12, parts=[];
+  if(y>0) parts.push(String(y).padStart(2,'0')+' '+(y===1?'YEAR':'YEARS'));
+  if(m>0||y===0) parts.push(String(m).padStart(2,'0')+' '+(m===1?'MONTH':'MONTHS'));
+  if(remDays>0) parts.push(String(remDays).padStart(2,'0')+' '+(remDays===1?'DAY':'DAYS'));
+  return parts.join(', ');
 }
 function jhCoStart(j){
   return j.roles.reduce(function(m,r){ return(r.start&&(!m||jhToH(r.start)<jhToH(m)))?r.start:m; },null)||j.roles[0].start;
@@ -132,6 +153,7 @@ function jhSetView(v){
   document.getElementById('jhCoView').className=(v==='companies'?'on':'');
   document.getElementById('jhTlView').className=(v==='timeline'?'on':'');
   document.getElementById('jhDataView').className=(v==='data'?'on':'');
+  var w=document.getElementById('jhWindow'); if(w) w.scrollTop=0;
   if(v==='timeline') requestAnimationFrame(function(){ requestAnimationFrame(jhRenderTL); });
   if(v==='data') jhRenderData();
 }
@@ -152,7 +174,7 @@ function jhRenderCo(){
     hdr.innerHTML='<div class="jh-card-name">'+job.company+'</div>';
     var info=document.createElement('div'); info.className='jh-card-info';
     info.innerHTML='<div class="jh-card-dur">'+jhTotalDur(job)+'</div>'+
-      '<div class="jh-card-dates">'+jhFmt(s)+' \u2013 '+(cur?'Present':jhFmt(e))+'</div>';
+      '<div class="jh-card-dates">'+jhFmtDay(s)+' \u2013 '+(cur?'PRESENT':jhFmtDay(e))+'</div>';
     var roles=document.createElement('div'); roles.className='jh-card-roles';
     var idx=0;
     job.roles.forEach(function(r){
@@ -161,7 +183,7 @@ function jhRenderCo(){
       ri.style.background=bg;
       ri.innerHTML='<div class="jh-role-title">'+r.title+'</div>'+
         '<div class="jh-role-dur">'+jhDur(r.start,r.end)+'</div>'+
-        '<div class="jh-role-dates">'+jhFmt(r.start)+' \u2013 '+(r.end?jhFmt(r.end):'Present')+'</div>';
+        '<div class="jh-role-dates">'+jhFmtDay(r.start)+' \u2013 '+(r.end?jhFmtDay(r.end):'PRESENT')+'</div>';
       roles.appendChild(ri); idx++;
     });
     var acts=document.createElement('div'); acts.className='jh-actions';
@@ -378,10 +400,14 @@ function jhOpenNew(){
   var inp=document.getElementById('jhCompanyInp'); if(inp) inp.value='';
   var rw=document.getElementById('jhRolesWrap'); if(rw) rw.innerHTML='';
   jhBuildSw(0); jhChkReady();
+  jhSetBackSvg();
   var fw=document.getElementById('jhFormWindow');
   fw.classList.add('open');
   fw.setAttribute('tabindex','-1');
   fw.focus();
+  if(typeof DrawnBorders!=='undefined'&&typeof appSettings!=='undefined'&&appSettings.drawnBorders){
+    requestAnimationFrame(function(){ DrawnBorders._applyFormWindow('jhFormWindow'); });
+  }
   jhAddRole();
 }
 function jhOpenEdit(id){
@@ -396,6 +422,9 @@ function jhOpenEdit(id){
   job.roles.forEach(function(r){ jhAddRole(r); });
   jhChkReady();
   document.getElementById('jhFormWindow').classList.add('open');
+  if(typeof DrawnBorders!=='undefined'&&typeof appSettings!=='undefined'&&appSettings.drawnBorders){
+    requestAnimationFrame(function(){ DrawnBorders._applyFormWindow('jhFormWindow'); });
+  }
 }
 function jhCloseForm(){
   jhEditId=null;
@@ -431,7 +460,7 @@ document.addEventListener('click', function(e){
     if(dv){ jhSetView(dv); return; }
     if(t.id==='jhWindowBack'){ closeJobHistoryWindow(); return; }
     if(t.id==='jhBtnAdd'){ jhOpenNew(); return; }
-    if(t.id==='jhFormBack'){ jhCloseForm(); return; }
+    if(t.id==='jhFormBack'||t.classList.contains('jh-form-back')){ jhCloseForm(); return; }
     if(t.id==='jhBtnRole'){ jhAddRole(); return; }
     if(t.id==='jhFormFoot'){ jhSaveJob(); return; }
     if(t.id==='jhBtnCopy'){ jhCopyExport(); return; }
@@ -471,3 +500,10 @@ document.addEventListener('click', function(e){
 
 document.getElementById('jhCompanyInp').addEventListener('input', jhChkReady);
 
+// ── FINAL BACK BUTTON INIT ────────────────────────────────────────────────────
+// Run after all scripts (data.js, theme.js etc.) have created their windows
+(function(){
+  var isPxl=document.body.classList.contains('pxl-font');
+  var svg=isPxl?'<svg width="20" height="20" viewBox="0 0 7 7" fill="none" shape-rendering="crispEdges"><rect x="4" y="0" width="1" height="1" fill="currentColor"/><rect x="3" y="1" width="1" height="1" fill="currentColor"/><rect x="2" y="2" width="1" height="1" fill="currentColor"/><rect x="1" y="3" width="1" height="1" fill="currentColor"/><rect x="2" y="4" width="1" height="1" fill="currentColor"/><rect x="3" y="5" width="1" height="1" fill="currentColor"/><rect x="4" y="6" width="1" height="1" fill="currentColor"/></svg>':'<svg width="22" height="22" viewBox="0 0 50 50" fill="none"><line x1="42" y1="10" x2="8" y2="25" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><line x1="42" y1="40" x2="8" y2="25" stroke="currentColor" stroke-width="5" stroke-linecap="round"/></svg>';
+  document.querySelectorAll('.data-window-back').forEach(function(b){ b.innerHTML=svg; });
+})();

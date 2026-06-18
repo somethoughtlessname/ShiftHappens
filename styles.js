@@ -252,6 +252,15 @@ body.overlay-over .header-tab { z-index: 10100; }
 /* -- Timer button - right section states -- */
 .job-card-arrow { display: flex; align-items: center; justify-content: center; }
 
+@keyframes tmAppear {
+  from { opacity: 0; transform: scale(0.3); }
+  to   { opacity: 1; transform: scale(1); }
+}
+svg[data-tm] {
+  animation: tmAppear 0.3s ease forwards;
+}
+
+
 .job-card-pause { display: flex; gap: 4px; align-items: center; }
 .job-card-pause-bar {
   width: 4px; height: 14px;
@@ -268,6 +277,10 @@ body.overlay-over .header-tab { z-index: 10100; }
   border-radius: 1px;
   transform: rotate(-45deg) translate(2px, -2px);
 }
+
+body.pxl-font .job-card-pause { gap: 3px; }
+body.pxl-font .job-card-check { display: none; }
+body.pxl-font .job-card-pause-bar { width: 5px; height: 14px; border-radius: 0; }
 
 @keyframes timerBlink {
   0%, 100% { filter: brightness(1); }
@@ -824,6 +837,9 @@ body.overlay-over .header-tab { z-index: 10100; }
 }
 .toggle-card.active .toggle-check { background: var(--primary); color: var(--text-light); }
 .toggle-check svg { display: none; }
+.toggle-check .ck-p { display: none; }
+body.pxl-font .toggle-check .ck-s { display: none; }
+body.pxl-font .toggle-check .ck-p { display: inline; }
 .toggle-card.active .toggle-check svg { display: block; }
 .toggle-content {
   flex: 1; display: flex; flex-direction: column; min-width: 0;
@@ -932,6 +948,12 @@ body.theme-dusk { filter: brightness(0.95) contrast(0.95) saturate(0.8); }
 .tl-ghost.expired::before { content:''; position:absolute; inset:0; border-radius:99px; background:currentColor; opacity:0.25; }
 .tl-live { position:absolute; top:6px; height:8px; border:2px solid var(--border-color); border-radius:99px; z-index:7; display:none; pointer-events:none; }
 .tl-tri { position:absolute; bottom:0; width:0; height:0; border-left:7px solid transparent; border-right:7px solid transparent; border-bottom:9px solid var(--primary); transform:translateX(-50%); z-index:6; }
+.tl-tri-px { position:absolute; bottom:0; transform:translateX(-50%); z-index:6; color:var(--primary); display:none; line-height:0; }
+body.pxl-font .tl-tri { display:none; }
+body.pxl-font .tl-tri-px { display:block; }
+.tl-tri-px { position:absolute; bottom:0; transform:translateX(-50%); z-index:6; color:var(--primary); display:none; line-height:0; }
+body.pxl-font .tl-tri { display:none; }
+body.pxl-font .tl-tri-px { display:block; }
 
 /* ------- SETTING EXPAND CARD (Pantry Pro style dropdown) ------- */
 .setting-expand-card { border:var(--border-width) solid var(--border-color); border-radius:var(--radius); overflow:hidden; flex-shrink:0; }

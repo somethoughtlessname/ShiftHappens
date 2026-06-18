@@ -62,7 +62,7 @@ function buildDowBtns(onclickFn) {
 function buildDotGrid() {
   const ns='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(ns,'svg');
-  svg.setAttribute('width','34');svg.setAttribute('height','34');svg.setAttribute('viewBox','0 0 34 34');
+  svg.setAttribute('width','100%');svg.setAttribute('height','100%');svg.setAttribute('viewBox','0 0 34 34');svg.setAttribute('overflow','hidden');svg.style.display='block';
   const cx=17,cy=17,outerR=14,innerR=7,dotR=2.2,n7=12,n5=6;
   for(let i=0;i<n7;i++){const a=(2*Math.PI*i/n7)-Math.PI/2;const c=document.createElementNS(ns,'circle');c.setAttribute('cx',(cx+outerR*Math.cos(a)).toFixed(2));c.setAttribute('cy',(cy+outerR*Math.sin(a)).toFixed(2));c.setAttribute('r',dotR);c.style.fill=i%2===0?'var(--primary)':'var(--secondary)';svg.appendChild(c);}
   for(let i=0;i<n5;i++){const a=(2*Math.PI*i/n5)-Math.PI/2;const c=document.createElementNS(ns,'circle');c.setAttribute('cx',(cx+innerR*Math.cos(a)).toFixed(2));c.setAttribute('cy',(cy+innerR*Math.sin(a)).toFixed(2));c.setAttribute('r',dotR);c.style.fill='var(--accent)';svg.appendChild(c);}
@@ -71,22 +71,61 @@ function buildDotGrid() {
 function spinDotGrid(btn, cb) {
   if(btn._spinning) return;
   btn._spinning = true;
-  const svg = btn.querySelector('svg'); if(!svg) return;
-  const circles = Array.from(svg.querySelectorAll('circle'));
-  const outer = circles.slice(0,12), inner = circles.slice(12);
-  const cx=17,cy=17,outerR=14,innerR=7,n7=12,n5=6;
-  const dur=1000; let start=null;
+  var svg = btn.querySelector('svg'); if(!svg) return;
+  var isPixel = !!svg.querySelector('rect');
+  var cx=17,cy=17,OR=14,IR=7,sw=4,sh=4,n7=12,n5=6,dur=1000; var start=null;
+  var outer,inner;
+  if(isPixel){
+    var rects=Array.from(svg.querySelectorAll('rect'));
+    outer=rects.slice(0,n7); inner=rects.slice(n7);
+  } else {
+    var circles=Array.from(svg.querySelectorAll('circle'));
+    outer=circles.slice(0,n7); inner=circles.slice(n7);
+  }
   function ease(t){return 1-Math.pow(1-t,3);}
   function step(ts){
     if(!start)start=ts;
-    const t=Math.min((ts-start)/dur,1),e=ease(t);
-    outer.forEach(function(c,i){const a=(2*Math.PI*i/n7-Math.PI/2)+e*Math.PI*2;c.setAttribute('cx',(cx+outerR*Math.cos(a)).toFixed(2));c.setAttribute('cy',(cy+outerR*Math.sin(a)).toFixed(2));});
-    inner.forEach(function(c,i){const a=(2*Math.PI*i/n5-Math.PI/2)-e*Math.PI*2;c.setAttribute('cx',(cx+innerR*Math.cos(a)).toFixed(2));c.setAttribute('cy',(cy+innerR*Math.sin(a)).toFixed(2));});
+    var t=Math.min((ts-start)/dur,1),e=ease(t);
+    if(isPixel){
+      outer.forEach(function(r,i){var a=(2*Math.PI*i/n7-Math.PI/2)+e*Math.PI*2;r.setAttribute('x',(cx+OR*Math.cos(a)-sw/2).toFixed(2));r.setAttribute('y',(cy+OR*Math.sin(a)-sh/2).toFixed(2));});
+      inner.forEach(function(r,i){var a=(2*Math.PI*i/n5-Math.PI/2)-e*Math.PI*2;r.setAttribute('x',(cx+IR*Math.cos(a)-sw/2).toFixed(2));r.setAttribute('y',(cy+IR*Math.sin(a)-sh/2).toFixed(2));});
+    } else {
+      outer.forEach(function(c,i){var a=(2*Math.PI*i/n7-Math.PI/2)+e*Math.PI*2;c.setAttribute('cx',(cx+OR*Math.cos(a)).toFixed(2));c.setAttribute('cy',(cy+OR*Math.sin(a)).toFixed(2));});
+      inner.forEach(function(c,i){var a=(2*Math.PI*i/n5-Math.PI/2)-e*Math.PI*2;c.setAttribute('cx',(cx+IR*Math.cos(a)).toFixed(2));c.setAttribute('cy',(cy+IR*Math.sin(a)).toFixed(2));});
+    }
     if(t<1)requestAnimationFrame(step);else{btn._spinning=false;if(cb)cb();}
   }
   requestAnimationFrame(step);
 }
 const DOT_GRID = '';
+
+function buildPixelDotGrid() {
+  var ns='http://www.w3.org/2000/svg';
+  var svg=document.createElementNS(ns,'svg');
+  svg.setAttribute('width','100%');svg.setAttribute('height','100%');svg.setAttribute('viewBox','0 0 34 34');svg.setAttribute('overflow','hidden');svg.style.display='block';
+  var cx=17,cy=17,OR=14,IR=7,sw=4,sh=4,n7=12,n5=6;
+  for(var i=0;i<n7;i++){
+    var a=(2*Math.PI*i/n7)-Math.PI/2;
+    var r=document.createElementNS(ns,'rect');
+    r.setAttribute('width',sw);r.setAttribute('height',sh);
+    r.setAttribute('x',(cx+OR*Math.cos(a)-sw/2).toFixed(2));
+    r.setAttribute('y',(cy+OR*Math.sin(a)-sh/2).toFixed(2));
+    r.setAttribute('rx','0.5');
+    r.style.fill=i%2===0?'var(--primary)':'var(--secondary)';
+    svg.appendChild(r);
+  }
+  for(var i=0;i<n5;i++){
+    var a=(2*Math.PI*i/n5)-Math.PI/2;
+    var r=document.createElementNS(ns,'rect');
+    r.setAttribute('width',sw);r.setAttribute('height',sh);
+    r.setAttribute('x',(cx+IR*Math.cos(a)-sw/2).toFixed(2));
+    r.setAttribute('y',(cy+IR*Math.sin(a)-sh/2).toFixed(2));
+    r.setAttribute('rx','0.5');
+    r.style.fill='var(--accent)';
+    svg.appendChild(r);
+  }
+  return svg;
+}
 
 function buildWindows() {
   const html = `
@@ -114,7 +153,7 @@ function buildWindows() {
       <div class="data-window-header">
         <button class="data-window-back" onclick="closeWindow('jobWindow')" id="jobWindowBack"></button>
         <div class="data-window-title" id="jobWindowTitle"></div>
-        <button class="data-window-settings" onclick="spinDotGrid(this);setTimeout(openJobSettings,150)" id="jobSettingsBtn"></button>
+        <button class="data-window-settings" onclick="playDotGridExit(this);setTimeout(openJobSettings,100)" id="jobSettingsBtn"></button>
       </div>
       <div class="data-body" id="jobWindowBody">
         <div class="filter-card" id="weekFilterCard">
@@ -158,8 +197,8 @@ function buildWindows() {
         <div class="nw-color-card" id="jsColorCard">${buildSwatches('jsPickColor')}</div>
         <div class="label-card">Select First Day of Work Week</div>
         <div class="dow-card" id="dowCard">${buildDowBtns('jsPickDow')}</div>
-        <div class="toggle-card" id="toggleJs_showSecondShift" onclick="jobSettingToggle('showSecondShift')"><div class="toggle-check"><svg width="16" height="13" viewBox="0 0 16 13" fill="none"><path d="M1.5 6.5 L6 11 L14.5 1.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="toggle-content"><div class="toggle-label">Second Shift</div><div class="toggle-blurb">Show extra shift slot on each day card</div></div></div>
-        <div class="toggle-card" id="toggleJs_showGridLegend" onclick="jobSettingToggle('showGridLegend')"><div class="toggle-check"><svg width="16" height="13" viewBox="0 0 16 13" fill="none"><path d="M1.5 6.5 L6 11 L14.5 1.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="toggle-content"><div class="toggle-label">Grid Legend</div><div class="toggle-blurb">Show color legend below the grid view</div></div></div>
+        <div class="toggle-card" id="toggleJs_showSecondShift" onclick="jobSettingToggle('showSecondShift')"><div class="toggle-check"><svg width="20" height="14" viewBox="0 0 11 8" fill="none"><path class="ck-s" d="M1 4 L4.1 6.8 L10 0.9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" shape-rendering="geometricPrecision"/><rect class="ck-p" x="0" y="4" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="1" y="5" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="2" y="6" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="3" y="5" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="4" y="4" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="5" y="3" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="6" y="2" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="7" y="1" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="8" y="0" width="2" height="1" fill="currentColor"/></svg></div><div class="toggle-content"><div class="toggle-label">Second Shift</div><div class="toggle-blurb">Show extra shift slot on each day card</div></div></div>
+        <div class="toggle-card" id="toggleJs_showGridLegend" onclick="jobSettingToggle('showGridLegend')"><div class="toggle-check"><svg width="20" height="14" viewBox="0 0 11 8" fill="none"><path class="ck-s" d="M1 4 L4.1 6.8 L10 0.9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" shape-rendering="geometricPrecision"/><rect class="ck-p" x="0" y="4" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="1" y="5" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="2" y="6" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="3" y="5" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="4" y="4" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="5" y="3" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="6" y="2" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="7" y="1" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="8" y="0" width="2" height="1" fill="currentColor"/></svg></div><div class="toggle-content"><div class="toggle-label">Grid Legend</div><div class="toggle-blurb">Show color legend below the grid view</div></div></div>
         <div class="clear-card" id="clearFullCard" onclick="clearFullSchedule()">Clear Full Schedule</div>
         <div class="delete-card" id="deleteCard" onclick="jsDeleteJob()">Delete Job</div>
       </div>
@@ -179,9 +218,10 @@ function buildWindows() {
       </div>
       <div class="data-body" id="spanel-display">
         <div class="label-card">What shows in the main window</div>
-        <div class="toggle-card" id="toggleJobCards" onclick="settingToggle('showJobCards')"><div class="toggle-check"><svg width="16" height="13" viewBox="0 0 16 13" fill="none"><path d="M1.5 6.5 L6 11 L14.5 1.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="toggle-content"><div class="toggle-label">Job Cards</div><div class="toggle-blurb">Shows each job as a card with your next shift countdown</div></div></div>
+        <div class="toggle-card" id="toggleJobCards" onclick="settingToggle('showJobCards')"><div class="toggle-check"><svg width="20" height="14" viewBox="0 0 11 8" fill="none"><path class="ck-s" d="M1 4 L4.1 6.8 L10 0.9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" shape-rendering="geometricPrecision"/><rect class="ck-p" x="0" y="4" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="1" y="5" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="2" y="6" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="3" y="5" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="4" y="4" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="5" y="3" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="6" y="2" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="7" y="1" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="8" y="0" width="2" height="1" fill="currentColor"/></svg></div><div class="toggle-content"><div class="toggle-label">Job Cards</div><div class="toggle-blurb">Shows each job as a card with your next shift countdown</div></div></div>
         <div id="quickScheduleToggleSlot"></div>
         <div id="historyToggleSlot"></div>
+        <div id="jobHistoryToggleSlot"></div>
         <div id="timelineToggleSlot"></div>
       </div>
       <div class="data-body" id="spanel-cards" style="display:none;">
@@ -219,9 +259,9 @@ function buildWindows() {
         </div>
       <div class="data-body" id="spanel-other" style="display:none;">
         <div class="label-card">Interface</div>
-        <div class="toggle-card" id="toggleLcarsMode" onclick="lcarsToggle()"><div class="toggle-check"><svg width="16" height="13" viewBox="0 0 16 13" fill="none"><path d="M1.5 6.5 L6 11 L14.5 1.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="toggle-content"><div class="toggle-label">LCARS Mode</div><div class="toggle-blurb">Star Trek LCARS style interface</div></div></div>
+        <div class="toggle-card" id="toggleLcarsMode" onclick="lcarsToggle()"><div class="toggle-check"><svg width="20" height="14" viewBox="0 0 11 8" fill="none"><path class="ck-s" d="M1 4 L4.1 6.8 L10 0.9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" shape-rendering="geometricPrecision"/><rect class="ck-p" x="0" y="4" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="1" y="5" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="2" y="6" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="3" y="5" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="4" y="4" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="5" y="3" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="6" y="2" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="7" y="1" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="8" y="0" width="2" height="1" fill="currentColor"/></svg></div><div class="toggle-content"><div class="toggle-label">LCARS Mode</div><div class="toggle-blurb">Star Trek LCARS style interface</div></div></div>
         <div class="label-card">Style</div>
-        <div class="toggle-card" id="toggleDrawnBorders" onclick="settingToggle('drawnBorders')"><div class="toggle-check"><svg width="16" height="13" viewBox="0 0 16 13" fill="none"><path d="M1.5 6.5 L6 11 L14.5 1.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="toggle-content"><div class="toggle-label">Drawn Borders</div><div class="toggle-blurb">Hand-drawn pen style borders on job cards</div></div></div>
+        <div class="toggle-card" id="toggleDrawnBorders" onclick="settingToggle('drawnBorders')"><div class="toggle-check"><svg width="20" height="14" viewBox="0 0 11 8" fill="none"><path class="ck-s" d="M1 4 L4.1 6.8 L10 0.9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" shape-rendering="geometricPrecision"/><rect class="ck-p" x="0" y="4" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="1" y="5" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="2" y="6" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="3" y="5" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="4" y="4" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="5" y="3" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="6" y="2" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="7" y="1" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="8" y="0" width="2" height="1" fill="currentColor"/></svg></div><div class="toggle-content"><div class="toggle-label">Drawn Borders</div><div class="toggle-blurb">Hand-drawn pen style borders on job cards</div></div></div>
         <div class="label-card">Notifications</div>
         <div style="font-size:var(--text-xs);color:var(--text-mid);padding:2px 4px 6px;">Test that push notifications are working on your device</div>
         <div class="toggle-card" id="notifTestBtn" onclick="testNotification()" style="cursor:pointer;">
@@ -251,7 +291,7 @@ function buildWindows() {
   document.body.insertAdjacentHTML('beforeend', html);
 }
 
-const _settingsDefaults = { showJobCards: true, showQuickSchedule: true, showTimeDot: true, showHistory: true, showTimerSections: true, showMiniGraph: true, miniGraphDays: 3, theme: 'none', showSecondShift: true, customFont: 'def', drawnBorders: false, showTimelineCard: true, timelineRollover: false, timeline24h: false, timelineNightMode: '6pm6am', qsColor: '', qsDays: 7, histColor: '', histWeeks: 10, lcarsMode: false };
+const _settingsDefaults = { showJobHistory: true, showJobCards: true, showQuickSchedule: true, showTimeDot: true, showHistory: true, showTimerSections: true, showMiniGraph: true, miniGraphDays: 3, theme: 'none', showSecondShift: true, customFont: 'def', drawnBorders: false, showTimelineCard: true, timelineRollover: false, timeline24h: false, timelineNightMode: '6pm6am', qsColor: '', qsDays: 7, histColor: '', histWeeks: 10, lcarsMode: false };
 let appSettings = Object.assign({}, _settingsDefaults, ls('sch_settings', {}));
 
 function updateDaySqVar() {
@@ -282,7 +322,7 @@ function jobSettingToggle(key) {
 }
 
 function updateSettingsUI() {
-  const CHK = `<svg width="16" height="13" viewBox="0 0 16 13" fill="none"><path d="M1.5 6.5 L6 11 L14.5 1.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  const CHK = `<svg width="20" height="14" viewBox="0 0 11 8" fill="none"><path class="ck-s" d="M1 4 L4.1 6.8 L10 0.9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" shape-rendering="geometricPrecision"/><rect class="ck-p" x="0" y="4" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="1" y="5" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="2" y="6" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="3" y="5" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="4" y="4" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="5" y="3" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="6" y="2" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="7" y="1" width="2" height="1" fill="currentColor"/><rect class="ck-p" x="8" y="0" width="2" height="1" fill="currentColor"/></svg>`;
   function makeToggle(id, onclick, label, blurb) {
     return `<div class="toggle-card" id="${id}" onclick="${onclick}"><div class="toggle-check">${CHK}</div><div class="toggle-content"><div class="toggle-label">${label}</div><div class="toggle-blurb">${blurb}</div></div></div>`;
   }
@@ -291,6 +331,10 @@ function updateSettingsUI() {
   }
   const tsSlot = document.getElementById('timerSectionsToggleSlot');
   if (tsSlot) tsSlot.innerHTML = makeToggle('toggleTimerSections', "settingToggle('showTimerSections')", 'Quick Shift Timer', 'Timer button on the right side of each job card');
+  const jhSlot = document.getElementById('jobHistoryToggleSlot');
+  if (jhSlot) jhSlot.innerHTML = makeToggle('toggleJobHistory', "settingToggle('showJobHistory')", 'Job History', 'History button in the header to access work history');
+  var _jhBtn = document.getElementById('headerHistoryBtn');
+  if (_jhBtn) _jhBtn.style.display = appSettings.showJobHistory === false ? 'none' : '';
   const mgSlot = document.getElementById('miniGraphToggleSlot');
   if (mgSlot) {
     const mgOn = appSettings.showMiniGraph !== false;
@@ -487,7 +531,7 @@ function updateSettingsUI() {
   }
   const toggleMap = {
     showJobCards: 'toggleJobCards', showQuickSchedule: 'toggleQuickSchedule',
-    showTimeDot: 'toggleTimeDot', showHistory: 'toggleHistory',
+    showTimeDot: 'toggleTimeDot', showHistory: 'toggleHistory', showJobHistory: 'toggleJobHistory',
     showTimerSections: 'toggleTimerSections', showMiniGraph: 'toggleMiniGraph',
     showSecondShift: 'toggleSecondShift', drawnBorders: 'toggleDrawnBorders',
     showTimelineCard: 'toggleTimelineCard', timelineRollover: 'toggleTimelineRollover', timeline24h: 'toggleTimeline24h',
@@ -507,19 +551,34 @@ function openWindow(id) {
     injectWindowFx(id);
   }
   requestAnimationFrame(() => {
-    win.style.transition = 'opacity 0.6s';
-    win.style.opacity = '1';
-    setTimeout(() => { win.style.transition = ''; }, 200);
-    if(typeof appSettings!=='undefined'&&appSettings.drawnBorders&&typeof DrawnBorders!=='undefined'){
-      if(id==='newWindow') DrawnBorders.applyNewWindow();
-      if(id==='jobSettingsWindow') DrawnBorders.applyJobSettingsWindow();
-    }
+    requestAnimationFrame(() => {
+      win.style.transition = 'opacity 0.6s ease';
+      win.style.opacity = '1';
+      setTimeout(() => { win.style.transition = ''; }, 700);
+      if(typeof appSettings!=='undefined'&&appSettings.drawnBorders&&typeof DrawnBorders!=='undefined'){
+        if(id==='newWindow') DrawnBorders.applyNewWindow();
+        if(id==='jobSettingsWindow') DrawnBorders.applyJobSettingsWindow();
+      }
+    });
   });
 }
 
 function closeWindow(id) {
-  document.getElementById(id).classList.remove('open');
-  removeWindowFx(id);
+  var win = document.getElementById(id);
+  if(!win) return;
+  // animate back button while fading
+  var backBtn = win.querySelector('.data-window-back');
+  if(backBtn && typeof playBackBtnAnim === 'function') playBackBtnAnim(backBtn);
+  // 150ms fade out then remove
+  win.style.transition = 'opacity 0.6s ease';
+  win.style.opacity = '0';
+  setTimeout(function(){
+    win.classList.remove('open');
+    win.style.transition = '';
+    win.style.opacity = '';
+    removeWindowFx(id);
+    if(id==='jobSettingsWindow'){ var _b=document.getElementById('jobSettingsBtn'); if(_b) setTimeout(function(){ playDotGridEnter(_b); }, 80); }
+  }, 600);
 }
 function nwAutoSelect() {
   const first = document.querySelector('#nwColorCard .nw-swatch');
@@ -640,8 +699,15 @@ function getTimerState(job) {
 }
 
 function timerIcon(state, job) {
+  var isPxl=document.body.classList.contains('pxl-font');
+  var si = state==='running'?1:state==='done'?2:0;
+  if(typeof buildTimerSvgStr==='function'){
+    return isPxl ? buildTimerPxSvgStr(si) : buildTimerSvgStr(si);
+  }
+  // fallback (animations.js not yet loaded)
   if (state === 'running') return '<div class="job-card-pause"><div class="job-card-pause-bar"></div><div class="job-card-pause-bar"></div></div>';
-  else if (state === 'done') return '<div class="job-card-check"></div>';
+  else if (state === 'done') return isPxl ? '<svg width="20" height="14" viewBox="0 0 11 8" fill="none" shape-rendering="crispEdges"><rect x="0" y="4" width="2" height="1" fill="currentColor"/><rect x="1" y="5" width="2" height="1" fill="currentColor"/><rect x="2" y="6" width="2" height="1" fill="currentColor"/><rect x="3" y="5" width="2" height="1" fill="currentColor"/><rect x="4" y="4" width="2" height="1" fill="currentColor"/><rect x="5" y="3" width="2" height="1" fill="currentColor"/><rect x="6" y="2" width="2" height="1" fill="currentColor"/><rect x="7" y="1" width="2" height="1" fill="currentColor"/><rect x="8" y="0" width="2" height="1" fill="currentColor"/></svg>' : '<div class="job-card-check"></div>';
+  if(isPxl) return '<svg width="10" height="16" viewBox="0 0 5 9" fill="none" shape-rendering="crispEdges"><rect x="0" y="0" width="1" height="9" fill="currentColor"/><rect x="1" y="1" width="1" height="7" fill="currentColor"/><rect x="2" y="2" width="1" height="5" fill="currentColor"/><rect x="3" y="3" width="1" height="3" fill="currentColor"/><rect x="4" y="4" width="1" height="1" fill="currentColor"/></svg>';
   return '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 2 Q2 1 3 1.5 L13.5 7.5 Q15 8 13.5 8.5 L3 14.5 Q2 15 2 14 Z" fill="currentColor" style="color:var(--text-mid)" stroke="var(--text-mid)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>';
 }
 
@@ -659,23 +725,80 @@ function getElapsedStr(job) {
   return String(Math.floor(diff/60)).padStart(2,'0') + 'h ' + String(diff%60).padStart(2,'0') + 'm';
 }
 
-function timerTap(jobId, e) {
+function timerTap(jobId, e, el) {
   e.stopPropagation(); const job = jobs.find(j => j.id === jobId); if (!job) return;
   const key = getTimerKey(job); if (!job.worked) job.worked = {};
   const state = getTimerState(job);
   const todayKey = localDateKey(new Date());
-  if (state === 'idle') {
-    job.worked[todayKey] = { start: nowTimeStr(), end: null }; lsSet('sch_jobs', jobs); renderJobs();
-  } else if (state === 'running') {
-    job.worked[key].end = nowTimeStr(); lsSet('sch_jobs', jobs); renderJobs();
-    if (typeof renderHistory === 'function') { buildHistory(); renderHistory(); }
-  } else {
-    // done - if the completed shift was yesterday's (overnight ended today), start fresh without modal
-    if (key !== todayKey) {
-      job.worked[todayKey] = { start: nowTimeStr(), end: null }; lsSet('sch_jobs', jobs); renderJobs();
+
+  // done + same day → show modal, no animation
+  if(state==='done' && key===todayKey){ showTimerResetModal(job, key); return; }
+
+  function doChange(){
+    if(state==='idle'){
+      job.worked[todayKey]={start:nowTimeStr(),end:null}; lsSet('sch_jobs',jobs); renderJobs();
+    } else if(state==='running'){
+      job.worked[key].end=nowTimeStr(); lsSet('sch_jobs',jobs); renderJobs();
+      if(typeof renderHistory==='function'){buildHistory();renderHistory();}
     } else {
-      showTimerResetModal(job, key);
+      job.worked[todayKey]={start:nowTimeStr(),end:null}; lsSet('sch_jobs',jobs); renderJobs();
     }
+  }
+
+  // Try morph animation — swap existing icon for morph SVG, animate, then re-render
+  var timerEl = el;
+  var fromSi = state==='running'?1:state==='done'?2:0;
+  var toSi   = state==='idle'?1:state==='running'?2:0;
+  var _isPxl = document.body.classList.contains('pxl-font');
+  if(timerEl && typeof buildTimerSvg==='function' && typeof playTimerMorph==='function'){
+    try{
+      var _svg=_isPxl?buildTimerPxSvg(fromSi):buildTimerSvg(fromSi);
+      timerEl.innerHTML=''; timerEl.appendChild(_svg);
+      if(_isPxl){
+        playTimerMorph(timerEl, fromSi, toSi, function(){
+          if(typeof _pxSaveState==='function') _pxSaveState(job,state,key,todayKey);
+          // Surgical update — don't touch job card DOM at all (avoids blink)
+          // 1. Update bottom text on this card only
+          var allCards=document.querySelectorAll('.job-card');
+          for(var _ci=0;_ci<allCards.length;_ci++){
+            if(allCards[_ci].querySelector('[data-timer-job="'+jobId+'"]')){
+              var _bot=allCards[_ci].querySelector('.job-card-bottom');
+              var _nts=getTimerState(job);
+              if(_bot) _bot.textContent=_nts==='running'?(getElapsedStr(job)||'00h 00m'):(getNextShiftCountdown(job)||'-- h -- m');
+              break;
+            }
+          }
+          // 2. Rebuild quick schedule section (shift card appears there)
+          if(typeof buildQuickSchedule==='function'&&typeof renderQuickSchedule==='function'&&appSettings.showQuickSchedule){
+            buildQuickSchedule(); renderQuickSchedule();
+          }
+          // 3. Update history
+          if(typeof renderHistory==='function'){buildHistory();renderHistory();}
+        });
+      } else {
+        // smooth: morph then full re-render (new icon fades in via CSS)
+        playTimerMorph(timerEl, fromSi, toSi, doChange);
+      }
+    }catch(err){ doChange(); }
+  } else {
+    doChange();
+  }
+}
+
+
+function _animTimerReset(jobId, doneFn) {
+  var cardEl = document.querySelector('.job-card-right[data-timer-job="'+jobId+'"]');
+  if(cardEl && typeof buildTimerPxSvg==='function' && typeof playPxMorph==='function' && document.body.classList.contains('pxl-font')){
+    var svg = buildTimerPxSvg(2); // CHECK state
+    cardEl.innerHTML=''; cardEl.appendChild(svg);
+    var rects = Array.from(svg.querySelectorAll('rect'));
+    playPxMorph(rects,2,0,700,doneFn); // CHECK→PLAY
+  } else if(cardEl && typeof buildTimerSvg==='function' && typeof playTimerMorph==='function'){
+    var svg2 = buildTimerSvg(2);
+    cardEl.innerHTML=''; cardEl.appendChild(svg2);
+    playTimerMorph(cardEl,2,0,doneFn);
+  } else {
+    doneFn();
   }
 }
 
@@ -696,25 +819,27 @@ function showTimerResetModal(job, key) {
   modal.style.display = 'flex';
   document.getElementById('timerResetNo').onclick = () => { modal.style.display = 'none'; };
   document.getElementById('timerResetNew').onclick = () => {
-    // Start a new second shift -- save current, open new entry on today's key
     const todayKey = localDateKey(new Date());
-    if (!job.worked) job.worked = {};
-    // Move completed shift to extra if it was yesterday
-    if (key !== todayKey && job.worked[key]) {
-      job.worked[todayKey] = { start: nowTimeStr(), end: null };
-    } else {
-      if (!job.worked[todayKey]) job.worked[todayKey] = {};
-      if (!job.worked[todayKey].extra) job.worked[todayKey].extra = [];
-      job.worked[todayKey].extra.push({ start: nowTimeStr(), end: null });
-    }
-    lsSet('sch_jobs', jobs);
-    modal.style.display = 'none'; renderJobs();
+    _animTimerReset(job.id, function(){
+      if (!job.worked) job.worked = {};
+      if (key !== todayKey && job.worked[key]) {
+        job.worked[todayKey] = { start: nowTimeStr(), end: null };
+      } else {
+        if (!job.worked[todayKey]) job.worked[todayKey] = {};
+        if (!job.worked[todayKey].extra) job.worked[todayKey].extra = [];
+        job.worked[todayKey].extra.push({ start: nowTimeStr(), end: null });
+      }
+      lsSet('sch_jobs', jobs);
+      modal.style.display = 'none'; renderJobs();
+    });
   };
   document.getElementById('timerResetYes').onclick = () => {
     const key = getTimerKey(job);
-    if (!job.worked) job.worked = {}; delete job.worked[key]; lsSet('sch_jobs', jobs);
-    modal.style.display = 'none'; renderJobs();
-    if (typeof renderHistory === 'function') { buildHistory(); renderHistory(); }
+    _animTimerReset(job.id, function(){
+      if (!job.worked) job.worked = {}; delete job.worked[key]; lsSet('sch_jobs', jobs);
+      modal.style.display = 'none'; renderJobs();
+      if (typeof renderHistory === 'function') { buildHistory(); renderHistory(); }
+    });
   };
 }
 
@@ -736,15 +861,26 @@ function buildMiniGraph(job, container) {
   container.style.gap='1px';
   const maxH=Math.max(...days.map(d=>d.hours),1);
   const barEls=[];
+  var _isPxlMg=document.body.classList.contains('pxl-font');
   days.forEach(d=>{
     const col=document.createElement('div');
     col.style.cssText='display:flex;flex-direction:column;align-items:center;justify-content:flex-end;flex:1;min-width:0;';
     const barColor=d.when==='past'?blue:d.when==='today'?green:acc;
+    if(_isPxlMg && !d.hasShift){
+      // pixel diamond for off/unscheduled
+      const ns='http://www.w3.org/2000/svg';
+      const svg=document.createElementNS(ns,'svg');svg.setAttribute('width','100%');svg.setAttribute('height','8');svg.setAttribute('viewBox','0 0 6 6');svg.setAttribute('shape-rendering','crispEdges');
+      [[2,0,2,2],[0,2,6,2],[2,4,2,2]].forEach(function(r){const rect=document.createElementNS(ns,'rect');rect.setAttribute('x',r[0]);rect.setAttribute('y',r[1]);rect.setAttribute('width',r[2]);rect.setAttribute('height',r[3]);rect.setAttribute('fill',barColor);svg.appendChild(rect);});
+      col.appendChild(svg);
+      container.appendChild(col);
+      barEls.push({el:svg,d,targetH:3,grows:false});
+      return;
+    }
     const el=document.createElement('div');
     el.style.width='100%';
     el.style.background=barColor;
     el.style.height='3px';
-    el.style.borderRadius='2px';
+    el.style.borderRadius=_isPxlMg?'0':'2px';
     if(d.when==='today' && getOverlayCfg().overlay==='crt') {
       el.style.animation='crt-blink 1.8s ease-in-out infinite';
     }
@@ -756,7 +892,7 @@ function buildMiniGraph(job, container) {
     function easeInOut(t){return t<0.5?2*t*t:-1+(4-2*t)*t;}
     const configs=barEls.map(b=>({dur:1000+Math.random()*800,delay:Math.random()*250}));
     setTimeout(function(){
-      barEls.forEach(function(b,i){if(b.grows)b.el.style.borderRadius='2px 2px 0 0';});
+      barEls.forEach(function(b,i){if(b.grows){if(_isPxlMg){var cap=document.createElement('div');cap.style.cssText='width:calc(100% - 4px);margin:0 auto;height:2px;background:'+b.el.style.background+';';b.el.parentNode.insertBefore(cap,b.el);}else{b.el.style.borderRadius='2px 2px 0 0';}}});
       const t0=performance.now();
       function step(ts){
         const el=ts-t0; let done=true;
@@ -774,7 +910,7 @@ function buildMiniGraph(job, container) {
   } else {
     barEls.forEach(function(b){
       b.el.style.height=b.targetH+'px';
-      if(b.grows)b.el.style.borderRadius='2px 2px 0 0';
+      if(b.grows){if(_isPxlMg){var cap=document.createElement('div');cap.style.cssText='width:calc(100% - 4px);margin:0 auto;height:2px;background:'+b.el.style.background+';';b.el.parentNode.insertBefore(cap,b.el);}else{b.el.style.borderRadius='2px 2px 0 0';}}
     });
   }
 }
@@ -804,17 +940,37 @@ function buildExpandedGraph(job, container) {
       const el=document.createElement('div');
       const c=COL[day.when];
       const ns='http://www.w3.org/2000/svg';
+      var _isPxlEx=document.body.classList.contains('pxl-font');
       if(day.dayType==='worked'){
-        el.className='ex-bar';el.style.height=Math.max(2,Math.round((day.hours/maxH)*31))+'px';el.style.background=c;
-        col.appendChild(el);
+        if(_isPxlEx){
+          const h=Math.max(2,Math.round((day.hours/maxH)*31));
+          const cap=document.createElement('div');cap.style.cssText='width:calc(100% - 4px);margin:0 auto;height:2px;background:'+c+';';
+          const bar=document.createElement('div');bar.style.cssText='width:100%;height:'+Math.max(2,h-2)+'px;background:'+c+';';
+          col.appendChild(cap);col.appendChild(bar);
+        } else {
+          el.className='ex-bar';el.style.height=Math.max(2,Math.round((day.hours/maxH)*31))+'px';el.style.background=c;
+          col.appendChild(el);
+        }
       } else if(day.dayType==='off'){
-        const svg=document.createElementNS(ns,'svg');svg.setAttribute('width','100%');svg.setAttribute('viewBox','0 0 10 10');
-        const ci=document.createElementNS(ns,'circle');ci.setAttribute('cx','5');ci.setAttribute('cy','5');ci.setAttribute('r','5');ci.setAttribute('fill',c);
-        svg.appendChild(ci);col.appendChild(svg);
+        const svg=document.createElementNS(ns,'svg');svg.setAttribute('width','100%');
+        if(_isPxlEx){
+          svg.setAttribute('viewBox','0 0 10 10');svg.setAttribute('shape-rendering','crispEdges');
+          [[3, 0, 4, 1], [1, 1, 8, 1], [0, 2, 10, 1], [0, 3, 10, 1], [0, 4, 10, 1], [0, 5, 10, 1], [0, 6, 10, 1], [0, 7, 10, 1], [1, 8, 8, 1], [3, 9, 4, 1]].forEach(function(r){const rect=document.createElementNS(ns,'rect');rect.setAttribute('x',r[0]);rect.setAttribute('y',r[1]);rect.setAttribute('width',r[2]);rect.setAttribute('height',r[3]);rect.setAttribute('fill',c);svg.appendChild(rect);});
+        } else {
+          svg.setAttribute('viewBox','0 0 10 10');
+          const ci=document.createElementNS(ns,'circle');ci.setAttribute('cx','5');ci.setAttribute('cy','5');ci.setAttribute('r','5');ci.setAttribute('fill',c);svg.appendChild(ci);
+        }
+        col.appendChild(svg);
       } else {
-        const svg=document.createElementNS(ns,'svg');svg.setAttribute('width','100%');svg.setAttribute('viewBox','0 0 10 8.66');
-        const poly=document.createElementNS(ns,'polygon');poly.setAttribute('points','0,8.66 10,8.66 5,0');poly.setAttribute('fill',c);
-        svg.appendChild(poly);col.appendChild(svg);
+        const svg=document.createElementNS(ns,'svg');svg.setAttribute('width','100%');
+        if(_isPxlEx){
+          svg.setAttribute('viewBox','0 0 7 3');svg.setAttribute('shape-rendering','crispEdges');
+          [[3,0,1,1],[2,1,3,1],[1,2,5,1]].forEach(function(r){const rect=document.createElementNS(ns,'rect');rect.setAttribute('x',r[0]);rect.setAttribute('y',r[1]);rect.setAttribute('width',r[2]);rect.setAttribute('height',r[3]);rect.setAttribute('fill',c);svg.appendChild(rect);});
+        } else {
+          svg.setAttribute('viewBox','0 0 10 8.66');
+          const poly=document.createElementNS(ns,'polygon');poly.setAttribute('points','0,8.66 10,8.66 5,0');poly.setAttribute('fill',c);svg.appendChild(poly);
+        }
+        col.appendChild(svg);
       }
       week.appendChild(col);
     }
@@ -842,6 +998,13 @@ function applyCustomFont(id) {
   const f = CUSTOM_FONTS[id || 'def'];
   const isPxl = id === 'pxlf';
   s.textContent = (id && id !== 'def') ? `*{font-family:${f.family}!important;}` + (isPxl ? `:root{--text-xs:13px;--text-sm:16px;--text-md:19px;}` : '') : '';
+  document.body.classList.toggle('pxl-font', isPxl);
+  var _backSvg = isPxl
+    ? '<svg width="20" height="20" viewBox="0 0 7 7" fill="none" shape-rendering="crispEdges"><rect x="4" y="0" width="1" height="1" fill="currentColor"/><rect x="3" y="1" width="1" height="1" fill="currentColor"/><rect x="2" y="2" width="1" height="1" fill="currentColor"/><rect x="1" y="3" width="1" height="1" fill="currentColor"/><rect x="2" y="4" width="1" height="1" fill="currentColor"/><rect x="3" y="5" width="1" height="1" fill="currentColor"/><rect x="4" y="6" width="1" height="1" fill="currentColor"/></svg>'
+    : '<svg width="22" height="22" viewBox="0 0 50 50" fill="none"><line x1="42" y1="10" x2="8" y2="25" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><line x1="42" y1="40" x2="8" y2="25" stroke="currentColor" stroke-width="5" stroke-linecap="round"/></svg>';
+  document.querySelectorAll('.data-window-back').forEach(function(b){ b.innerHTML = _backSvg; });
+  var btn=document.getElementById('jobSettingsBtn');
+  if(btn){ btn.innerHTML=''; btn.appendChild(isPxl?buildPixelDotGrid():buildDotGrid()); }
 }
 
 
@@ -1058,6 +1221,7 @@ function buildTimelineCard() {
 
   // Triangle cursor
   var tri=document.createElement('div'); tri.className='tl-tri'; tri.style.left=pctN(nowH).toFixed(3)+'%'; card.appendChild(tri);
+  var triPx=document.createElement('div'); triPx.className='tl-tri-px'; triPx.style.left=pctN(nowH).toFixed(3)+'%'; triPx.innerHTML='<svg width="14" height="6" viewBox="0 0 14 6" fill="none" shape-rendering="crispEdges"><rect x="6" y="0" width="2" height="2" fill="currentColor"/><rect x="4" y="2" width="6" height="2" fill="currentColor"/><rect x="2" y="4" width="10" height="2" fill="currentColor"/></svg>'; card.appendChild(triPx);
   return card;
 }
 
@@ -1083,7 +1247,7 @@ function renderJobs() {
       `<div class="jc-normal">` +
       (showGraph ? `<div class="job-card-left" id="graph-${job.id}" style="display:flex;flex-direction:row;align-items:flex-end;padding:3px 4px;gap:1px;"></div>` : '') +
       `<div class="job-card-center"><div class="job-card-top" style="background:${job.color}"><span class="job-card-title">${job.title}</span></div><div class="job-card-bottom">${bottomText}</div></div>` +
-      (showTimer ? `<div class="job-card-right" onclick="timerTap(${job.id}, event)">${timerIcon(timerState, job)}</div>` : '') +
+      (showTimer ? `<div class="job-card-right" data-timer-job="${job.id}" onclick="timerTap(${job.id}, event, this)">${timerIcon(timerState, job)}</div>` : '') +
       `</div>` +
       (showGraph ? `<div class="jc-expanded" id="exp-${job.id}"></div>` : '');
     if (showGraph) {
@@ -1144,9 +1308,11 @@ function openJobWindow(job) {
   jw.classList.add('open');
   injectWindowFx('jobWindow');
   requestAnimationFrame(() => {
-    jw.style.transition = 'opacity 0.6s';
-    jw.style.opacity = '1';
-    setTimeout(() => { jw.style.transition = ''; }, 200);
+    requestAnimationFrame(() => {
+      jw.style.transition = 'opacity 0.6s ease';
+      jw.style.opacity = '1';
+      setTimeout(() => { jw.style.transition = ''; }, 700);
+    });
   });
   const hoursCard = document.getElementById('hoursCard');
   if(appSettings.drawnBorders&&typeof DrawnBorders!=='undefined')
